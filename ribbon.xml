@@ -1,0 +1,35 @@
+<!--
+  @Module: ribbon.xml
+  @Category: UI
+  @Description: Generated Ribbon UI definition for the Beaver Add-in.
+  @ManagedBy: BeaverAddin Agent
+  @Source: features.json via Update.ps1
+-->
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
+  <ribbon>
+    <tabs>
+      <tab id="BeaverTab" label="BEAVER" keytip="B">
+        <group id="GrpFormatting" label="Formatting">
+          <button id="BtnMergeFormulas" label="Merge Formulas" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnMergeFormulas" keytip="MF" screentip="Merge Formulas" supertip="Selects two related cells and inlines the precedent formula into the dependent, producing a single combined formula. Fully spill-range and dynamic array safe." />
+          <button id="BtnWrap" label="Wrap Formula" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnWrapSelectionWithFormula" keytip="W" screentip="Wrap Formula" supertip="Wraps every formula or value in the selection with a pattern you supply. Use [value] as the placeholder for existing cell content - e.g. =IFERROR([value], 0). Remembers the last-used pattern." />
+          <button id="BtnStaticSheetWorkbook" label="Static Sheet/WB" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnStaticSheetWorkbook" keytip="SW" screentip="Convert Formulas to Static Values" supertip="Permanently replaces all formulas with their current values across the active sheet or the entire workbook. Handles spill ranges correctly." />
+        </group>
+        <group id="GrpCleanup" label="Data Tools">
+          <button id="BtnCleanData" label="Clean Data" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnCleanData" keytip="CD" screentip="Clean Data" supertip="Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook)." />
+          <button id="BtnBreakLinks" label="Break Links" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnBreakExternalLinks" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />
+          <button id="BtnDateConv" label="Fix Dates" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnConvertTextToProperDate" keytip="FX" screentip="Fix Text Dates" supertip="Converts text-based date strings in the selected column into proper Excel date values." />
+        </group>
+        <group id="GrpExport" label="File Actions">
+          <button id="BtnDuplicate" label="Duplicate" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnDuplicate" keytip="DP" screentip="Copy to Desktop" supertip="Creates a copy of this workbook on your desktop for quick sharing." />
+          <button id="BtnExport" label="Export Range" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnExport" keytip="EX" screentip="Export as Image or PDF" supertip="Exports the selected range (or the full used range if nothing is selected) to your Desktop as a PNG image or a fit-to-page PDF." />
+        </group>
+        <group id="GrpStructure" label="Workspace">
+          <button id="BtnFullScreen" label="Focus Mode" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnToggleFullScreen" keytip="FM" screentip="Toggle Focus Mode" supertip="Hides or restores worksheet chrome to maximise working area." />
+        </group>
+        <group id="BeaverHelpGroup" label="Support">
+          <button id="BtnHotkeys" label="Hotkeys" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnShowHotkeysHelp" keytip="H" screentip="Show Keyboard Shortcuts" supertip="Opens the Beaver keyboard shortcut reference, listing all registered hotkeys and their descriptions." />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>

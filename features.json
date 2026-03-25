@@ -1,0 +1,227 @@
+{
+  "Tab": {
+    "Id": "BeaverTab",
+    "Label": "BEAVER",
+    "Keytip": "B"
+  },
+  "Groups": [
+    {
+      "Id": "GrpFormatting",
+      "Label": "Formatting",
+      "Features": [
+        "BtnMergeFormulas",
+        "BtnWrap",
+        "BtnStaticSheetWorkbook"
+      ]
+    },
+    {
+      "Id": "GrpCleanup",
+      "Label": "Data Tools",
+      "Features": [
+        "BtnCleanData",
+        "BtnBreakLinks",
+        "BtnDateConv"
+      ]
+    },
+    {
+      "Id": "GrpExport",
+      "Label": "File Actions",
+      "Features": [
+        "BtnDuplicate",
+        "BtnExport"
+      ]
+    },
+    {
+      "Id": "GrpStructure",
+      "Label": "Workspace",
+      "Features": [
+        "BtnFullScreen"
+      ]
+    },
+    {
+      "Id": "BeaverHelpGroup",
+      "Label": "Support",
+      "Features": [
+        "BtnHotkeys"
+      ]
+    }
+  ],
+  "Features": [
+    {
+      "ControlId": "BtnMergeFormulas",
+      "Label": "Merge Formulas",
+      "OnAction": "Ribbon_OnMergeFormulas",
+      "Macro": "Feat_MergeFormulas.MergeFormulas",
+      "Icon": "MergeCells",
+      "Keytip": "MF",
+      "Screentip": "Merge Formulas",
+      "Supertip": "Selects two related cells and inlines the precedent formula into the dependent, producing a single combined formula. Fully spill-range and dynamic array safe.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnWrap",
+      "Label": "Wrap Formula",
+      "OnAction": "Ribbon_OnWrapSelectionWithFormula",
+      "Macro": "Feat_WrapSelectedRange.WrapSelectionWithFormula",
+      "Icon": "FunctionWizard",
+      "Keytip": "W",
+      "Screentip": "Wrap Formula",
+      "Supertip": "Wraps every formula or value in the selection with a pattern you supply. Use [value] as the placeholder for existing cell content - e.g. =IFERROR([value], 0). Remembers the last-used pattern.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnStaticSheetWorkbook",
+      "Label": "Static Sheet/WB",
+      "OnAction": "Ribbon_OnStaticSheetWorkbook",
+      "Macro": "Feat_MakeItStatic.StaticSheetWorkbook",
+      "Icon": "CalculateNow",
+      "Keytip": "SW",
+      "Screentip": "Convert Formulas to Static Values",
+      "Supertip": "Permanently replaces all formulas with their current values across the active sheet or the entire workbook. Handles spill ranges correctly.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnCleanData",
+      "Label": "Clean Data",
+      "OnAction": "Ribbon_OnCleanData",
+      "Macro": "Feat_CleanData.CleanData",
+      "Icon": "Clear",
+      "Keytip": "CD",
+      "Screentip": "Clean Data",
+      "Supertip": "Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook).",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnBreakLinks",
+      "Label": "Break Links",
+      "OnAction": "Ribbon_OnBreakExternalLinks",
+      "Macro": "Feat_BreakExternalLinks.BreakExternalLinks",
+      "Icon": "WorkbookLinks",
+      "Keytip": "BL",
+      "Screentip": "Break External Links",
+      "Supertip": "Removes all external workbook references and keeps current values.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnDateConv",
+      "Label": "Fix Dates",
+      "OnAction": "Ribbon_OnConvertTextToProperDate",
+      "Macro": "Feat_DateConversion.ConvertTextToProperDate",
+      "Icon": "DateAndTimeInsert",
+      "Keytip": "FX",
+      "Screentip": "Fix Text Dates",
+      "Supertip": "Converts text-based date strings in the selected column into proper Excel date values.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnDuplicate",
+      "Label": "Duplicate",
+      "OnAction": "Ribbon_OnDuplicate",
+      "Macro": "Feat_Duplicate.Duplicate",
+      "Icon": "FileSaveAs",
+      "Keytip": "DP",
+      "Screentip": "Copy to Desktop",
+      "Supertip": "Creates a copy of this workbook on your desktop for quick sharing.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnExport",
+      "Label": "Export Range",
+      "OnAction": "Ribbon_OnExport",
+      "Macro": "Feat_ExportImageOrPdf.Export",
+      "Icon": "Export",
+      "Keytip": "EX",
+      "Screentip": "Export as Image or PDF",
+      "Supertip": "Exports the selected range (or the full used range if nothing is selected) to your Desktop as a PNG image or a fit-to-page PDF.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnFullScreen",
+      "Label": "Focus Mode",
+      "OnAction": "Ribbon_OnToggleFullScreen",
+      "Macro": "Feat_ToggleFullScreen.ToggleFullScreen",
+      "Icon": "ViewFullScreenView",
+      "Keytip": "FM",
+      "Screentip": "Toggle Focus Mode",
+      "Supertip": "Hides or restores worksheet chrome to maximise working area.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnHotkeys",
+      "Label": "Hotkeys",
+      "OnAction": "Ribbon_OnShowHotkeysHelp",
+      "Macro": "Infra_Hotkeys.ShowHotkeysHelp",
+      "Icon": "Help",
+      "Keytip": "H",
+      "Screentip": "Show Keyboard Shortcuts",
+      "Supertip": "Opens the Beaver keyboard shortcut reference, listing all registered hotkeys and their descriptions.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    }
+  ],
+  "Hotkeys": [
+    {
+      "Key": "^+4",
+      "Macro": "Feat_FormatRange.ApplyCustomNumberFormat",
+      "Description": "Apply custom number format",
+      "ReleaseTier": "stable"
+    },
+    {
+      "Key": "^+p",
+      "Macro": "Feat_MakeItStatic.MakePermanent",
+      "Description": "Make selection permanent (values)",
+      "ReleaseTier": "stable"
+    },
+    {
+      "Key": "+{F11}",
+      "Macro": "Feat_CreateSheet.CreateNamedSheet",
+      "Description": "Create named sheet",
+      "ReleaseTier": "stable"
+    },
+    {
+      "Key": "^%{DOWN}",
+      "Macro": "Feat_FillDown.FillDown",
+      "Description": "Fill formula/format down",
+      "ReleaseTier": "stable"
+    },
+    {
+      "Key": "^+f",
+      "Macro": "Feat_FilterByCell.FilterBySelectedCell",
+      "Description": "Filter by selected cell",
+      "ReleaseTier": "stable"
+    },
+    {
+      "Key": "^+m",
+      "Macro": "Feat_FormatRange.PasteFormat",
+      "Description": "Paste formats only",
+      "ReleaseTier": "stable"
+    },
+    {
+      "Key": "^+q",
+      "Macro": "Feat_FormatRange.FormatSelectedRange",
+      "Description": "Format selected range",
+      "ReleaseTier": "stable"
+    },
+    {
+      "Key": "{BACKSPACE}",
+      "Macro": "Feat_BackspaceDelete.Backspace",
+      "Description": "Clear cell contents",
+      "ReleaseTier": "stable"
+    },
+    {
+      "Key": "{DELETE}",
+      "Macro": "Feat_BackspaceDelete.Delete",
+      "Description": "Clear or delete selection",
+      "ReleaseTier": "stable"
+    }
+  ]
+}
