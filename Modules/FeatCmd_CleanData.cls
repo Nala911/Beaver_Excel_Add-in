@@ -1,11 +1,19 @@
-Attribute VB_Name = "Feat_CleanData"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_CleanData"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_CleanData
+Implements ICommand
+
+' @Module: FeatCmd_CleanData
 ' @Category: Feature
 ' @Description: Advanced data cleaning tools (Trim, Clean).
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppStateGuard, Infra_AppState, Infra_Config, Infra_Error, Infra_CleanDataRequest, Infra_Undo, Infra_Progress
 
 Private Enum CleanDataScope
     CleanDataScopeSelection = 1
@@ -13,12 +21,20 @@ Private Enum CleanDataScope
     CleanDataScopeWorkbook = 3
 End Enum
 
-' Trims spaces and removes non-printable characters for the selected scope.
-Public Sub CleanData()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("CleanData")
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CleanData.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "CleanData.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CleanData.Execute")
     On Error GoTo ErrHandler
     
-    Dim guard As New Infra_AppStateGuard
     Dim ctx As Infra_ActionContext
     Dim request As Infra_CleanDataRequest
     Dim stateInfo As Collection
@@ -29,24 +45,23 @@ Public Sub CleanData()
     If ctx Is Nothing Then GoTo CleanExit
     If Not ctx.HasRangeSelection Then GoTo CleanExit
     If ctx.SelectionRange Is Nothing Or ctx.WorksheetRef Is Nothing Or ctx.WorkbookRef Is Nothing Then GoTo CleanExit
+    
     Infra_Error.AddState stateInfo, "Workbook", ctx.WorkbookRef.Name
     Infra_Error.AddState stateInfo, "Worksheet", ctx.WorksheetRef.Name
     Infra_Error.AddState stateInfo, "Selection", ctx.SelectionRange.Address(False, False)
 
-    ' IMPROVED WORKFLOW: Use UI Factory for decentralized request building.
     Set request = Infra_UIFactory.ShowCleanDataDialog(ctx)
     If request Is Nothing Then GoTo CleanExit
+    
     ExecuteCleanData request
 
 CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "CleanData", Err, stateInfo
+    Infra_Error.HandleError "CleanData.Execute", Err, stateInfo
     Resume CleanExit
 End Sub
-
-' BuildCleanDataRequest function removed in favor of Infra_UIFactory.ShowCleanDataDialog
 
 Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteCleanData")
@@ -100,11 +115,10 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "ExecuteCleanData", Err, stateInfo
+    Infra_Error.HandleError "ExecuteCleanData", Err, stateInfo
     Resume CleanExit
 End Sub
 
-' Internal helper to process a specific range for cleaning (Trim and Clean).
 Private Sub ProcessRangeForClean(ByRef targetRange As Range, Optional ByVal ProgressWeight As Double = 0)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ProcessRangeForClean")
     On Error GoTo ErrHandler
@@ -145,7 +159,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "ProcessRangeForClean", Err
+    Infra_Error.HandleError "ProcessRangeForClean", Err
     Resume CleanExit
 End Sub
 
@@ -166,7 +180,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "CleanTextArray", Err
+    Infra_Error.HandleError "CleanTextArray", Err
     Resume CleanExit
 End Sub
 
@@ -184,6 +198,6 @@ CleanExit:
     Exit Function
 
 ErrHandler:
-    HandleError "CleanTextValue", Err
+    Infra_Error.HandleError "CleanTextValue", Err
     Resume CleanExit
 End Function

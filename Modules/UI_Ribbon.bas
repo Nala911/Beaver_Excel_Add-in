@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: UI
 ' @Description: Centralized Ribbon callbacks for the Beaver Add-in.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Config, Infra_Hotkeys, Feat_MergeFormulas, Feat_WrapSelectedRange, Feat_MakeItStatic, Feat_CleanData, Feat_BreakExternalLinks, Feat_DateConversion, Feat_Duplicate, Feat_ExportImageOrPdf, Feat_ToggleFullScreen, Infra_Error
+' @Dependencies: AppContainer, Infra_Config, Infra_Hotkeys, Infra_Error
 
 ' --- Dynamic UI Callbacks ---
 
@@ -24,7 +24,7 @@ Public Sub Ribbon_GetIcon(ByVal control As Object, ByRef image As Variant)
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_GetIcon", Err
+    Infra_Error.HandleError "Ribbon_GetIcon", Err
     Resume CleanExit
 End Sub
 
@@ -39,7 +39,7 @@ Public Sub Ribbon_OnShowHotkeysHelp(ByVal control As Object)
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnShowHotkeysHelp", Err
+    Infra_Error.HandleError "Ribbon_OnShowHotkeysHelp", Err
     Resume CleanExit
 End Sub
 
@@ -48,39 +48,39 @@ End Sub
 Public Sub Ribbon_OnMergeFormulas(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnMergeFormulas")
     On Error GoTo ErrHandler
-    
-    Feat_MergeFormulas.MergeFormulas
+
+    AppContainer.ExecuteCommand "MergeFormulas", "Ribbon_OnMergeFormulas", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnMergeFormulas", Err
+    Infra_Error.HandleError "Ribbon_OnMergeFormulas", Err
     Resume CleanExit
 End Sub
 
 Public Sub Ribbon_OnWrapSelectionWithFormula(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnWrapSelectionWithFormula")
     On Error GoTo ErrHandler
-    
-    Feat_WrapSelectedRange.WrapSelectionWithFormula
+
+    AppContainer.ExecuteCommand "WrapSelectedRange", "Ribbon_OnWrapSelectionWithFormula", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnWrapSelectionWithFormula", Err
+    Infra_Error.HandleError "Ribbon_OnWrapSelectionWithFormula", Err
     Resume CleanExit
 End Sub
 
 Public Sub Ribbon_OnStaticSheetWorkbook(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnStaticSheetWorkbook")
     On Error GoTo ErrHandler
-    
-    Feat_MakeItStatic.StaticSheetWorkbook
+
+    AppContainer.ExecuteCommand "StaticSheetWorkbook", "Ribbon_OnStaticSheetWorkbook", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnStaticSheetWorkbook", Err
+    Infra_Error.HandleError "Ribbon_OnStaticSheetWorkbook", Err
     Resume CleanExit
 End Sub
 
@@ -89,39 +89,39 @@ End Sub
 Public Sub Ribbon_OnCleanData(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnCleanData")
     On Error GoTo ErrHandler
-    
-    Feat_CleanData.CleanData
+
+    AppContainer.ExecuteCommand "CleanData", "Ribbon_OnCleanData", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnCleanData", Err
+    Infra_Error.HandleError "Ribbon_OnCleanData", Err
     Resume CleanExit
 End Sub
 
 Public Sub Ribbon_OnBreakExternalLinks(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnBreakExternalLinks")
     On Error GoTo ErrHandler
-    
-    Feat_BreakExternalLinks.BreakExternalLinks
+
+    AppContainer.ExecuteCommand "BreakExternalLinks", "Ribbon_OnBreakExternalLinks", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnBreakExternalLinks", Err
+    Infra_Error.HandleError "Ribbon_OnBreakExternalLinks", Err
     Resume CleanExit
 End Sub
 
 Public Sub Ribbon_OnConvertTextToProperDate(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnConvertTextToProperDate")
     On Error GoTo ErrHandler
-    
-    Feat_DateConversion.ConvertTextToProperDate
+
+    AppContainer.ExecuteCommand "DateConversion", "Ribbon_OnConvertTextToProperDate", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnConvertTextToProperDate", Err
+    Infra_Error.HandleError "Ribbon_OnConvertTextToProperDate", Err
     Resume CleanExit
 End Sub
 
@@ -130,26 +130,26 @@ End Sub
 Public Sub Ribbon_OnDuplicate(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnDuplicate")
     On Error GoTo ErrHandler
-    
-    Feat_Duplicate.Duplicate
+
+    AppContainer.ExecuteCommand "Duplicate", "Ribbon_OnDuplicate", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnDuplicate", Err
+    Infra_Error.HandleError "Ribbon_OnDuplicate", Err
     Resume CleanExit
 End Sub
 
 Public Sub Ribbon_OnExport(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnExport")
     On Error GoTo ErrHandler
-    
-    Feat_ExportImageOrPdf.Export
+
+    AppContainer.ExecuteCommand "ExportImageOrPdf", "Ribbon_OnExport", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnExport", Err
+    Infra_Error.HandleError "Ribbon_OnExport", Err
     Resume CleanExit
 End Sub
 
@@ -158,12 +158,12 @@ End Sub
 Public Sub Ribbon_OnToggleFullScreen(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnToggleFullScreen")
     On Error GoTo ErrHandler
-    
-    Feat_ToggleFullScreen.ToggleFullScreen
+
+    AppContainer.ExecuteCommand "ToggleFullScreen", "Ribbon_OnToggleFullScreen", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Ribbon_OnToggleFullScreen", Err
+    Infra_Error.HandleError "Ribbon_OnToggleFullScreen", Err
     Resume CleanExit
 End Sub

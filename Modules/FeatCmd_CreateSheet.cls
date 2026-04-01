@@ -1,17 +1,34 @@
-Attribute VB_Name = "Feat_CreateSheet"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_CreateSheet"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_CreateSheet
+Implements ICommand
+
+' @Module: FeatCmd_CreateSheet
 ' @Category: Feature
 ' @Description: Creates a new worksheet with a user-supplied name and smart positioning.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppStateGuard, Infra_Config, Infra_Error, Infra_AppState
 
-Public Sub CreateNamedSheet()
-    PushContext "CreateNamedSheet"
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CreateSheet.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = True
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "CreateSheet.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CreateSheet.Execute")
     On Error GoTo ErrHandler
 
-    Dim guard As New Infra_AppStateGuard
     Dim sheetName As Variant
     Dim newSheet As Worksheet
     Dim nameLower As String
@@ -20,12 +37,12 @@ Public Sub CreateNamedSheet()
     Set ctx = Infra_AppState.CaptureActionContext()
     If ctx Is Nothing Then GoTo CleanExit
 
-    sheetName = InputBox("Please enter the name for the new sheet:", Infra_Config.ADDIN_NAME & " â€” Create Sheet")
+    sheetName = InputBox("Please enter the name for the new sheet:", "Beaver Add-in â€” Create Sheet")
 
     If StrPtr(sheetName) = 0 Then GoTo CleanExit
 
     If Trim(CStr(sheetName)) = "" Then
-        MsgBox "Sheet name cannot be blank.", vbExclamation, Infra_Config.ADDIN_NAME
+        MsgBox "Sheet name cannot be blank.", vbExclamation, "Beaver Add-in"
         GoTo CleanExit
     End If
 
@@ -40,7 +57,6 @@ Public Sub CreateNamedSheet()
     newSheet.Name = CStr(sheetName)
 
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
@@ -49,5 +65,6 @@ ErrHandler:
         newSheet.Delete
         Application.DisplayAlerts = True
     End If
-    HandleError "CreateNamedSheet", Err
+    Infra_Error.HandleError "CreateSheet.Execute", Err
+    Resume CleanExit
 End Sub

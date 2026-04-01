@@ -1,93 +1,93 @@
 {
-  "UIConstants": {
-    "DefaultFontName": "Calibri",
-    "DefaultFontSize": 10,
-    "HeaderFontSize": 11,
-    "DefaultNumberFormat": "#,##0",
-    "DefaultDateFormat": "dd-mmm-yyyy",
-    "DisplayDateFormat": "dd/mm/yyyy",
-    "ColumnWidthThreshold": 40,
-    "MaxColumnWidth": 25,
-    "HeaderColor": "#AEAAAA",
-    "DefaultExportScale": 3,
-    "MaxExportScale": 10
-  },
-  "AddinIdentity": {
-    "Name": "Beaver Add-in",
-    "Version": "2.0.68"
-  },
-  "FeatureFlags": {
-    "ReleaseTier": "stable",
-    "IncludeDevFeatures": false,
-    "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 10
-  },
-  "Hotkeys": [
-    {
-      "Key": "^+4",
-      "Macro": "Feat_FormatRange.ApplyCustomNumberFormat",
-      "Description": "Apply custom number format",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^+p",
-      "Macro": "Feat_MakeItStatic.MakePermanent",
-      "Description": "Make selection permanent (values)",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "+{F11}",
-      "Macro": "Feat_CreateSheet.CreateNamedSheet",
-      "Description": "Create named sheet",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^%{DOWN}",
-      "Macro": "Feat_FillDown.FillDown",
-      "Description": "Fill formula/format down",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^+f",
-      "Macro": "Feat_FilterByCell.FilterBySelectedCell",
-      "Description": "Filter by selected cell",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^+m",
-      "Macro": "Feat_FormatRange.PasteFormat",
-      "Description": "Paste formats only",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^+q",
-      "Macro": "Feat_FormatRange.FormatSelectedRange",
-      "Description": "Format selected range",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "{BACKSPACE}",
-      "Macro": "Feat_BackspaceDelete.Backspace",
-      "Description": "Clear cell contents",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "{DELETE}",
-      "Macro": "Feat_BackspaceDelete.Delete",
-      "Description": "Clear or delete selection",
-      "ReleaseTier": "stable"
-    }
-  ],
-  "Icons": {
-    "BtnMergeFormulas": "MergeCells",
-    "BtnWrap": "FunctionWizard",
-    "BtnStaticSheetWorkbook": "CalculateNow",
-    "BtnCleanData": "Clear",
-    "BtnBreakLinks": "WorkbookLinks",
-    "BtnDateConv": "DateAndTimeInsert",
-    "BtnDuplicate": "FileSaveAs",
-    "BtnExport": "Export",
-    "BtnFullScreen": "ViewFullScreenView",
-    "BtnHotkeys": "Help"
-  }
+    "UIConstants":  {
+                        "DefaultFontName":  "Calibri",
+                        "DefaultFontSize":  10,
+                        "HeaderFontSize":  11,
+                        "DefaultNumberFormat":  "#,##0",
+                        "DefaultDateFormat":  "dd-mmm-yyyy",
+                        "DisplayDateFormat":  "dd/mm/yyyy",
+                        "ColumnWidthThreshold":  40,
+                        "MaxColumnWidth":  25,
+                        "HeaderColor":  "#AEAAAA",
+                        "DefaultExportScale":  3,
+                        "MaxExportScale":  10
+                    },
+    "AddinIdentity":  {
+                          "Name":  "Beaver Add-in",
+                          "Version":  "2.0.68"
+                      },
+    "FeatureFlags":  {
+                         "ReleaseTier":  "stable",
+                         "IncludeDevFeatures":  false,
+                         "ManifestFile":  "features.json",
+                         "GeneratedFeatureCount":  10
+                     },
+    "Hotkeys":  [
+                    {
+                        "Key":  "^+4",
+                        "Macro":  "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat",
+                        "Description":  "Apply custom number format",
+                        "ReleaseTier":  "stable"
+                    },
+                    {
+                        "Key":  "^+p",
+                        "Macro":  "UI_Hotkeys.Hotkey_MakePermanent",
+                        "Description":  "Make selection permanent (values)",
+                        "ReleaseTier":  "stable"
+                    },
+                    {
+                        "Key":  "+{F11}",
+                        "Macro":  "UI_Hotkeys.Hotkey_CreateNamedSheet",
+                        "Description":  "Create named sheet",
+                        "ReleaseTier":  "stable"
+                    },
+                    {
+                        "Key":  "^%{DOWN}",
+                        "Macro":  "UI_Hotkeys.Hotkey_FillDown",
+                        "Description":  "Fill formula/format down",
+                        "ReleaseTier":  "stable"
+                    },
+                    {
+                        "Key":  "^+f",
+                        "Macro":  "UI_Hotkeys.Hotkey_FilterBySelectedCell",
+                        "Description":  "Filter by selected cell",
+                        "ReleaseTier":  "stable"
+                    },
+                    {
+                        "Key":  "^+m",
+                        "Macro":  "UI_Hotkeys.Hotkey_PasteFormat",
+                        "Description":  "Paste formats only",
+                        "ReleaseTier":  "stable"
+                    },
+                    {
+                        "Key":  "^+q",
+                        "Macro":  "UI_Hotkeys.Hotkey_FormatSelectedRange",
+                        "Description":  "Format selected range",
+                        "ReleaseTier":  "stable"
+                    },
+                    {
+                        "Key":  "{BACKSPACE}",
+                        "Macro":  "UI_Hotkeys.Hotkey_Backspace",
+                        "Description":  "Clear cell contents",
+                        "ReleaseTier":  "stable"
+                    },
+                    {
+                        "Key":  "{DELETE}",
+                        "Macro":  "UI_Hotkeys.Hotkey_Delete",
+                        "Description":  "Clear or delete selection",
+                        "ReleaseTier":  "stable"
+                    }
+                ],
+    "Icons":  {
+                  "BtnMergeFormulas":  "MergeCells",
+                  "BtnWrap":  "FunctionWizard",
+                  "BtnStaticSheetWorkbook":  "CalculateNow",
+                  "BtnCleanData":  "Clear",
+                  "BtnBreakLinks":  "WorkbookLinks",
+                  "BtnDateConv":  "DateAndTimeInsert",
+                  "BtnDuplicate":  "FileSaveAs",
+                  "BtnExport":  "Export",
+                  "BtnFullScreen":  "ViewFullScreenView",
+                  "BtnHotkeys":  "Help"
+              }
 }

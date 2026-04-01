@@ -49,7 +49,7 @@ Public Sub SaveState(ByVal Target As Range, ByVal ActionName As String)
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "SaveState", Err
+    Infra_Error.HandleError "SaveState", Err
     Resume CleanExit
 End Sub
 
@@ -103,7 +103,7 @@ Public Sub PerformUndo()
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "PerformUndo", Err
+    Infra_Error.HandleError "PerformUndo", Err
     Resume CleanExit
 End Sub
 

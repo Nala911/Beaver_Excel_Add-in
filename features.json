@@ -51,7 +51,7 @@
       "ControlId": "BtnMergeFormulas",
       "Label": "Merge Formulas",
       "OnAction": "Ribbon_OnMergeFormulas",
-      "Macro": "Feat_MergeFormulas.MergeFormulas",
+      "Macro": "UI_Ribbon.Ribbon_OnMergeFormulas",
       "Icon": "MergeCells",
       "Keytip": "MF",
       "Screentip": "Merge Formulas",
@@ -63,7 +63,7 @@
       "ControlId": "BtnWrap",
       "Label": "Wrap Formula",
       "OnAction": "Ribbon_OnWrapSelectionWithFormula",
-      "Macro": "Feat_WrapSelectedRange.WrapSelectionWithFormula",
+      "Macro": "UI_Ribbon.Ribbon_OnWrapSelectionWithFormula",
       "Icon": "FunctionWizard",
       "Keytip": "W",
       "Screentip": "Wrap Formula",
@@ -75,7 +75,7 @@
       "ControlId": "BtnStaticSheetWorkbook",
       "Label": "Static Sheet/WB",
       "OnAction": "Ribbon_OnStaticSheetWorkbook",
-      "Macro": "Feat_MakeItStatic.StaticSheetWorkbook",
+      "Macro": "UI_Ribbon.Ribbon_OnStaticSheetWorkbook",
       "Icon": "CalculateNow",
       "Keytip": "SW",
       "Screentip": "Convert Formulas to Static Values",
@@ -87,7 +87,7 @@
       "ControlId": "BtnCleanData",
       "Label": "Clean Data",
       "OnAction": "Ribbon_OnCleanData",
-      "Macro": "Feat_CleanData.CleanData",
+      "Macro": "UI_Ribbon.Ribbon_OnCleanData",
       "Icon": "Clear",
       "Keytip": "CD",
       "Screentip": "Clean Data",
@@ -99,7 +99,7 @@
       "ControlId": "BtnBreakLinks",
       "Label": "Break Links",
       "OnAction": "Ribbon_OnBreakExternalLinks",
-      "Macro": "Feat_BreakExternalLinks.BreakExternalLinks",
+      "Macro": "UI_Ribbon.Ribbon_OnBreakExternalLinks",
       "Icon": "WorkbookLinks",
       "Keytip": "BL",
       "Screentip": "Break External Links",
@@ -109,9 +109,9 @@
     },
     {
       "ControlId": "BtnDateConv",
-      "Label": "Fix Dates",
+      "Label": "Convert to Dates",
       "OnAction": "Ribbon_OnConvertTextToProperDate",
-      "Macro": "Feat_DateConversion.ConvertTextToProperDate",
+      "Macro": "UI_Ribbon.Ribbon_OnConvertTextToProperDate",
       "Icon": "DateAndTimeInsert",
       "Keytip": "FX",
       "Screentip": "Fix Text Dates",
@@ -121,9 +121,9 @@
     },
     {
       "ControlId": "BtnDuplicate",
-      "Label": "Duplicate",
+      "Label": "Duplicate Workbook",
       "OnAction": "Ribbon_OnDuplicate",
-      "Macro": "Feat_Duplicate.Duplicate",
+      "Macro": "UI_Ribbon.Ribbon_OnDuplicate",
       "Icon": "FileSaveAs",
       "Keytip": "DP",
       "Screentip": "Copy to Desktop",
@@ -135,7 +135,7 @@
       "ControlId": "BtnExport",
       "Label": "Export Range",
       "OnAction": "Ribbon_OnExport",
-      "Macro": "Feat_ExportImageOrPdf.Export",
+      "Macro": "UI_Ribbon.Ribbon_OnExport",
       "Icon": "Export",
       "Keytip": "EX",
       "Screentip": "Export as Image or PDF",
@@ -147,7 +147,7 @@
       "ControlId": "BtnFullScreen",
       "Label": "Focus Mode",
       "OnAction": "Ribbon_OnToggleFullScreen",
-      "Macro": "Feat_ToggleFullScreen.ToggleFullScreen",
+      "Macro": "UI_Ribbon.Ribbon_OnToggleFullScreen",
       "Icon": "ViewFullScreenView",
       "Keytip": "FM",
       "Screentip": "Toggle Focus Mode",
@@ -171,55 +171,55 @@
   "Hotkeys": [
     {
       "Key": "^+4",
-      "Macro": "Feat_FormatRange.ApplyCustomNumberFormat",
+      "Macro": "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat",
       "Description": "Apply custom number format",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^+p",
-      "Macro": "Feat_MakeItStatic.MakePermanent",
+      "Macro": "UI_Hotkeys.Hotkey_MakePermanent",
       "Description": "Make selection permanent (values)",
       "ReleaseTier": "stable"
     },
     {
       "Key": "+{F11}",
-      "Macro": "Feat_CreateSheet.CreateNamedSheet",
+      "Macro": "UI_Hotkeys.Hotkey_CreateNamedSheet",
       "Description": "Create named sheet",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^%{DOWN}",
-      "Macro": "Feat_FillDown.FillDown",
+      "Macro": "UI_Hotkeys.Hotkey_FillDown",
       "Description": "Fill formula/format down",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^+f",
-      "Macro": "Feat_FilterByCell.FilterBySelectedCell",
+      "Macro": "UI_Hotkeys.Hotkey_FilterBySelectedCell",
       "Description": "Filter by selected cell",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^+m",
-      "Macro": "Feat_FormatRange.PasteFormat",
+      "Macro": "UI_Hotkeys.Hotkey_PasteFormat",
       "Description": "Paste formats only",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^+q",
-      "Macro": "Feat_FormatRange.FormatSelectedRange",
+      "Macro": "UI_Hotkeys.Hotkey_FormatSelectedRange",
       "Description": "Format selected range",
       "ReleaseTier": "stable"
     },
     {
       "Key": "{BACKSPACE}",
-      "Macro": "Feat_BackspaceDelete.Backspace",
+      "Macro": "UI_Hotkeys.Hotkey_Backspace",
       "Description": "Clear cell contents",
       "ReleaseTier": "stable"
     },
     {
       "Key": "{DELETE}",
-      "Macro": "Feat_BackspaceDelete.Delete",
+      "Macro": "UI_Hotkeys.Hotkey_Delete",
       "Description": "Clear or delete selection",
       "ReleaseTier": "stable"
     }

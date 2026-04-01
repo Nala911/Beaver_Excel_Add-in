@@ -1,4 +1,14 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
 Attribute VB_Name = "Infra_Config"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+
+Implements IConfig
 Option Explicit
 
 ' @Module: Infra_Config
@@ -24,7 +34,7 @@ Public Sub ResetConfig()
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "ResetConfig", Err
+    Infra_Error.HandleError "ResetConfig", Err
     Resume CleanExit
 End Sub
 
@@ -284,7 +294,7 @@ Private Function GetValue(Category As String, Key As String, DefaultValue As Var
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "GetValue", Err
+    Infra_Error.HandleError "GetValue", Err
     Resume CleanExit
 End Function
 
@@ -322,7 +332,7 @@ ValidationFailed:
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "GetValidatedValue", Err
+    Infra_Error.HandleError "GetValidatedValue", Err
     Resume CleanExit
 End Function
 
@@ -347,6 +357,15 @@ Private Function ParseHexColor(ByVal hexStr As String) As Long
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "ParseHexColor", Err
+    Infra_Error.HandleError "ParseHexColor", Err
     Resume CleanExit
 End Function
+
+
+Private Property Get IConfig_Model() As Object
+    Set IConfig_Model = Me.Model
+End Property
+
+Private Property Get IConfig_GetIcon(ByVal controlId As String) As String
+    IConfig_GetIcon = Me.GetIcon(controlId)
+End Property

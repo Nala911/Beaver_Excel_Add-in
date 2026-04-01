@@ -19,7 +19,7 @@ Option Explicit
 ' RETURNS: A dynamic 2D array that spills into the sheet.
 ' ==============================================================================
 Public Function XUnpivot(SourceRange As Range, FixedColumnsCount As Long, Optional IgnoreBlanks As Variant, Optional AttributeHeader As Variant, Optional ValueHeader As Variant) As Variant
-    PushContext "XUnpivot"
+    Infra_Error.PushContext "XUnpivot"
     On Error GoTo ErrHandler
     
     Dim arrSource As Variant
@@ -139,10 +139,10 @@ Public Function XUnpivot(SourceRange As Range, FixedColumnsCount As Long, Option
     End If
 
 CleanExit:
-    PopContext
+    Infra_Error.PopContext
     Exit Function
 
 ErrHandler:
-    HandleError "XUnpivot", Err
+    Infra_Error.HandleError "XUnpivot", Err
     XUnpivot = CVErr(xlErrValue)
 End Function

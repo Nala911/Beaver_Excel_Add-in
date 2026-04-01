@@ -1,22 +1,39 @@
-Attribute VB_Name = "Feat_WrapSelectedRange"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_WrapSelectedRange"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_WrapSelectedRange
+Implements ICommand
+
+' @Module: FeatCmd_WrapSelectedRange
 ' @Category: Feature
 ' @Description: Wraps selected cell formulas with a user-supplied function (e.g., IFERROR).
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_AppStateGuard, Infra_Config, Infra_Error, Infra_UIFactory
 
 Private Const PLACEHOLDER As String = "[value]"
 Private Const REG_SECTION As String = "Settings"
 Private Const REG_KEY_PATTERN As String = "WrapFormulaPattern"
 Private Const MAX_CELLS_LIMIT As Long = 50000
 
-Public Sub WrapSelectionWithFormula()
-    PushContext "WrapSelectionWithFormula"
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("WrapSelectedRange.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "WrapSelectedRange.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("WrapSelectedRange.Execute")
     On Error GoTo ErrHandler
 
-    Dim guard As Infra_AppStateGuard
     Dim rng As Range
     Dim formulaCells As Range
     Dim constantCells As Range
@@ -47,8 +64,6 @@ Public Sub WrapSelectionWithFormula()
     ' 5. Save pattern for next time
     SaveSetting Infra_Config.ADDIN_NAME, REG_SECTION, REG_KEY_PATTERN, userPattern
 
-    ' 6. Process with screen/calc guards
-    Set guard = New Infra_AppStateGuard
     Application.StatusBar = "Wrapping formulas in " & Format(rng.CountLarge, "#,##0") & " cells..."
 
     If rng.CountLarge = 1 Then
@@ -76,16 +91,15 @@ Public Sub WrapSelectionWithFormula()
 
 CleanExit:
     Application.StatusBar = False
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "WrapSelectionWithFormula", Err
+    Infra_Error.HandleError "WrapSelectedRange.Execute", Err
     Resume CleanExit
 End Sub
 
 Private Sub ApplyWrapPatternToRange(ByVal targetCells As Range, ByVal userPattern As String, ByVal isFormulaRange As Boolean, ByRef errorCount As Long)
-    PushContext "ApplyWrapPatternToRange"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ApplyWrapPatternToRange")
     On Error GoTo ErrHandler
     
     Dim area As Range
@@ -154,15 +168,15 @@ Private Sub ApplyWrapPatternToRange(ByVal targetCells As Range, ByVal userPatter
     Next area
 
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "ApplyWrapPatternToRange", Err
+    Infra_Error.HandleError "ApplyWrapPatternToRange", Err
+    Resume CleanExit
 End Sub
 
 Private Function GetWrappedContent(ByVal content As Variant, ByVal isStringValue As Boolean, ByVal isFormula As Boolean) As String
-    PushContext "GetWrappedContent"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetWrappedContent")
     On Error GoTo ErrHandler
     
     Dim result As String
@@ -182,9 +196,9 @@ Private Function GetWrappedContent(ByVal content As Variant, ByVal isStringValue
     End If
 
 CleanExit:
-    PopContext
     Exit Function
 
 ErrHandler:
-    HandleError "GetWrappedContent", Err
+    Infra_Error.HandleError "GetWrappedContent", Err
+    Resume CleanExit
 End Function

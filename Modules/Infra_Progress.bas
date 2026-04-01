@@ -31,7 +31,7 @@ Public Sub StartProgress(ByVal Title As String, ByVal TotalSteps As Double)
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "StartProgress", Err
+    Infra_Error.HandleError "StartProgress", Err
     Resume CleanExit
 End Sub
 
@@ -55,7 +55,7 @@ Public Sub UpdateProgress(ByVal CurrentStep As Double, Optional ByVal ForceRefre
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "UpdateProgress", Err
+    Infra_Error.HandleError "UpdateProgress", Err
     Resume CleanExit
 End Sub
 
@@ -73,7 +73,7 @@ Public Sub Increment()
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "Increment", Err
+    Infra_Error.HandleError "Increment", Err
     Resume CleanExit
 End Sub
 
@@ -95,7 +95,7 @@ Public Sub EndProgress()
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "EndProgress", Err
+    Infra_Error.HandleError "EndProgress", Err
     Resume CleanExit
 End Sub
 

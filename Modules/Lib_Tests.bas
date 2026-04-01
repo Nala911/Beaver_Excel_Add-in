@@ -32,7 +32,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "RunAllTests", Err
+    Infra_Error.HandleError "RunAllTests", Err
     Resume CleanExit
 End Sub
 
@@ -51,7 +51,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "Test_Infrastructure_Basics", Err
+    Infra_Error.HandleError "Test_Infrastructure_Basics", Err
     Resume CleanExit
 End Sub
 
@@ -66,7 +66,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "Test_ConfigProvidesTypedHotkeys", Err
+    Infra_Error.HandleError "Test_ConfigProvidesTypedHotkeys", Err
     Resume CleanExit
 End Sub
 
@@ -81,7 +81,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "Test_TranslateHotkeyHandlesModifiers", Err
+    Infra_Error.HandleError "Test_TranslateHotkeyHandlesModifiers", Err
     Resume CleanExit
 End Sub
 
@@ -97,7 +97,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "AssertTrue", Err
+    Infra_Error.HandleError "AssertTrue", Err
     Resume CleanExit
 End Sub
 
@@ -111,7 +111,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "AssertEqual", Err
+    Infra_Error.HandleError "AssertEqual", Err
     Resume CleanExit
 End Sub
 
@@ -125,7 +125,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "AssertNotEqual", Err
+    Infra_Error.HandleError "AssertNotEqual", Err
     Resume CleanExit
 End Sub
 
@@ -155,7 +155,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "LogResult", Err
+    Infra_Error.HandleError "LogResult", Err
     Resume CleanExit
 End Sub
 
@@ -185,7 +185,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    HandleError "ReportResults", Err
+    Infra_Error.HandleError "ReportResults", Err
     Resume CleanExit
 End Sub
 
@@ -224,7 +224,7 @@ Private Sub PersistResults(ByVal results As Collection, ByVal passCount As Long,
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleErrorDetailed "PersistResults", Err, Nothing, Infra_Error.CATEGORY_TEST, Infra_Error.SEVERITY_WARNING
+    Infra_Error.HandleErrorDetailed "PersistResults", Err, Nothing, Infra_Error.CATEGORY_TEST, Infra_Error.SEVERITY_WARNING
     Resume CleanExit
 End Sub
 

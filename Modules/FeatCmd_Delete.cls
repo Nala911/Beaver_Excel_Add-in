@@ -1,38 +1,37 @@
-Attribute VB_Name = "Feat_BackspaceDelete"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_Delete"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_BackspaceDelete
-' @Category: Feature
-' @Description: Custom handlers for Backspace and Delete keys with protection awareness.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_Error
+Implements ICommand
 
-' Assigned to the Backspace key.
-' Clears the contents of the selected range.
-Public Sub Backspace()
-    PushContext "Backspace"
+' @Module: FeatCmd_Delete
+' @Category: Feature
+' @Description: Custom handlers for Delete key with protection awareness.
+
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Delete.CanExecute")
     On Error GoTo ErrHandler
     
-    ' Guard: must be a worksheet and cell must be modifiable
-    If Not Infra_AppState.CanModifyActiveCell() Then GoTo CleanExit
-    
-    ' Checks if the current selection is a range of cells
     If TypeName(Selection) = "Range" Then
-        Selection.ClearContents
+        ICommand_CanExecute = Infra_AppState.CanModifyActiveCell()
+    Else
+        ICommand_CanExecute = True ' Allow deleting objects unconditionally for now
     End If
-    
-CleanExit:
-    PopContext
-    Exit Sub
-
+    Exit Function
 ErrHandler:
-    HandleError "Backspace", Err
-End Sub
+    Infra_Error.HandleError "Delete.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
 
-' Assigned to the Delete key.
-' Clears a range or deletes an object depending on what is selected.
-Public Sub Delete()
-    PushContext "Delete"
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Delete.Execute")
     On Error GoTo ErrHandler
     
     ' Guard: for range selections, check modifiability
@@ -67,9 +66,9 @@ Public Sub Delete()
     End Select
     
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "Delete", Err
+    Infra_Error.HandleError "Delete.Execute", Err
+    Resume CleanExit
 End Sub

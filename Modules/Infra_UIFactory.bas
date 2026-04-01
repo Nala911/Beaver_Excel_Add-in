@@ -57,7 +57,7 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "ShowCleanDataDialog", Err
+    Infra_Error.HandleError "ShowCleanDataDialog", Err
     Resume CleanExit
 End Function
 
@@ -117,7 +117,7 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_Expo
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "ShowExportDialog", Err
+    Infra_Error.HandleError "ShowExportDialog", Err
     Resume CleanExit
 End Function
 
@@ -173,7 +173,7 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "ShowStaticConversionDialog", Err
+    Infra_Error.HandleError "ShowStaticConversionDialog", Err
     Resume CleanExit
 End Function
 
@@ -220,7 +220,7 @@ Public Function ShowBreakLinksScopeDialog(ByVal ctx As Infra_ActionContext, ByVa
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "ShowBreakLinksScopeDialog", Err
+    Infra_Error.HandleError "ShowBreakLinksScopeDialog", Err
     Resume CleanExit
 End Function
 
@@ -252,7 +252,7 @@ Public Function PromptForDateConversionMonth(ByVal ctx As Infra_ActionContext) A
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "PromptForDateConversionMonth", Err
+    Infra_Error.HandleError "PromptForDateConversionMonth", Err
     Resume CleanExit
 End Function
 
@@ -290,7 +290,7 @@ Public Function PromptForDuplicateName(ByVal ctx As Infra_ActionContext, ByVal s
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "PromptForDuplicateName", Err
+    Infra_Error.HandleError "PromptForDuplicateName", Err
     PromptForDuplicateName = False
     Resume CleanExit
 End Function
@@ -322,7 +322,7 @@ Public Function PromptForWrapFormulaPattern(ByVal ctx As Infra_ActionContext, By
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "PromptForWrapFormulaPattern", Err
+    Infra_Error.HandleError "PromptForWrapFormulaPattern", Err
     Resume CleanExit
 End Function
 
@@ -385,7 +385,7 @@ Private Function PromptForExportScale(ByVal defaultScale As Long) As Long
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "PromptForExportScale", Err
+    Infra_Error.HandleError "PromptForExportScale", Err
     Resume CleanExit
 End Function
 

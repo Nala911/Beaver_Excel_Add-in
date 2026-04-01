@@ -17,10 +17,10 @@
         <group id="GrpCleanup" label="Data Tools">
           <button id="BtnCleanData" label="Clean Data" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnCleanData" keytip="CD" screentip="Clean Data" supertip="Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook)." />
           <button id="BtnBreakLinks" label="Break Links" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnBreakExternalLinks" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />
-          <button id="BtnDateConv" label="Fix Dates" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnConvertTextToProperDate" keytip="FX" screentip="Fix Text Dates" supertip="Converts text-based date strings in the selected column into proper Excel date values." />
+          <button id="BtnDateConv" label="Convert to Dates" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnConvertTextToProperDate" keytip="FX" screentip="Fix Text Dates" supertip="Converts text-based date strings in the selected column into proper Excel date values." />
         </group>
         <group id="GrpExport" label="File Actions">
-          <button id="BtnDuplicate" label="Duplicate" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnDuplicate" keytip="DP" screentip="Copy to Desktop" supertip="Creates a copy of this workbook on your desktop for quick sharing." />
+          <button id="BtnDuplicate" label="Duplicate Workbook" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnDuplicate" keytip="DP" screentip="Copy to Desktop" supertip="Creates a copy of this workbook on your desktop for quick sharing." />
           <button id="BtnExport" label="Export Range" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnExport" keytip="EX" screentip="Export as Image or PDF" supertip="Exports the selected range (or the full used range if nothing is selected) to your Desktop as a PNG image or a fit-to-page PDF." />
         </group>
         <group id="GrpStructure" label="Workspace">

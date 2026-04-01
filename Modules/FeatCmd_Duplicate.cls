@@ -1,17 +1,34 @@
-Attribute VB_Name = "Feat_Duplicate"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_Duplicate"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_Duplicate
+Implements ICommand
+
+' @Module: FeatCmd_Duplicate
 ' @Category: Feature
 ' @Description: Duplicates the current workbook to the Desktop as a macro-free .xlsx file.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_AppStateGuard, Infra_Config, Infra_Error, Infra_UIFactory
 
-Public Sub Duplicate()
-    PushContext "Duplicate"
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Duplicate.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = True ' Always can attempt if a workbook is open
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "Duplicate.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Duplicate.Execute")
     On Error GoTo ErrHandler
 
-    Dim guard As New Infra_AppStateGuard
     Dim desktopPath As String
     Dim fullPath As String
     Dim sourceWB As Workbook
@@ -67,12 +84,12 @@ Public Sub Duplicate()
     MsgBox "Duplicate saved to Desktop:" & vbCrLf & baseName & ".xlsx", vbInformation, Infra_Config.ADDIN_NAME
 
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
     On Error Resume Next
     If Not copyWB Is Nothing Then copyWB.Close SaveChanges:=False
     On Error GoTo 0
-    HandleError "Duplicate", Err
+    Infra_Error.HandleError "Duplicate.Execute", Err
+    Resume CleanExit
 End Sub

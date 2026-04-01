@@ -1,17 +1,34 @@
-Attribute VB_Name = "Feat_MergeFormulas"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_MergeFormulas"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_MergeFormulas
+Implements ICommand
+
+' @Module: FeatCmd_MergeFormulas
 ' @Category: Feature
 ' @Description: Merges directly related formulas by inlining a precedent into its dependent.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_AppStateGuard, Infra_Config, Infra_Error
 
-Public Sub MergeFormulas()
-    PushContext "MergeFormulas"
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("MergeFormulas.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "MergeFormulas.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("MergeFormulas.Execute")
     On Error GoTo ErrHandler
 
-    Dim guard As New Infra_AppStateGuard
     Dim userSelection As Range
     Dim otherSelection As Range
     Dim precCell As Range
@@ -123,9 +140,9 @@ Public Sub MergeFormulas()
     On Error GoTo ErrHandler
     
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "MergeFormulas", Err
+    Infra_Error.HandleError "MergeFormulas.Execute", Err
+    Resume CleanExit
 End Sub

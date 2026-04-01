@@ -1,19 +1,34 @@
-Attribute VB_Name = "Feat_DateConversion"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_DateConversion"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_DateConversion
+Implements ICommand
+
+' @Module: FeatCmd_DateConversion
 ' @Category: Feature
 ' @Description: Converts text strings to proper Excel Date values with ambiguous format resolution.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_AppStateGuard, Infra_Config, Infra_Error, Infra_UIFactory
 
-' Parses text-based dates in the selected column. Asks user for the target month
-' to resolve ambiguity between day/month/year components.
-Public Sub ConvertTextToProperDate()
-    PushContext "ConvertTextToProperDate"
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("DateConversion.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "DateConversion.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("DateConversion.Execute")
     On Error GoTo ErrHandler
 
-    Dim guard As New Infra_AppStateGuard
     Dim rng As Range
     Dim dataArr As Variant
     Dim i As Long, j As Long
@@ -117,9 +132,9 @@ Public Sub ConvertTextToProperDate()
     MsgBox "Conversion Complete!", vbInformation, Infra_Config.ADDIN_NAME
 
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "ConvertTextToProperDate", Err
+    Infra_Error.HandleError "DateConversion.Execute", Err
+    Resume CleanExit
 End Sub

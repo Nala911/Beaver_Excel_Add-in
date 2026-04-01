@@ -1,17 +1,34 @@
-Attribute VB_Name = "Feat_FormatRange"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_FormatRange"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_FormatRange
+Implements ICommand
+
+' @Module: FeatCmd_FormatRange
 ' @Category: Feature
 ' @Description: Bulk formatting tools for tables, custom numbering, and specialized pasting.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_AppStateGuard, Infra_Config, Infra_Error, Infra_Undo, Infra_Progress
 
-Public Sub FormatSelectedRange()
-    PushContext "FormatSelectedRange"
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FormatRange.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "FormatRange.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FormatRange.Execute")
     On Error GoTo ErrHandler
 
-    Dim guard As New Infra_AppStateGuard
     Dim ws As Worksheet
     Dim selRange As Range
     Dim col As Range
@@ -57,8 +74,8 @@ Public Sub FormatSelectedRange()
     ' --- Step 7: General formatting ---
     With selRange
         .WrapText = False
-        .Font.Name = Infra_Config.DEFAULT_FONT_NAME
-        .Font.Size = Infra_Config.DEFAULT_FONT_SIZE
+        .Font.Name = Infra_Config.Model.DefaultFontName
+        .Font.Size = Infra_Config.Model.DefaultFontSize
         .HorizontalAlignment = xlLeft
         .Borders.LineStyle = xlContinuous
         .EntireRow.AutoFit
@@ -71,8 +88,8 @@ Public Sub FormatSelectedRange()
     colCount = selRange.Columns.Count
     For i = 1 To colCount
         Set col = selRange.Columns(i)
-        If col.ColumnWidth > Infra_Config.COLUMN_WIDTH_THRESHOLD Then
-            col.ColumnWidth = Infra_Config.MAX_COLUMN_WIDTH
+        If col.ColumnWidth > Infra_Config.Model.ColumnWidthThreshold Then
+            col.ColumnWidth = Infra_Config.Model.MaxColumnWidth
         End If
         If i Mod 5 = 0 Then Infra_Progress.UpdateProgress 50 + (i / colCount) * 20
     Next i
@@ -87,9 +104,9 @@ Public Sub FormatSelectedRange()
 
             If Not IsEmpty(firstDataCell.Value) Then
                 If IsDate(firstDataCell.Value) Then
-                    Intersect(dataRange, col).NumberFormat = Infra_Config.DISPLAY_DATE_FORMAT
+                    Intersect(dataRange, col).NumberFormat = Infra_Config.Model.DisplayDateFormat
                 ElseIf IsNumeric(firstDataCell.Value) Then
-                    Intersect(dataRange, col).NumberFormat = Infra_Config.DEFAULT_NUMBER_FORMAT
+                    Intersect(dataRange, col).NumberFormat = Infra_Config.Model.DefaultNumberFormat
                 End If
             End If
             If i Mod 5 = 0 Then Infra_Progress.UpdateProgress 70 + (i / colCount) * 20
@@ -99,8 +116,8 @@ Public Sub FormatSelectedRange()
     ' --- Step 10: Header row formatting ---
     With selRange.Rows(1)
         .Font.Bold = True
-        .Font.Size = Infra_Config.HEADER_FONT_SIZE
-        .Interior.Color = Infra_Config.HEADER_COLOR
+        .Font.Size = Infra_Config.Model.HeaderFontSize
+        .Interior.Color = Infra_Config.Model.HeaderColor
     End With
     Infra_Progress.UpdateProgress 95
 
@@ -114,60 +131,10 @@ Public Sub FormatSelectedRange()
 
 CleanExit:
     Infra_Progress.EndProgress
-    PopContext
     Exit Sub
 
 ErrHandler:
     Infra_Progress.EndProgress
-    HandleError "FormatSelectedRange", Err
-End Sub
-
-' Applies a custom number format to the selected range.
-Public Sub ApplyCustomNumberFormat()
-    PushContext "ApplyCustomNumberFormat"
-    On Error GoTo ErrHandler
-    
-    Dim guard As New Infra_AppStateGuard
-    Dim targetRange As Range
-
-    If Not Infra_AppState.IsRangeSelected() Then GoTo CleanExit
-    Set targetRange = Selection
-    If targetRange Is Nothing Then GoTo CleanExit
-
-    targetRange.NumberFormat = Infra_Config.DEFAULT_NUMBER_FORMAT
-
-CleanExit:
-    PopContext
-    Exit Sub
-
-ErrHandler:
-    HandleError "ApplyCustomNumberFormat", Err
-End Sub
-
-' Pastes cell formatting only. Requires user to have copied something first.
-Public Sub PasteFormat()
-    PushContext "PasteFormat"
-    On Error GoTo ErrHandler
-    
-    Dim guard As New Infra_AppStateGuard
-    Dim targetRange As Range
-
-    If Not Infra_AppState.IsRangeSelected() Then GoTo CleanExit
-    Set targetRange = Selection
-    If targetRange Is Nothing Then GoTo CleanExit
-
-    On Error Resume Next
-    targetRange.PasteSpecial Paste:=xlPasteFormats
-    
-    If Err.Number <> 0 Then
-        MsgBox "Nothing to paste. Please copy a range first.", vbExclamation, Infra_Config.ADDIN_NAME
-    End If
-    On Error GoTo ErrHandler
-
-CleanExit:
-    PopContext
-    Exit Sub
-
-ErrHandler:
-    HandleError "PasteFormat", Err
+    Infra_Error.HandleError "FormatRange.Execute", Err
+    Resume CleanExit
 End Sub

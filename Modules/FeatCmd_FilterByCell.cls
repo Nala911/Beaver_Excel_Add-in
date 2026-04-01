@@ -1,17 +1,34 @@
-Attribute VB_Name = "Feat_FilterByCell"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_FilterByCell"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_FilterByCell
+Implements ICommand
+
+' @Module: FeatCmd_FilterByCell
 ' @Category: Feature
 ' @Description: Quick-filter a range based on the value of the active cell.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_Config, Infra_Error
 
-Public Sub FilterBySelectedCell()
-    PushContext "FilterBySelectedCell"
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FilterByCell.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "FilterByCell.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FilterByCell.Execute")
     On Error GoTo ErrHandler
 
-    Dim guard As New Infra_AppStateGuard
     Dim ws As Worksheet
     Dim selectedCell As Range
     Dim dataRange As Range
@@ -86,7 +103,7 @@ Public Sub FilterBySelectedCell()
                 If Intersect(selectedCell, ptRange) Is Nothing Then
                     If selectedCell.Column > (ptRange.Column + ptRange.Columns.Count - 1) Then
                         pivotEndCol = ptRange.Column + ptRange.Columns.Count - 1
-                        if dataRange.Column <= pivotEndCol Then
+                        If dataRange.Column <= pivotEndCol Then
                             offsetCols = (pivotEndCol + 1) - dataRange.Column
                             Set dataRange = dataRange.Resize(, dataRange.Columns.Count - offsetCols).Offset(, offsetCols)
                         End If
@@ -102,7 +119,7 @@ Public Sub FilterBySelectedCell()
         Next pt
 
         If dataRange.Cells.Count <= 1 Then
-            MsgBox "The selected cell is not part of a larger data range.", vbExclamation, Infra_Config.ADDIN_NAME
+            MsgBox "The selected cell is not part of a larger data range.", vbExclamation, "Beaver Add-in"
             GoTo CleanExit
         End If
         
@@ -191,9 +208,9 @@ Public Sub FilterBySelectedCell()
     End If
 
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "FilterBySelectedCell", Err
+    Infra_Error.HandleError "FilterByCell.Execute", Err
+    Resume CleanExit
 End Sub

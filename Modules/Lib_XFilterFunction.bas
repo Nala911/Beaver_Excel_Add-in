@@ -20,7 +20,7 @@ Option Explicit
 ' RETURNS: A dynamic array that spills into the sheet.
 ' ==============================================================================
 Public Function XFilter(Range_A As Range, Range_B As Range, code_number As Integer) As Variant
-    PushContext "XFilter"
+    Infra_Error.PushContext "XFilter"
     On Error GoTo ErrHandler
     
     Dim arrA As Variant, arrB As Variant
@@ -102,10 +102,10 @@ Public Function XFilter(Range_A As Range, Range_B As Range, code_number As Integ
     End If
 
 CleanExit:
-    PopContext
+    Infra_Error.PopContext
     Exit Function
 
 ErrHandler:
-    HandleError "XFilter", Err
+    Infra_Error.HandleError "XFilter", Err
     XFilter = CVErr(xlErrValue) ' #VALUE! on general error
 End Function

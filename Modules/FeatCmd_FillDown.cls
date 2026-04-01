@@ -1,17 +1,34 @@
-Attribute VB_Name = "Feat_FillDown"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_FillDown"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_FillDown
+Implements ICommand
+
+' @Module: FeatCmd_FillDown
 ' @Category: Feature
 ' @Description: Intelligent fill-down functionality that respects tables and filtered data.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_AppStateGuard, Infra_Config, Infra_Error
 
-Public Sub FillDown()
-    PushContext "FillDown"
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FillDown.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "FillDown.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FillDown.Execute")
     On Error GoTo ErrHandler
 
-    Dim guard As New Infra_AppStateGuard
     Dim sourceRng As Range
     Dim ws As Worksheet
     Dim lo As ListObject
@@ -74,7 +91,7 @@ Public Sub FillDown()
             End If
 
             rightCol = sourceRng.Column + dist
-            if rightCol <= maxSearchCol Then
+            If rightCol <= maxSearchCol Then
                 If Not IsEmpty(ws.Cells(startRow, rightCol)) Then
                     targetCol = rightCol
                     foundRef = True
@@ -113,9 +130,9 @@ Public Sub FillDown()
     End If
 
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "FillDown", Err
+    Infra_Error.HandleError "FillDown.Execute", Err
+    Resume CleanExit
 End Sub

@@ -10,87 +10,25 @@ Option Explicit
 ' Returns True if the active cell on the active sheet can be modified.
 ' Checks for sheet protection and the cell's locked status.
 Public Function CanModifyActiveCell() As Boolean
-    PushContext "CanModifyActiveCell"
-    On Error GoTo ErrHandler
-    
-    ' 1. Guard against non-worksheet active sheets
-    If TypeName(ActiveSheet) <> "Worksheet" Then
-        CanModifyActiveCell = False
-        GoTo CleanExit
-    End If
-
-    ' 2. If sheet is not protected, everything is modifiable
-    If Not ActiveSheet.ProtectContents Then
-        CanModifyActiveCell = True
-        GoTo CleanExit
-    End If
-
-    ' 3. If sheet is protected, check the active cell's locked status
-    ' (ActiveCell could be Nothing in rare edge cases, so check existence)
-    If ActiveCell Is Nothing Then
-        CanModifyActiveCell = False
-        GoTo CleanExit
-    End If
-
-    CanModifyActiveCell = Not ActiveCell.Locked
-
-CleanExit:
-    PopContext
-    Exit Function
-
-ErrHandler:
-    HandleError "CanModifyActiveCell", Err
+    CanModifyActiveCell = AppContainer.State.CanModifyActiveCell
 End Function
 
 ' Returns True if the current selection is a Range.
 ' Use as a guard at the top of any macro that requires a range selection.
 Public Function IsRangeSelected() As Boolean
-    PushContext "IsRangeSelected"
-    On Error GoTo ErrHandler
-    
-    IsRangeSelected = (TypeName(Selection) = "Range")
-
-CleanExit:
-    PopContext
-    Exit Function
-
-ErrHandler:
-    HandleError "IsRangeSelected", Err
+    IsRangeSelected = AppContainer.State.IsRangeSelected
 End Function
 
 ' Captures the current workbook, worksheet, selection, and active-cell state
 ' into a typed object for downstream feature logic.
 Public Function CaptureActionContext() As Infra_ActionContext
-    PushContext "CaptureActionContext"
-    On Error GoTo ErrHandler
-    
-    Dim ctx As Infra_ActionContext
-    Set ctx = New Infra_ActionContext
-    
-    On Error Resume Next
-    Set ctx.WorkbookRef = ActiveWorkbook
-    If TypeName(ActiveSheet) = "Worksheet" Then Set ctx.WorksheetRef = ActiveSheet
-    If TypeName(Selection) = "Range" Then
-        ctx.HasRangeSelection = True
-        Set ctx.SelectionRange = Selection
-    End If
-    If TypeName(ActiveCell) = "Range" Then Set ctx.ActiveCellRef = ActiveCell
-    On Error GoTo ErrHandler
-    
-    Set CaptureActionContext = ctx
-
-CleanExit:
-    PopContext
-    Exit Function
-
-ErrHandler:
-    HandleError "CaptureActionContext", Err
+    Set CaptureActionContext = AppContainer.State.CaptureActionContext()
 End Function
 
 ' Returns the path to the current user's Desktop folder.
 ' Detects OneDrive-synced Desktops for improved reliability.
 Public Function GetDesktopPath() As String
-    PushContext "GetDesktopPath"
+    Infra_Error.PushContext "GetDesktopPath"
     On Error GoTo ErrHandler
     
     Dim shell As Object
@@ -124,9 +62,10 @@ Public Function GetDesktopPath() As String
     GetDesktopPath = path
 
 CleanExit:
-    PopContext
+    Infra_Error.PopContext
     Exit Function
 
 ErrHandler:
-    HandleError "GetDesktopPath", Err
+    Infra_Error.HandleError "GetDesktopPath", Err
 End Function
+

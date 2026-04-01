@@ -48,7 +48,7 @@ Public Function HotkeyDefinitions() As Variant
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "HotkeyDefinitions", Err
+    Infra_Error.HandleError "HotkeyDefinitions", Err
     Resume CleanExit
 End Function
 
@@ -75,7 +75,7 @@ Public Sub RegisterHotkeys()
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "RegisterHotkeys", Err
+    Infra_Error.HandleError "RegisterHotkeys", Err
     Resume CleanExit
 End Sub
 
@@ -102,7 +102,7 @@ Public Sub UnregisterHotkeys()
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "UnregisterHotkeys", Err
+    Infra_Error.HandleError "UnregisterHotkeys", Err
     Resume CleanExit
 End Sub
 
@@ -126,7 +126,7 @@ Public Sub ShowHotkeysHelp()
 CleanExit:
     Exit Sub
 ErrHandler:
-    HandleError "ShowHotkeysHelp", Err
+    Infra_Error.HandleError "ShowHotkeysHelp", Err
     Resume CleanExit
 End Sub
 
@@ -173,6 +173,6 @@ Public Function TranslateHotkey(ByVal pattern As String) As String
 CleanExit:
     Exit Function
 ErrHandler:
-    HandleError "TranslateHotkey", Err
+    Infra_Error.HandleError "TranslateHotkey", Err
     Resume CleanExit
 End Function

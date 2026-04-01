@@ -1,18 +1,34 @@
-Attribute VB_Name = "Feat_BreakExternalLinks"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_BreakExternalLinks"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_BreakExternalLinks
+Implements ICommand
+
+' @Module: FeatCmd_BreakExternalLinks
 ' @Category: Feature
 ' @Description: Detects and breaks external Excel links, connections, and external named ranges.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_AppStateGuard, Infra_Config, Infra_Error, Infra_UIFactory
 
-' Main entry point. Detects external elements, prompts user, then breaks them.
-Public Sub BreakExternalLinks()
-    PushContext "BreakExternalLinks"
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("BreakExternalLinks.CanExecute")
+    On Error GoTo ErrHandler
+    ICommand_CanExecute = True ' Can always attempt if a workbook is open
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "BreakExternalLinks.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("BreakExternalLinks.Execute")
     On Error GoTo ErrHandler
     
-    Dim guard As New Infra_AppStateGuard
     Dim wb As Workbook
     Dim linkArr As Variant
     Dim linkInfo As String
@@ -45,17 +61,15 @@ Public Sub BreakExternalLinks()
     MsgBox "Process Completed for: " & IIf(processWholeWorkbook, "Whole Workbook", "Active Sheet") & vbCrLf & vbCrLf & stats, vbInformation, Infra_Config.ADDIN_NAME
 
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "BreakExternalLinks", Err
+    Infra_Error.HandleError "BreakExternalLinks.Execute", Err
+    Resume CleanExit
 End Sub
 
-' Counts external links, connections, and external named ranges and returns
-' a summary string. Also populates linkArr (ByRef) for later use.
 Private Function GetExternalElementsSummary(ByVal wb As Workbook, ByRef linkArr As Variant) As String
-    PushContext "GetExternalElementsSummary"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetExternalElementsSummary")
     On Error GoTo ErrHandler
     
     Dim info As String
@@ -83,18 +97,15 @@ Private Function GetExternalElementsSummary(ByVal wb As Workbook, ByRef linkArr 
     End If
 
 CleanExit:
-    PopContext
     Exit Function
 
 ErrHandler:
-    HandleError "GetExternalElementsSummary", Err
+    Infra_Error.HandleError "GetExternalElementsSummary", Err
+    Resume CleanExit
 End Function
 
-' Performs the actual link breaking. If processWholeWorkbook is True, breaks
-' workbook-level links and connections first, then processes every sheet;
-' otherwise processes only the active sheet.
 Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal processWholeWorkbook As Boolean, ByVal linkArr As Variant, ByVal activeSheetRef As Worksheet) As String
-    PushContext "ExecuteBreakLinks"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteBreakLinks")
     On Error GoTo ErrHandler
     
     Dim brokenLinks As Long, convertedFormulas As Long, pivotsConverted As Long, tablesConverted As Long
@@ -137,17 +148,15 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal processWholeWorkb
                        "Tables Converted: " & tablesConverted
 
 CleanExit:
-    PopContext
     Exit Function
 
 ErrHandler:
-    HandleError "ExecuteBreakLinks", Err
+    Infra_Error.HandleError "ExecuteBreakLinks", Err
+    Resume CleanExit
 End Function
 
-' Processes a single worksheet: converts external formulas to values,
-' copies pivot table data to static values, and flattens external tables.
 Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, ByRef pCount As Long, ByRef tCount As Long)
-    PushContext "ProcessSheetInternal"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ProcessSheetInternal")
     On Error GoTo ErrHandler
     
     Dim Cell As Range, fCells As Range, pvt As PivotTable, lo As ListObject
@@ -182,9 +191,9 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
     Application.CutCopyMode = False
 
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "ProcessSheetInternal", Err
+    Infra_Error.HandleError "ProcessSheetInternal", Err
+    Resume CleanExit
 End Sub

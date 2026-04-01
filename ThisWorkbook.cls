@@ -23,6 +23,8 @@ Option Explicit
 ' ==============================================================================
 
 Private Sub Workbook_Open()
+    AppContainer.Init Infra_Config, Infra_Error, StateStore
+    
     Infra_Error.PushContext "Workbook_Open"
     On Error GoTo ErrHandler
     Infra_Hotkeys.RegisterHotkeys

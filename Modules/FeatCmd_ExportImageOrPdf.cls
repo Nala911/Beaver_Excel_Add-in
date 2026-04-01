@@ -1,18 +1,39 @@
-Attribute VB_Name = "Feat_ExportImageOrPdf"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "FeatCmd_ExportImageOrPdf"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Feat_ExportImageOrPdf
+Implements ICommand
+
+' @Module: FeatCmd_ExportImageOrPdf
 ' @Category: Feature
 ' @Description: Exports selected range as a PNG image or high-quality PDF.
-' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_AppStateGuard, Infra_Config, Infra_Error, Infra_ExportRequest
 
-' Main entry point: resolves selection, prompts PNG vs PDF via Factory, delegates to helpers.
-Public Sub Export()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Export")
+Private Function ICommand_CanExecute() As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Export.CanExecute")
+    On Error GoTo ErrHandler
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_AppState.CaptureActionContext()
+    ICommand_CanExecute = Not ctx Is Nothing
+    If ICommand_CanExecute Then
+        ICommand_CanExecute = Not ctx.WorksheetRef Is Nothing
+    End If
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "Export.CanExecute", Err
+    ICommand_CanExecute = False
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Export.Execute")
     On Error GoTo ErrHandler
 
-    Dim guard As New Infra_AppStateGuard
     Dim ctx As Infra_ActionContext
     Dim request As Infra_ExportRequest
     Dim stateInfo As Collection
@@ -35,14 +56,12 @@ CleanExit:
 
 ErrHandler:
     Application.StatusBar = False
-    HandleError "Export", Err, stateInfo
+    Infra_Error.HandleError "Export.Execute", Err, stateInfo
     Resume CleanExit
 End Sub
 
-' BuildExportRequest and related helpers removed in favor of Infra_UIFactory.ShowExportDialog
-
 Private Sub ExecuteExport(ByVal request As Infra_ExportRequest)
-    PushContext "ExecuteExport"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteExport")
     On Error GoTo ErrHandler
     
     If request Is Nothing Then GoTo CleanExit
@@ -59,17 +78,15 @@ Private Sub ExecuteExport(ByVal request As Infra_ExportRequest)
     End If
 
 CleanExit:
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "ExecuteExport", Err
+    Infra_Error.HandleError "ExecuteExport", Err
+    Resume CleanExit
 End Sub
 
-' Copies the range as a picture, pastes into a temporary chart on a temp sheet,
-' scales the chart by scaleFactor, and exports a PNG to the Desktop.
 Private Sub ExportAsPngImpl(ByVal selRng As Range, ByVal scaleFactor As Long)
-    PushContext "ExportAsPngImpl"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ExportAsPngImpl")
     On Error GoTo ErrHandler
     
     Dim srcWS As Worksheet
@@ -127,7 +144,7 @@ Private Sub ExportAsPngImpl(ByVal selRng As Range, ByVal scaleFactor As Long)
 
     If Not chtObj.Chart.Export(filePath) Then
         MsgBox "Export failed. Try a lower scale factor or check Desktop permissions.", _
-               vbCritical, Infra_Config.ADDIN_NAME & " â€” Export Error"
+               vbCritical, Infra_Config.ADDIN_NAME & " - Export Error"
     End If
 
 PngCleanup:
@@ -141,17 +158,15 @@ CleanExit:
     End If
     Application.CutCopyMode = False
     On Error GoTo 0
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "ExportAsPngImpl", Err
+    Infra_Error.HandleError "ExportAsPngImpl", Err
+    Resume PngCleanup
 End Sub
 
-' Exports the given range as a PDF to the Desktop.
-' Hardcoded to A4 landscape, fit-all-columns-to-one-page-wide, narrow margins.
 Private Sub ExportAsPdfImpl(ByVal exportRng As Range)
-    PushContext "ExportAsPdfImpl"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ExportAsPdfImpl")
     On Error GoTo ErrHandler
     
     Dim ws As Worksheet
@@ -237,9 +252,9 @@ CleanExit:
         End With
     End If
     On Error GoTo 0
-    PopContext
     Exit Sub
 
 ErrHandler:
-    HandleError "ExportAsPdfImpl", Err
+    Infra_Error.HandleError "ExportAsPdfImpl", Err
+    Resume CleanExit
 End Sub

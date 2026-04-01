@@ -1,4 +1,14 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
 Attribute VB_Name = "Infra_Error"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+
+Implements IErrorTracker
 Option Explicit
 
 ' @Module: Infra_Error
@@ -9,11 +19,21 @@ Option Explicit
 
 Private pStack As Collection
 
-Public Const CATEGORY_RUNTIME As String = "runtime"
-Public Const CATEGORY_VALIDATION As String = "validation"
-Public Const CATEGORY_TEST As String = "test"
-Public Const SEVERITY_FATAL As String = "fatal"
-Public Const SEVERITY_WARNING As String = "warning"
+Public Property Get CATEGORY_RUNTIME() As String
+    CATEGORY_RUNTIME = "runtime"
+End Property
+Public Property Get CATEGORY_VALIDATION() As String
+    CATEGORY_VALIDATION = "validation"
+End Property
+Public Property Get CATEGORY_TEST() As String
+    CATEGORY_TEST = "test"
+End Property
+Public Property Get SEVERITY_FATAL() As String
+    SEVERITY_FATAL = "fatal"
+End Property
+Public Property Get SEVERITY_WARNING() As String
+    SEVERITY_WARNING = "warning"
+End Property
 
 ' --- PUBLIC PROCEDURES ---
 
@@ -45,7 +65,7 @@ Public Sub HandleError(ByVal procedureName As String, ByRef errSource As ErrObje
     HandleErrorDetailed procedureName, errSource, stateInfo, CATEGORY_RUNTIME, SEVERITY_FATAL
 End Sub
 
-Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As ErrObject, Optional ByVal stateInfo As Collection = Nothing, Optional ByVal category As String = CATEGORY_RUNTIME, Optional ByVal severity As String = SEVERITY_FATAL)
+Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As ErrObject, Optional ByVal stateInfo As Collection = Nothing, Optional ByVal category As String = "runtime", Optional ByVal severity As String = "fatal")
     On Error Resume Next
     
     Dim ctx As Infra_ErrorContext
@@ -181,7 +201,7 @@ Private Function GetRichContext(Optional ByVal stateInfo As Collection = Nothing
     On Error GoTo 0
 End Function
 
-Private Function BuildErrorContext(ByVal procedureName As String, ByRef errSource As ErrObject, Optional ByVal stateInfo As Collection = Nothing, Optional ByVal category As String = CATEGORY_RUNTIME, Optional ByVal severity As String = SEVERITY_FATAL) As Infra_ErrorContext
+Private Function BuildErrorContext(ByVal procedureName As String, ByRef errSource As ErrObject, Optional ByVal stateInfo As Collection = Nothing, Optional ByVal category As String = "runtime", Optional ByVal severity As String = "fatal") As Infra_ErrorContext
     Dim ctx As New Infra_ErrorContext
     Dim selectionRange As Range
 
@@ -323,7 +343,7 @@ Private Sub TryShowErrorDialog(ByVal errorMsg As String, ByVal ctx As Infra_Erro
     On Error GoTo 0
 End Sub
 
-Private Sub ShowAIErrorDialog(ByVal errorMsg As String, Optional ByVal severity As String = SEVERITY_FATAL)
+Private Sub ShowAIErrorDialog(ByVal errorMsg As String, Optional ByVal severity As String = "fatal")
     Dim displayMsg As String
     Dim style As VbMsgBoxStyle
     
@@ -355,3 +375,13 @@ Private Sub CopyToClipboard(ByVal text As String)
     
     On Error GoTo 0
 End Sub
+
+
+Private Function IErrorTracker_Track(ByVal SourceName As String) As Object
+    Set IErrorTracker_Track = Me.Track(SourceName)
+End Function
+
+Private Sub IErrorTracker_HandleError(ByVal SourceName As String, ByVal errObj As ErrObject)
+    Me.HandleError SourceName, errObj
+End Sub
+
