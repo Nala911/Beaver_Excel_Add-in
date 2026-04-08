@@ -154,7 +154,7 @@
       "Screentip": "Financial Dashboard",
       "Supertip": "Creates a minimal financial dashboard.",
       "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
+      "RuntimeTestMode": "headless"
     },
     {
       "ControlId": "BtnFullScreen",
