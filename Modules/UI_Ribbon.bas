@@ -127,12 +127,24 @@ End Sub
 
 ' --- Export Group ---
 
+Public Sub Ribbon_OnDashboard(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnDashboard")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteCommand "Dashboard", "Ribbon_OnDashboard", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnDashboard", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Ribbon_OnDuplicate(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnDuplicate")
     On Error GoTo ErrHandler
 
     AppContainer.ExecuteCommand "Duplicate", "Ribbon_OnDuplicate", "Ribbon"
-
 CleanExit:
     Exit Sub
 ErrHandler:

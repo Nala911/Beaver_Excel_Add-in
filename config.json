@@ -20,7 +20,7 @@
                          "ReleaseTier":  "stable",
                          "IncludeDevFeatures":  false,
                          "ManifestFile":  "features.json",
-                         "GeneratedFeatureCount":  10
+                         "GeneratedFeatureCount":  11
                      },
     "Hotkeys":  [
                     {
@@ -87,6 +87,7 @@
                   "BtnDateConv":  "DateAndTimeInsert",
                   "BtnDuplicate":  "FileSaveAs",
                   "BtnExport":  "Export",
+                  "BtnDashboard":  "ChartInsert",
                   "BtnFullScreen":  "ViewFullScreenView",
                   "BtnHotkeys":  "Help"
               }

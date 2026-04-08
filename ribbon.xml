@@ -22,6 +22,7 @@
         <group id="GrpExport" label="File Actions">
           <button id="BtnDuplicate" label="Duplicate Workbook" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnDuplicate" keytip="DP" screentip="Copy to Desktop" supertip="Creates a copy of this workbook on your desktop for quick sharing." />
           <button id="BtnExport" label="Export Range" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnExport" keytip="EX" screentip="Export as Image or PDF" supertip="Exports the selected range (or the full used range if nothing is selected) to your Desktop as a PNG image or a fit-to-page PDF." />
+          <button id="BtnDashboard" label="Dashboard" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnDashboard" keytip="DB" screentip="Financial Dashboard" supertip="Creates a minimal financial dashboard." />
         </group>
         <group id="GrpStructure" label="Workspace">
           <button id="BtnFullScreen" label="Focus Mode" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnToggleFullScreen" keytip="FM" screentip="Toggle Focus Mode" supertip="Hides or restores worksheet chrome to maximise working area." />

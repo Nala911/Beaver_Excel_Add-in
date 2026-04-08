@@ -39,6 +39,8 @@ Public Function ResolveCommand(ByVal commandName As String) As ICommand
             Set ResolveCommand = New FeatCmd_CleanData
         Case "CREATESHEET"
             Set ResolveCommand = New FeatCmd_CreateSheet
+        Case "DASHBOARD"
+            Set ResolveCommand = New FeatCmd_Dashboard
         Case "DATECONVERSION"
             Set ResolveCommand = New FeatCmd_DateConversion
         Case "DELETE"

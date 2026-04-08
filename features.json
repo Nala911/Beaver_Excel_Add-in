@@ -28,7 +28,8 @@
       "Label": "File Actions",
       "Features": [
         "BtnDuplicate",
-        "BtnExport"
+        "BtnExport",
+        "BtnDashboard"
       ]
     },
     {
@@ -140,6 +141,18 @@
       "Keytip": "EX",
       "Screentip": "Export as Image or PDF",
       "Supertip": "Exports the selected range (or the full used range if nothing is selected) to your Desktop as a PNG image or a fit-to-page PDF.",
+      "ReleaseTier": "stable",
+      "RuntimeTestMode": "interactive"
+    },
+    {
+      "ControlId": "BtnDashboard",
+      "Label": "Dashboard",
+      "OnAction": "Ribbon_OnDashboard",
+      "Macro": "UI_Ribbon.Ribbon_OnDashboard",
+      "Icon": "ChartInsert",
+      "Keytip": "DB",
+      "Screentip": "Financial Dashboard",
+      "Supertip": "Creates a minimal financial dashboard.",
       "ReleaseTier": "stable",
       "RuntimeTestMode": "interactive"
     },
