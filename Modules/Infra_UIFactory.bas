@@ -13,7 +13,7 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
     On Error GoTo ErrHandler
     
     Dim promptMsg As String
-    Dim userChoice As Variant
+    Dim userChoice As String
     Dim normalizedChoice As String
     Dim request As Infra_CleanDataRequest
 
@@ -26,8 +26,7 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
                     "Workbook  - Clean every worksheet" & vbCrLf & vbCrLf & _
                     "Type Range, Sheet, or Workbook."
 
-        userChoice = Application.InputBox(promptMsg, BuildDialogTitle("Clean Data"), "Range", Type:=2)
-        If IsDialogCancelled(userChoice) Then GoTo CleanExit
+        If Not ShowInputBox(promptMsg, BuildDialogTitle("Clean Data"), "Range", userChoice) Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(userChoice)
         Select Case normalizedChoice
@@ -67,9 +66,8 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_Expo
     On Error GoTo ErrHandler
     
     Dim request As Infra_ExportRequest
-    Dim exportChoice As Variant
+    Dim exportChoice As String
     Dim normalizedChoice As String
-    Dim scaleInput As Variant
     
     Set request = New Infra_ExportRequest
     Set request.Context = ctx
@@ -84,15 +82,14 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_Expo
     Application.ScreenUpdating = True
 
     Do
-        exportChoice = Application.InputBox( _
+        If Not ShowInputBox( _
             "Export the selected content to your Desktop." & vbCrLf & vbCrLf & _
             BuildExportSummary(request.SourceRange) & vbCrLf & vbCrLf & _
             "Choose a format:" & vbCrLf & _
             "PNG - High-resolution image" & vbCrLf & _
             "PDF - Print-ready document" & vbCrLf & vbCrLf & _
             "Type PNG or PDF.", _
-            BuildDialogTitle("Export"), "PNG", Type:=2)
-        If IsDialogCancelled(exportChoice) Then GoTo CleanExit
+            BuildDialogTitle("Export"), "PNG", exportChoice) Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(exportChoice)
         Select Case normalizedChoice
@@ -127,11 +124,11 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
     On Error GoTo ErrHandler
 
     Dim request As Infra_StaticRequest
-    Dim scopeChoice As Variant
+    Dim scopeChoice As String
     Dim normalizedChoice As String
 
     Do
-        scopeChoice = Application.InputBox( _
+        If Not ShowInputBox( _
             "Convert formulas into their current values." & vbCrLf & vbCrLf & _
             BuildContextSummary(ctx, False) & vbCrLf & vbCrLf & _
             "This is intended for permanent conversion." & vbCrLf & _
@@ -139,8 +136,7 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
             "Sheet     - Convert formulas on the active sheet" & vbCrLf & _
             "Workbook  - Convert formulas on every worksheet" & vbCrLf & vbCrLf & _
             "Type Sheet or Workbook.", _
-            BuildDialogTitle("Make Static"), "Sheet", Type:=2)
-        If IsDialogCancelled(scopeChoice) Then GoTo CleanExit
+            BuildDialogTitle("Make Static"), "Sheet", scopeChoice) Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(scopeChoice)
         If normalizedChoice = "" Then normalizedChoice = "SHEET"
@@ -181,11 +177,11 @@ Public Function ShowBreakLinksScopeDialog(ByVal ctx As Infra_ActionContext, ByVa
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowBreakLinksScopeDialog")
     On Error GoTo ErrHandler
 
-    Dim userChoice As Variant
+    Dim userChoice As String
     Dim normalizedChoice As String
 
     Do
-        userChoice = Application.InputBox( _
+        If Not ShowInputBox( _
             "External links were found and can be permanently converted to values." & vbCrLf & vbCrLf & _
             BuildContextSummary(ctx, False) & vbCrLf & vbCrLf & _
             "Detected items:" & vbCrLf & linkInfo & vbCrLf & vbCrLf & _
@@ -193,8 +189,7 @@ Public Function ShowBreakLinksScopeDialog(ByVal ctx As Infra_ActionContext, ByVa
             "Sheet     - Process only the active sheet" & vbCrLf & _
             "Workbook  - Process the whole workbook" & vbCrLf & vbCrLf & _
             "Type Sheet or Workbook.", _
-            BuildDialogTitle("Break External Links"), "Sheet", Type:=2)
-        If IsDialogCancelled(userChoice) Then GoTo CleanExit
+            BuildDialogTitle("Break External Links"), "Sheet", userChoice) Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(userChoice)
         If normalizedChoice = "" Then normalizedChoice = "SHEET"
@@ -228,17 +223,16 @@ Public Function PromptForDateConversionMonth(ByVal ctx As Infra_ActionContext) A
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForDateConversionMonth")
     On Error GoTo ErrHandler
 
-    Dim userInput As Variant
+    Dim userInput As String
     Dim monthValue As Long
 
     Do
-        userInput = Application.InputBox( _
+        If Not ShowInputBox( _
             "Convert text dates in the selected column into real Excel dates." & vbCrLf & vbCrLf & _
             BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
             "Enter the month to use when dates are ambiguous." & vbCrLf & _
             "Examples: 9, 09, Sep, September", _
-            BuildDialogTitle("Date Conversion"), MonthName(Month(Date), True), Type:=2)
-        If IsDialogCancelled(userInput) Then GoTo CleanExit
+            BuildDialogTitle("Date Conversion"), MonthName(Month(Date), True), userInput) Then GoTo CleanExit
 
         monthValue = ParseMonthValue(userInput)
         If monthValue >= 1 And monthValue <= 12 Then
@@ -260,17 +254,16 @@ Public Function PromptForDuplicateName(ByVal ctx As Infra_ActionContext, ByVal s
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForDuplicateName")
     On Error GoTo ErrHandler
 
-    Dim userInput As Variant
+    Dim userInput As String
     Dim fileName As String
 
     Do
-        userInput = Application.InputBox( _
+        If Not ShowInputBox( _
             "Create a macro-free copy of the current workbook on your Desktop." & vbCrLf & vbCrLf & _
             BuildContextSummary(ctx, False) & vbCrLf & vbCrLf & _
             "Enter the new file name." & vbCrLf & _
             "The .xlsx extension will be added automatically.", _
-            BuildDialogTitle("Create Duplicate"), suggestedBaseName, Type:=2)
-        If IsDialogCancelled(userInput) Then
+            BuildDialogTitle("Create Duplicate"), suggestedBaseName, userInput) Then
             PromptForDuplicateName = False
             GoTo CleanExit
         End If
@@ -299,16 +292,15 @@ Public Function PromptForWrapFormulaPattern(ByVal ctx As Infra_ActionContext, By
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForWrapFormulaPattern")
     On Error GoTo ErrHandler
 
-    Dim userInput As Variant
+    Dim userInput As String
 
     Do
-        userInput = Application.InputBox( _
+        If Not ShowInputBox( _
             "Wrap selected formulas or values with a new formula pattern." & vbCrLf & vbCrLf & _
             BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
             "Use " & placeholder & " where the existing cell content should go." & vbCrLf & _
             "Example: =ROUND(" & placeholder & ", 0)", _
-            BuildDialogTitle("Wrap Formula"), lastPattern, Type:=2)
-        If IsDialogCancelled(userInput) Then GoTo CleanExit
+            BuildDialogTitle("Wrap Formula"), lastPattern, userInput) Then GoTo CleanExit
 
         PromptForWrapFormulaPattern = Trim$(CStr(userInput))
         If PromptForWrapFormulaPattern = vbNullString Then GoTo CleanExit
@@ -356,18 +348,17 @@ Private Function PromptForExportScale(ByVal defaultScale As Long) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForExportScale")
     On Error GoTo ErrHandler
 
-    Dim scaleInput As Variant
+    Dim scaleInput As String
     Dim normalizedScale As Long
 
     Do
-        scaleInput = Application.InputBox( _
+        If Not ShowInputBox( _
             "Choose the PNG scale factor." & vbCrLf & vbCrLf & _
             "1 = Smaller file" & vbCrLf & _
             CStr(Infra_Config.DEFAULT_EXPORT_SCALE) & " = Balanced default" & vbCrLf & _
             CStr(Infra_Config.MAX_EXPORT_SCALE) & " = Largest supported image" & vbCrLf & vbCrLf & _
             "Enter a number from 1 to " & Infra_Config.MAX_EXPORT_SCALE & ".", _
-            BuildDialogTitle("PNG Quality"), CStr(defaultScale), Type:=2)
-        If IsDialogCancelled(scaleInput) Then GoTo CleanExit
+            BuildDialogTitle("PNG Quality"), CStr(defaultScale), scaleInput) Then GoTo CleanExit
 
         If Trim$(CStr(scaleInput)) = vbNullString Then scaleInput = CStr(defaultScale)
         If IsNumeric(scaleInput) Then
@@ -425,8 +416,15 @@ Private Function NormalizeChoiceText(ByVal rawValue As Variant) As String
     NormalizeChoiceText = UCase$(Trim$(CStr(rawValue)))
 End Function
 
-Private Function IsDialogCancelled(ByVal response As Variant) As Boolean
-    IsDialogCancelled = (VarType(response) = vbBoolean And response = False)
+Private Function ShowInputBox(ByVal promptMsg As String, ByVal title As String, ByVal defaultText As String, ByRef outResult As String) As Boolean
+    Dim result As String
+    result = InputBox(promptMsg, title, defaultText)
+    If StrPtr(result) = 0 Then
+        ShowInputBox = False
+    Else
+        outResult = result
+        ShowInputBox = True
+    End If
 End Function
 
 Private Function ParseMonthValue(ByVal rawValue As Variant) As Long
