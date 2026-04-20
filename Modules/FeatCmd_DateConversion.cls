@@ -31,14 +31,11 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     Dim rng As Range
     Dim dataArr As Variant
-    Dim i As Long, j As Long
+    Dim i As Long
     Dim txt As String
-    Dim parts() As String
-    Dim elem As String
-    Dim d As Integer, m As Integer, y As Integer
     Dim targetMonth As Integer
-    Dim valElem As Long
     Dim ctx As Infra_ActionContext
+    Dim convertedCount As Long
 
     ' 1. Validate selection
     If Not Infra_AppState.IsRangeSelected() Then GoTo CleanExit
@@ -71,56 +68,10 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         txt = Trim(CStr(dataArr(i, 1)))
 
         If Len(txt) > 0 Then
-            ' Standardize common delimiters
-            txt = Replace(txt, "-", "/")
-            txt = Replace(txt, ".", "/")
-            txt = Replace(txt, " ", "/")
-            
-            ' Reduce multiple slashes to single
-            While InStr(txt, "//") > 0: txt = Replace(txt, "//", "/"): Wend
-            
-            parts = Split(txt, "/")
-
-            If UBound(parts) = 2 Then
-                d = 0: m = 0: y = 0
-
-                ' Identify each element
-                For j = LBound(parts) To UBound(parts)
-                    elem = Trim(parts(j))
-
-                    If IsNumeric(elem) Then
-                        valElem = CLng(elem)
-
-                        ' 1. Year check (4-digit)
-                        If (valElem >= 1900 And valElem <= 2099) And y = 0 Then
-                            y = valElem
-
-                        ' 2. Month match (user-specified)
-                        ' Only assign for the FIRST match found
-                        ElseIf valElem = targetMonth And m = 0 Then
-                            m = targetMonth
-
-                        ' 3. Year check (2-digit fallback)
-                        ' Only if we haven't found a 4-digit year yet
-                        ElseIf (valElem >= 0 And valElem <= 99) And y = 0 Then
-                            y = 2000 + valElem
-
-                        ' 4. Remaining must be day
-                        ElseIf d = 0 Then
-                            d = CInt(valElem)
-                        End If
-                    End If
-                Next j
-
-                ' Validation and fallbacks
-                If y = 0 Then y = Year(Date)
-                If m = 0 Then m = targetMonth
-                If d = 0 Or d > 31 Then d = 1
-
-                ' Overwrite array value with the actual Date Serial
-                On Error Resume Next
-                dataArr(i, 1) = DateSerial(y, m, d)
-                On Error GoTo ErrHandler
+            Dim resolvedDate As Date
+            If Lib_DateUtils.TryResolveDateWithMonth(txt, CInt(targetMonth), resolvedDate) Then
+                dataArr(i, 1) = resolvedDate
+                convertedCount = convertedCount + 1
             End If
         End If
     Next i
@@ -129,7 +80,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     rng.Value = dataArr
     rng.NumberFormat = Infra_Config.DEFAULT_DATE_FORMAT
 
-    MsgBox "Conversion Complete!", vbInformation, Infra_Config.ADDIN_NAME
+    MsgBox "Conversion Complete! " & convertedCount & " cell(s) updated.", vbInformation, Infra_Config.ADDIN_NAME
 
 CleanExit:
     Exit Sub

@@ -14,6 +14,10 @@ Public Sub RunGeneratedTests()
     Lib_Tests.Test_ConfigProvidesTypedHotkeys
     Lib_Tests.Test_Infrastructure_Basics
     Lib_Tests.Test_TranslateHotkeyHandlesModifiers
+    Lib_Tests_DateConversion.Test_ResolveDate_Ambiguous_DMY
+    Lib_Tests_DateConversion.Test_ResolveDate_Ambiguous_MDY
+    Lib_Tests_DateConversion.Test_ResolveDate_TextMonth
+    Lib_Tests_DateConversion.Test_ResolveDate_UserCase
 
 CleanExit:
     Exit Sub

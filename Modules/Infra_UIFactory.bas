@@ -234,7 +234,7 @@ Public Function PromptForDateConversionMonth(ByVal ctx As Infra_ActionContext) A
             "Examples: 9, 09, Sep, September", _
             BuildDialogTitle("Date Conversion"), MonthName(Month(Date), True), userInput) Then GoTo CleanExit
 
-        monthValue = ParseMonthValue(userInput)
+        monthValue = Lib_DateUtils.ParseMonthValue(userInput)
         If monthValue >= 1 And monthValue <= 12 Then
             PromptForDateConversionMonth = monthValue
             Exit Do
@@ -425,27 +425,6 @@ Private Function ShowInputBox(ByVal promptMsg As String, ByVal title As String, 
         outResult = result
         ShowInputBox = True
     End If
-End Function
-
-Private Function ParseMonthValue(ByVal rawValue As Variant) As Long
-    Dim textValue As String
-    Dim monthIndex As Long
-
-    textValue = Trim$(CStr(rawValue))
-    If textValue = vbNullString Then Exit Function
-
-    If IsNumeric(textValue) Then
-        ParseMonthValue = CLng(textValue)
-        Exit Function
-    End If
-
-    textValue = UCase$(Left$(textValue, 3))
-    For monthIndex = 1 To 12
-        If UCase$(MonthName(monthIndex, True)) = textValue Then
-            ParseMonthValue = monthIndex
-            Exit Function
-        End If
-    Next monthIndex
 End Function
 
 Private Function IsValidWindowsFileName(ByVal fileName As String) As Boolean
