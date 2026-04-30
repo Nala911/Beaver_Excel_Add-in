@@ -10,8 +10,7 @@
     <tabs>
       <tab id="BeaverTab" label="BEAVER" keytip="B">
         <group id="GrpFormatting" label="Formatting">
-          <button id="BtnMergeFormulas" label="Merge Formulas" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnMergeFormulas" keytip="MF" screentip="Merge Formulas" supertip="Selects two related cells and inlines the precedent formula into the dependent, producing a single combined formula. Fully spill-range and dynamic array safe." />
-          <button id="BtnWrap" label="Wrap Formula" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnWrapSelectionWithFormula" keytip="W" screentip="Wrap Formula" supertip="Wraps every formula or value in the selection with a pattern you supply. Use [value] as the placeholder for existing cell content - e.g. =IFERROR([value], 0). Remembers the last-used pattern." />
+          <button id="BtnWrap" label="Wrap" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnWrap" keytip="W" screentip="Wrap Selection" supertip="Choose whether to wrap the selection by reusing a wrapper formula from another cell or by typing a formula pattern with [value]." />
           <button id="BtnStaticSheetWorkbook" label="Static Sheet/WB" getImage="Ribbon_GetIcon" size="large" onAction="Ribbon_OnStaticSheetWorkbook" keytip="SW" screentip="Convert Formulas to Static Values" supertip="Permanently replaces all formulas with their current values across the active sheet or the entire workbook. Handles spill ranges correctly." />
         </group>
         <group id="GrpCleanup" label="Data Tools">

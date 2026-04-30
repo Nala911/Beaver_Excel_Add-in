@@ -418,6 +418,45 @@ Private Function ShowInputBox(ByVal promptMsg As String, ByVal title As String, 
     ShowInputBox = Infra_Interaction.PromptText(promptMsg, title, defaultText, outResult)
 End Function
 
+Public Function PromptForWrapMode(ByVal ctx As Infra_ActionContext) As Long
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForWrapMode")
+    On Error GoTo ErrHandler
+
+    Dim userInput As String
+    Dim normalizedChoice As String
+
+    Do
+        If Not ShowInputBox( _
+            "Choose how you want to wrap the current selection." & vbCrLf & vbCrLf & _
+            BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
+            "Type one of these options:" & vbCrLf & _
+            "Cell  - Reuse a wrapper formula from another cell" & vbCrLf & _
+            "Type  - Enter a formula pattern manually using [value]" & vbCrLf & vbCrLf & _
+            "Type Cell or Type.", _
+            BuildDialogTitle("Wrap"), "Type", userInput) Then GoTo CleanExit
+
+        normalizedChoice = NormalizeChoiceText(userInput)
+        If normalizedChoice = "" Then normalizedChoice = "TYPE"
+
+        Select Case normalizedChoice
+            Case "C", "CELL", "WRAPPER CELL", "WRAPPERCELL"
+                PromptForWrapMode = 1
+                Exit Do
+            Case "T", "TYPE", "TYPED", "PATTERN", "MANUAL"
+                PromptForWrapMode = 2
+                Exit Do
+            Case Else
+                Infra_Interaction.ShowWarning "Please type Cell or Type.", BuildDialogTitle("Wrap")
+        End Select
+    Loop
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "PromptForWrapMode", Err
+    Resume CleanExit
+End Function
+
 Public Function PromptForSheetName(ByVal ctx As Infra_ActionContext) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForSheetName")
     On Error GoTo ErrHandler

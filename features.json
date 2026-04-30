@@ -9,7 +9,6 @@
       "Id": "GrpFormatting",
       "Label": "Formatting",
       "Features": [
-        "BtnMergeFormulas",
         "BtnWrap",
         "BtnStaticSheetWorkbook"
       ]
@@ -49,28 +48,16 @@
   ],
   "Features": [
     {
-      "ControlId": "BtnMergeFormulas",
-      "Label": "Merge Formulas",
-      "OnAction": "Ribbon_OnMergeFormulas",
-      "Macro": "UI_Ribbon.Ribbon_OnMergeFormulas",
-      "CommandName": "MergeFormulas",
-      "Icon": "MergeCells",
-      "Keytip": "MF",
-      "Screentip": "Merge Formulas",
-      "Supertip": "Selects two related cells and inlines the precedent formula into the dependent, producing a single combined formula. Fully spill-range and dynamic array safe.",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
-    },
-    {
       "ControlId": "BtnWrap",
-      "Label": "Wrap Formula",
-      "OnAction": "Ribbon_OnWrapSelectionWithFormula",
-      "Macro": "UI_Ribbon.Ribbon_OnWrapSelectionWithFormula",
-      "CommandName": "WrapSelectedRange",
+      "Label": "Wrap",
+      "OnAction": "Ribbon_OnWrap",
+      "Macro": "UI_Ribbon.Ribbon_OnWrap",
+      "CommandName": "Wrap",
       "Icon": "FunctionWizard",
       "Keytip": "W",
-      "Screentip": "Wrap Formula",
-      "Supertip": "Wraps every formula or value in the selection with a pattern you supply. Use [value] as the placeholder for existing cell content - e.g. =IFERROR([value], 0). Remembers the last-used pattern.",
+      "Screentip": "Wrap Selection",
+      "Supertip": "Choose whether to wrap the selection by reusing a wrapper formula from another cell or by typing a formula pattern with [value].",
+      "CommandClass": "FeatCmd_Wrap",
       "ReleaseTier": "stable",
       "RuntimeTestMode": "interactive"
     },

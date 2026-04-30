@@ -39,7 +39,7 @@ Use this file for:
 - Use `Infra_Error.Track` at the start of every public macro, callback, and
   workbook event.
 - Use `Infra_AppStateGuard` whenever Excel application state changes.
-- Use `Infra_Undo.SaveState` before mutating ranges when user undo matters.
+- Use `Infra_Undo.SaveState` before mutating ranges when user undo matters. (Registration is handled automatically by the command pipeline; do not call `Application.OnUndo` manually.)
 - Use `Infra_Progress` for slow work.
 - Never touch `Lib_JsonConverter.bas`, `.frx` files, or `_BeaverUndo`/
   `_BeaverTests` if they exist.

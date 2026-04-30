@@ -12,10 +12,8 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
     On Error GoTo ErrHandler
 
     Select Case UCase$(Trim$(entryMacro))
-        Case "UI_RIBBON.RIBBON_ONMERGEFORMULAS"
-            ResolveCommandName = "MergeFormulas"
-        Case "UI_RIBBON.RIBBON_ONWRAPSELECTIONWITHFORMULA"
-            ResolveCommandName = "WrapSelectedRange"
+        Case "UI_RIBBON.RIBBON_ONWRAP"
+            ResolveCommandName = "Wrap"
         Case "UI_RIBBON.RIBBON_ONSTATICSHEETWORKBOOK"
             ResolveCommandName = "StaticSheetWorkbook"
         Case "UI_RIBBON.RIBBON_ONCLEANDATA"
@@ -69,10 +67,8 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
     On Error GoTo ErrHandler
 
     Select Case UCase$(Trim$(commandName))
-        Case "MERGEFORMULAS"
-            Set CreateCommand = New FeatCmd_MergeFormulas
-        Case "WRAPSELECTEDRANGE"
-            Set CreateCommand = New FeatCmd_WrapSelectedRange
+        Case "WRAP"
+            Set CreateCommand = New FeatCmd_Wrap
         Case "STATICSHEETWORKBOOK"
             Set CreateCommand = New FeatCmd_StaticSheetWorkbook
         Case "CLEANDATA"

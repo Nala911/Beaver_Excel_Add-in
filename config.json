@@ -20,7 +20,7 @@
     "ReleaseTier": "stable",
     "IncludeDevFeatures": false,
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 11
+    "GeneratedFeatureCount": 10
   },
   "Hotkeys": [
     {
@@ -88,7 +88,6 @@
     }
   ],
   "Icons": {
-    "BtnMergeFormulas": "MergeCells",
     "BtnWrap": "FunctionWizard",
     "BtnStaticSheetWorkbook": "CalculateNow",
     "BtnCleanData": "Clear",

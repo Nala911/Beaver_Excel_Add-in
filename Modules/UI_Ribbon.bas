@@ -45,29 +45,16 @@ End Sub
 
 ' --- Formatting Group ---
 
-Public Sub Ribbon_OnMergeFormulas(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnMergeFormulas")
+Public Sub Ribbon_OnWrap(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnWrap")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnMergeFormulas", "Ribbon_OnMergeFormulas", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnWrap", "Ribbon_OnWrap", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnMergeFormulas", Err
-    Resume CleanExit
-End Sub
-
-Public Sub Ribbon_OnWrapSelectionWithFormula(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnWrapSelectionWithFormula")
-    On Error GoTo ErrHandler
-
-    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnWrapSelectionWithFormula", "Ribbon_OnWrapSelectionWithFormula", "Ribbon"
-
-CleanExit:
-    Exit Sub
-ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnWrapSelectionWithFormula", Err
+    Infra_Error.HandleError "Ribbon_OnWrap", Err
     Resume CleanExit
 End Sub
 

@@ -230,13 +230,45 @@ function Invoke-HeadlessCallbackTests {
     foreach ($callbackFeature in $Callbacks) {
         $callbackName = [string]$callbackFeature.OnAction
         Write-Host "  Testing callback: $callbackName" -ForegroundColor Yellow
+        $activeWindow = $null
+        $originalFormulaBar = $null
+        $originalHeadings = $null
+        $originalWorkbookTabs = $null
+        $originalHorizontalScrollBar = $null
+        $originalVerticalScrollBar = $null
+
         try {
+            $activeWindow = $ExcelApplication.ActiveWindow
+            $originalFormulaBar = $ExcelApplication.DisplayFormulaBar
+
+            if ($null -ne $activeWindow) {
+                $originalHeadings = $activeWindow.DisplayHeadings
+                $originalWorkbookTabs = $activeWindow.DisplayWorkbookTabs
+                $originalHorizontalScrollBar = $activeWindow.DisplayHorizontalScrollBar
+                $originalVerticalScrollBar = $activeWindow.DisplayVerticalScrollBar
+            }
+
             $ExcelApplication.Run($callbackName, $null)
             Write-Host "    [PASS] $callbackName" -ForegroundColor Green
             $passed++
         } catch {
             Write-Host "    [FAIL] $callbackName - $($_.Exception.Message)" -ForegroundColor Red
             throw "Headless callback failed for '$callbackName': $($_.Exception.Message)"
+        } finally {
+            if ($null -ne $originalFormulaBar) {
+                try { $ExcelApplication.DisplayFormulaBar = $originalFormulaBar } catch { }
+            }
+
+            if ($null -ne $activeWindow) {
+                try {
+                    if ($null -ne $originalHeadings) { $activeWindow.DisplayHeadings = $originalHeadings }
+                    if ($null -ne $originalWorkbookTabs) { $activeWindow.DisplayWorkbookTabs = $originalWorkbookTabs }
+                    if ($null -ne $originalHorizontalScrollBar) { $activeWindow.DisplayHorizontalScrollBar = $originalHorizontalScrollBar }
+                    if ($null -ne $originalVerticalScrollBar) { $activeWindow.DisplayVerticalScrollBar = $originalVerticalScrollBar }
+                } catch {
+                    # Best-effort cleanup only.
+                }
+            }
         }
     }
 

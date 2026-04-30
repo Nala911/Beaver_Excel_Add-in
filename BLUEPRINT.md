@@ -103,8 +103,8 @@ wiring.
 - `Infra_Bootstrap.EnsureStarted` ensures container initialization for late
   entry scenarios.
 - `AppContainer` is the central dependency container and command resolver.
-- `AppContainer.ResolveCommand` maps manifest command names such as
-  `MergeFormulas` or `Dashboard` to `FeatCmd_*` classes.
+- `AppContainer.ResolveCommand` delegates to `Infra_CommandRegistry` to map
+  manifest command names such as `Wrap` or `Dashboard` to `FeatCmd_*` classes.
 - `AppContainer.CreateCommandContext` builds a `BasicCommandContext` with entry
   macro, source, trigger kind, and captured Excel action context.
 
@@ -142,8 +142,7 @@ wiring.
 
 ### Ribbon-backed commands
 
-- `MergeFormulas` -> `FeatCmd_MergeFormulas`
-- `WrapSelectedRange` -> `FeatCmd_WrapSelectedRange`
+- `Wrap` -> `FeatCmd_Wrap` (Supports formula reuse and pattern typing)
 - `StaticSheetWorkbook` -> `FeatCmd_StaticSheetWorkbook`
 - `CleanData` -> `FeatCmd_CleanData`
 - `BreakExternalLinks` -> `FeatCmd_BreakExternalLinks`
@@ -151,7 +150,7 @@ wiring.
 - `Duplicate` -> `FeatCmd_Duplicate`
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf`
 - `Dashboard` -> `FeatCmd_Dashboard`
-- `ToggleFullScreen` -> `FeatCmd_ToggleFullScreen`
+- `ToggleFullScreen` -> `FeatCmd_ToggleFullScreen` (Focus Mode)
 - `ShowHotkeysHelp` -> `FeatCmd_ShowHotkeysHelp`
 
 ### Hotkey-driven commands
@@ -183,15 +182,14 @@ wiring.
 
 ### Ribbon groups
 
-- `Formatting`: merge formulas, wrap formula, static sheet/workbook
+- `Formatting`: wrap (reuse or pattern), static sheet/workbook
 - `Data Tools`: clean data, break links, convert to dates
 - `File Actions`: duplicate workbook, export range, dashboard
-- `Workspace`: focus mode
+- `Workspace`: Focus Mode
 - `Support`: hotkeys help
 
 ### Ribbon controls currently in `features.json`
 
-- `BtnMergeFormulas`
 - `BtnWrap`
 - `BtnStaticSheetWorkbook`
 - `BtnCleanData`
@@ -330,7 +328,8 @@ Rules:
   hotkey wrapper, and workbook event.
 - Use `Infra_AppStateGuard` for code that changes Excel application state.
 - Use `Infra_Undo.SaveState` before mutating ranges when custom undo should be
-  preserved. Registration is automatically delayed until the command finishes.
+  preserved. Registration is automatically delayed until the command finishes
+  via the `CommandInvoker` pipeline.
 - Use `Infra_Progress` for operations that may take noticeable time.
 - Prefer a single `CleanExit` label when there are early returns.
 - Route failures through `Infra_Error.HandleError` instead of ad hoc dialogs.
