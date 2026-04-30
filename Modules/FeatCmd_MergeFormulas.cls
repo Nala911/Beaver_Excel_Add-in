@@ -206,11 +206,18 @@ Private Function GetCellArgumentText(ByVal targetCell As Range) As String
     On Error GoTo ErrHandler
 
     Dim v As Variant
+    Dim formulaText As String
 
     If targetCell Is Nothing Then GoTo CleanExit
 
     If targetCell.HasFormula Then
-        v = targetCell.Value2
+        formulaText = CStr(targetCell.Formula2)
+        If Left$(formulaText, 1) = "=" Then
+            GetCellArgumentText = Mid$(formulaText, 2)
+        Else
+            GetCellArgumentText = formulaText
+        End If
+        Exit Function
     Else
         v = targetCell.Value2
     End If
