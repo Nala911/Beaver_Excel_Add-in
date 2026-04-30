@@ -22,6 +22,8 @@ Public Sub ExecuteCommand(ByVal cmd As ICommand, ByVal context As ICommandContex
     Dim guard As Infra_AppStateGuard
 
     If cmd Is Nothing Then GoTo CleanExit
+    
+    Infra_Undo.ClearPendingUndo
 
     Set validation = cmd.Validate(context)
     If validation Is Nothing Then
@@ -46,11 +48,18 @@ Public Sub ExecuteCommand(ByVal cmd As ICommand, ByVal context As ICommandContex
     End If
 
     cmd.Execute context
+    
+    ' Ensure AppStateGuard is terminated so Application state is restored
+    ' before we register the Undo macro.
+    If Not guard Is Nothing Then Set guard = Nothing
+    
+    Infra_Undo.RegisterPendingUndo
 
 CleanExit:
     Exit Sub
 
 ErrHandler:
+    Infra_Undo.ClearPendingUndo
     Infra_Error.HandleError "ExecuteCommand", Err
     Resume CleanExit
 End Sub

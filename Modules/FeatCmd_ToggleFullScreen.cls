@@ -33,14 +33,21 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WindowRef Is Nothing Then GoTo CleanExit
 
+    Dim targetState As Boolean
+    
+    ' Determine target state based on current heading visibility.
+    ' If headings are visible, we are entering Focus Mode (targetState = False).
+    ' If headings are hidden, we are leaving Focus Mode (targetState = True).
+    targetState = Not ctx.WindowRef.DisplayHeadings
+
     With ctx.WindowRef
-        .DisplayHeadings = Not .DisplayHeadings
-        .DisplayWorkbookTabs = Not .DisplayWorkbookTabs
-        .DisplayHorizontalScrollBar = Not .DisplayHorizontalScrollBar
-        .DisplayVerticalScrollBar = Not .DisplayVerticalScrollBar
+        .DisplayHeadings = targetState
+        .DisplayWorkbookTabs = targetState
+        .DisplayHorizontalScrollBar = targetState
+        .DisplayVerticalScrollBar = targetState
     End With
     
-    Application.DisplayFormulaBar = Not Application.DisplayFormulaBar
+    Application.DisplayFormulaBar = targetState
     
 CleanExit:
     Exit Sub

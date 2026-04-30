@@ -17,6 +17,9 @@ param(
     [switch]$RefreshBlueprintGuide
 )
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
 $excelPath = Join-Path $PSScriptRoot "Beaver Add-in.xlsm"
 $modulesDir = Join-Path $PSScriptRoot "Modules"
 $desktopThisWorkbookCls = Join-Path $PSScriptRoot "ThisWorkbook.cls"
@@ -43,15 +46,29 @@ function Add-StageResult {
     param(
         [string]$Stage,
         [string]$Status,
-        [string]$Details = ""
+        [string]$Details = "",
+        [double]$DurationMs = 0
     )
 
     [void]$script:StageResults.Add([pscustomobject]@{
         Stage = $Stage
         Status = $Status
         Details = $Details
+        DurationMs = $DurationMs
         Timestamp = Get-Date
     })
+}
+
+function Write-StatusLine {
+    param(
+        [string]$Status,
+        [string]$Stage,
+        [string]$Details = "",
+        [string]$Color = "Gray"
+    )
+
+    $detailText = if ([string]::IsNullOrWhiteSpace($Details)) { "" } else { " $Details" }
+    Write-Host ("[{0,-6}] {1}{2}" -f $Status.ToUpperInvariant(), $Stage, $detailText) -ForegroundColor $Color
 }
 
 function Write-StageSummary {
@@ -61,9 +78,175 @@ function Write-StageSummary {
     Write-Host "Stage Summary" -ForegroundColor Cyan
     foreach ($stage in $script:StageResults) {
         $color = if ($stage.Status -eq "success") { "Green" } elseif ($stage.Status -eq "skipped") { "Yellow" } else { "Red" }
+        $durationText = if ($stage.DurationMs -gt 0) { " ({0:N1}s)" -f ($stage.DurationMs / 1000) } else { "" }
         $detailText = if ([string]::IsNullOrWhiteSpace($stage.Details)) { "" } else { " - $($stage.Details)" }
-        Write-Host ("  [{0}] {1}{2}" -f $stage.Status.ToUpper(), $stage.Stage, $detailText) -ForegroundColor $color
+        Write-Host ("  [{0}] {1}{2}{3}" -f $stage.Status.ToUpper(), $stage.Stage, $durationText, $detailText) -ForegroundColor $color
     }
+
+    $passed = @($script:StageResults | Where-Object { $_.Status -eq "success" }).Count
+    $failed = @($script:StageResults | Where-Object { $_.Status -eq "failure" }).Count
+    $skipped = @($script:StageResults | Where-Object { $_.Status -eq "skipped" }).Count
+    $totalDurationMs = ($script:StageResults | Measure-Object -Property DurationMs -Sum).Sum
+    if ($null -eq $totalDurationMs) { $totalDurationMs = 0 }
+
+    Write-Host ""
+    Write-Host ("Totals: passed={0}, failed={1}, skipped={2}, duration={3:N1}s" -f $passed, $failed, $skipped, ($totalDurationMs / 1000)) -ForegroundColor Cyan
+}
+
+function Invoke-Stage {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Stage,
+
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$Action
+    )
+
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-StatusLine -Status "start" -Stage $Stage -Color "Cyan"
+
+    try {
+        $result = & $Action
+        $stopwatch.Stop()
+
+        $details = ""
+        if ($null -ne $result) {
+            if ($result -is [string]) {
+                $details = $result
+            } elseif ($result.PSObject.Properties.Name -contains "Details") {
+                $details = [string]$result.Details
+            }
+        }
+
+        Add-StageResult -Stage $Stage -Status "success" -Details $details -DurationMs $stopwatch.Elapsed.TotalMilliseconds
+        Write-StatusLine -Status "pass" -Stage $Stage -Details ("({0:N1}s){1}" -f $stopwatch.Elapsed.TotalSeconds, $(if ([string]::IsNullOrWhiteSpace($details)) { "" } else { " $details" })) -Color "Green"
+        return $result
+    } catch {
+        $stopwatch.Stop()
+        $message = $_.Exception.Message
+        Add-StageResult -Stage $Stage -Status "failure" -Details $message -DurationMs $stopwatch.Elapsed.TotalMilliseconds
+        Write-StatusLine -Status "fail" -Stage $Stage -Details ("({0:N1}s) {1}" -f $stopwatch.Elapsed.TotalSeconds, $message) -Color "Red"
+        throw
+    }
+}
+
+function Add-SkippedStageResult {
+    param(
+        [string]$Stage,
+        [string]$Details
+    )
+
+    Add-StageResult -Stage $Stage -Status "skipped" -Details $Details
+    Write-StatusLine -Status "skip" -Stage $Stage -Details $Details -Color "Yellow"
+}
+
+function Release-ComObjectSafely {
+    param([object]$ComObject)
+
+    if ($null -eq $ComObject) {
+        return
+    }
+
+    try {
+        if ([System.Runtime.InteropServices.Marshal]::IsComObject($ComObject)) {
+            [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($ComObject)
+        }
+    } catch {
+        # Best-effort cleanup only.
+    }
+}
+
+function Get-ExcelProcessId {
+    param(
+        [Parameter(Mandatory = $true)]
+        $ExcelApplication
+    )
+
+    if ($null -eq $ExcelApplication -or -not $ExcelApplication.Hwnd) {
+        return 0
+    }
+
+    $excelPid = 0
+    [WindowScraper]::GetWindowThreadProcessId([IntPtr]$ExcelApplication.Hwnd, [ref]$excelPid) | Out-Null
+    return $excelPid
+}
+
+function Reset-StructuredTestResults {
+    param([string]$Path)
+
+    if (Test-Path $Path) {
+        Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Write-StructuredTestResultsSummary {
+    param([pscustomobject]$StructuredResults)
+
+    Write-Host ("  Structured test results: total={0}, passed={1}, failed={2}" -f $StructuredResults.Summary.Total, $StructuredResults.Summary.Passed, $StructuredResults.Summary.Failed) -ForegroundColor Cyan
+
+    foreach ($result in @($StructuredResults.Results)) {
+        $resultColor = if ($result.Passed) { "Green" } else { "Yellow" }
+        $resultStatus = if ($result.Passed) { "PASS" } else { "FAIL" }
+        $messageText = if ([string]::IsNullOrWhiteSpace($result.Message)) { "" } else { " - $($result.Message)" }
+        Write-Host ("    [{0}] {1} ({2} ms, {3}){4}" -f $resultStatus, $result.Name, $result.DurationMs, $result.Category, $messageText) -ForegroundColor $resultColor
+    }
+}
+
+function Assert-StructuredTestResults {
+    param(
+        [pscustomobject]$StructuredResults,
+        [string]$Path
+    )
+
+    if ($null -eq $StructuredResults -or $null -eq $StructuredResults.Summary) {
+        throw "Structured test results file was not produced: $Path"
+    }
+
+    Write-StructuredTestResultsSummary -StructuredResults $StructuredResults
+
+    if ($StructuredResults.Summary.Failed -gt 0) {
+        $failedNames = @($StructuredResults.Results | Where-Object { -not $_.Passed } | ForEach-Object { $_.Name })
+        $failedLabel = if ($failedNames.Count -gt 0) { $failedNames -join ", " } else { "unknown test(s)" }
+        throw "Structured test results reported $($StructuredResults.Summary.Failed) failure(s): $failedLabel"
+    }
+
+    return "tests=$($StructuredResults.Summary.Total)"
+}
+
+function Invoke-HeadlessCallbackTests {
+    param(
+        $ExcelApplication,
+        [object[]]$Callbacks
+    )
+
+    if ($Callbacks.Count -eq 0) {
+        Write-Host "No enabled headless-safe callbacks declared in features.json." -ForegroundColor Gray
+        return "callbacks=0"
+    }
+
+    Write-Host "Running headless-safe callback tests..." -ForegroundColor Cyan
+    $passed = 0
+
+    foreach ($callbackFeature in $Callbacks) {
+        $callbackName = [string]$callbackFeature.OnAction
+        Write-Host "  Testing callback: $callbackName" -ForegroundColor Yellow
+        try {
+            $ExcelApplication.Run($callbackName, $null)
+            Write-Host "    [PASS] $callbackName" -ForegroundColor Green
+            $passed++
+        } catch {
+            Write-Host "    [FAIL] $callbackName - $($_.Exception.Message)" -ForegroundColor Red
+            throw "Headless callback failed for '$callbackName': $($_.Exception.Message)"
+        }
+    }
+
+    return "callbacks=$passed"
+}
+
+function Get-StructuredTestResultsDetails {
+    param([pscustomobject]$StructuredResults)
+
+    return "tests=$($StructuredResults.Summary.Total), passed=$($StructuredResults.Summary.Passed), failed=$($StructuredResults.Summary.Failed)"
 }
 
 function Get-FeatureManifest {
@@ -259,7 +442,7 @@ function Sync-CommandRegistry {
         }
         if (-not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
             $commandName = $feature.CommandName.Trim()
-            $commandClass = if (-not [string]::IsNullOrWhiteSpace($feature.CommandClass)) { $feature.CommandClass.Trim() } else { "FeatCmd_$commandName" }
+            $commandClass = if ($feature.PSObject.Properties.Name -contains "CommandClass" -and -not [string]::IsNullOrWhiteSpace($feature.CommandClass)) { $feature.CommandClass.Trim() } else { "FeatCmd_$commandName" }
             $commandMap[$commandName.ToUpperInvariant()] = [pscustomobject]@{
                 CommandName = $commandName
                 CommandClass = $commandClass
@@ -273,7 +456,7 @@ function Sync-CommandRegistry {
         }
         if (-not [string]::IsNullOrWhiteSpace($hotkey.CommandName)) {
             $commandName = $hotkey.CommandName.Trim()
-            $commandClass = if (-not [string]::IsNullOrWhiteSpace($hotkey.CommandClass)) { $hotkey.CommandClass.Trim() } else { "FeatCmd_$commandName" }
+            $commandClass = if ($hotkey.PSObject.Properties.Name -contains "CommandClass" -and -not [string]::IsNullOrWhiteSpace($hotkey.CommandClass)) { $hotkey.CommandClass.Trim() } else { "FeatCmd_$commandName" }
             $commandMap[$commandName.ToUpperInvariant()] = [pscustomobject]@{
                 CommandName = $commandName
                 CommandClass = $commandClass
@@ -354,7 +537,7 @@ function Read-StructuredTestResults {
 
     foreach ($line in Get-Content $Path) {
         if ([string]::IsNullOrWhiteSpace($line)) { continue }
-        $parts = $line -split "`t"
+        $parts = $line -split "`t", 6
         if ($parts[0] -eq "SUMMARY" -and $parts.Count -ge 4) {
             $summary = [pscustomobject]@{
                 Total = [int]$parts[1]
@@ -708,6 +891,7 @@ function Update-RibbonInWorkbook {
     param ([string]$WorkbookPath, [string]$RibbonXmlPath)
     if (-not (Test-Path $RibbonXmlPath)) { return }
     Write-Host "Injecting Ribbon XML..."
+    $zip = $null
     try {
         Add-Type -AssemblyName System.IO.Compression
         Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -724,7 +908,8 @@ function Update-RibbonInWorkbook {
         $zip.Dispose()
         Write-Host "  Ribbon XML injected successfully."
     } catch {
-        Write-Error "Failed to update Ribbon XML: $($_.Exception.Message)"
+        throw "Failed to update Ribbon XML: $($_.Exception.Message)"
+    } finally {
         if ($null -ne $zip) { $zip.Dispose() }
     }
 }
@@ -935,359 +1120,382 @@ function Invoke-EnhancedLinting {
 # --- 1. PRE-DEPLOYMENT VALIDATION ---
 $configPath = Join-Path $PSScriptRoot "config.json"
 
-Sync-FeatureManifest -ManifestPath $featureManifestPath -ConfigPath $configPath -RibbonPath $ribbonXmlPath -IncludeDev:$IncludeDevFeatures
-Add-StageResult -Stage "manifest_sync" -Status "success" -Details "features synced from features.json"
-Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
-Add-StageResult -Stage "command_registry_generation" -Status "success"
-Sync-TestManifest -SourceDir $modulesDir -OutputPath $testManifestPath
-Add-StageResult -Stage "test_manifest_generation" -Status "success"
-
-$validRibbon = Test-RibbonValidity -XmlPath $ribbonXmlPath -ModulesDir $modulesDir
-$validVba = Invoke-VbaSyntaxCheck -SourceDir $modulesDir
-$validLint = Invoke-EnhancedLinting -SourceDir $modulesDir
-
-if (-not ($validRibbon -and $validVba -and $validLint)) {
-    Add-StageResult -Stage "validation" -Status "failure" -Details "Pre-deployment validation failed"
-    Write-Host "Pre-deployment validation failed. Fix the issues above and retry." -ForegroundColor Red
-    exit 1
-}
-Add-StageResult -Stage "validation" -Status "success"
-
-# --- 2. ENVIRONMENT CHECKS ---
-if (-not (Test-Path $excelPath)) { Write-Error "Excel file not found."; exit }
-$lockFile = Join-Path $PSScriptRoot ("~$" + (Split-Path $excelPath -Leaf))
-if (Test-Path $lockFile) {
-    Write-Host "Excel file is open. Attempting to close it..." -ForegroundColor Yellow
-    try {
-        $activeExcel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
-        $activeExcel.DisplayAlerts = $false
-        foreach ($wb in $activeExcel.Workbooks) {
-            if ($wb.FullName -eq $excelPath) {
-                $wb.Close($true)
-                Write-Host "  Closed $($wb.Name) successfully." -ForegroundColor Green
-                break
-            }
-        }
-        $activeExcel.DisplayAlerts = $true
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($activeExcel) | Out-Null
-    } catch {
-        Write-Warning "Could not close gracefully via COM. Force closing Excel..."
-        Stop-Process -Name "EXCEL" -Force -ErrorAction SilentlyContinue
-    }
-    
-    # Wait for the lock file to be released
-    Start-Sleep -Seconds 2
-    if (Test-Path $lockFile) {
-        Stop-Script "Excel file is still open. Please close it manually and retry."
-    }
-}
-
-# --- 3. BEGIN UPDATE ---
-Write-Host "Starting Excel... (This may take a moment)"
 try {
-    $excel = Start-ExcelApplication -Purpose "workbook update"
-} catch {
-    Stop-Script $_.Exception.Message
-}
-$excel.Visible = $false
-$excel.DisplayAlerts = $false
+    Invoke-Stage -Stage "manifest_sync" -Action {
+        Sync-FeatureManifest -ManifestPath $featureManifestPath -ConfigPath $configPath -RibbonPath $ribbonXmlPath -IncludeDev:$IncludeDevFeatures
+        return "features synced from features.json"
+    } | Out-Null
 
-try {
-    $workbook = $excel.Workbooks.Open($excelPath)
-    $vbaProject = $workbook.VBProject
+    Invoke-Stage -Stage "command_registry_generation" -Action {
+        Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
+        return "command registry refreshed"
+    } | Out-Null
 
-    Write-Host "Updating modules..."
-    # Components collection can change while iterating; use a fresh list
-    $compsToRemove = @()
-    for ($i = 1; $i -le $vbaProject.VBComponents.Count; $i++) {
-        $comp = $vbaProject.VBComponents.Item($i)
-        # Type 1: Standard Module, 2: Class Module, 3: Form
-        if (($comp.Type -ge 1 -and $comp.Type -le 3) -and ($comp.Name -ne "ThisWorkbook")) {
-            $compsToRemove += $comp
+    Invoke-Stage -Stage "test_manifest_generation" -Action {
+        Sync-TestManifest -SourceDir $modulesDir -OutputPath $testManifestPath
+        return "test manifest refreshed"
+    } | Out-Null
+
+    Invoke-Stage -Stage "validation" -Action {
+        $validRibbon = Test-RibbonValidity -XmlPath $ribbonXmlPath -ModulesDir $modulesDir
+        $validVba = Invoke-VbaSyntaxCheck -SourceDir $modulesDir
+        $validLint = Invoke-EnhancedLinting -SourceDir $modulesDir
+
+        if (-not ($validRibbon -and $validVba -and $validLint)) {
+            throw "Pre-deployment validation failed"
         }
-    }
-    
-    foreach ($comp in $compsToRemove) {
+
+        return "ribbon, syntax, and lint checks passed"
+    } | Out-Null
+
+    # --- 2. ENVIRONMENT CHECKS ---
+    Invoke-Stage -Stage "environment_checks" -Action {
+        if (-not (Test-Path $excelPath)) {
+            throw "Excel file not found: $excelPath"
+        }
+
+        $lockFile = Join-Path $PSScriptRoot ("~$" + (Split-Path $excelPath -Leaf))
+        if (-not (Test-Path $lockFile)) {
+            return "workbook available"
+        }
+
+        Write-Host "Excel file is open. Attempting to close it..." -ForegroundColor Yellow
         try {
-            $vbaProject.VBComponents.Remove($comp)
+            $activeExcel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+            try {
+                $activeExcel.DisplayAlerts = $false
+                foreach ($wb in $activeExcel.Workbooks) {
+                    if ($wb.FullName -eq $excelPath) {
+                        $wb.Close($true)
+                        Write-Host "  Closed $($wb.Name) successfully." -ForegroundColor Green
+                        break
+                    }
+                }
+            } finally {
+                $activeExcel.DisplayAlerts = $true
+                [System.Runtime.InteropServices.Marshal]::ReleaseComObject($activeExcel) | Out-Null
+            }
         } catch {
-            Write-Warning "  Could not remove component: $($comp.Name)"
+            Write-Warning "Could not close gracefully via COM. Force closing Excel..."
+            Stop-Process -Name "EXCEL" -Force -ErrorAction SilentlyContinue
         }
-    }
 
-    # Import both .bas and .cls files
-    # Note: -Include requires a wildcard in the path to work correctly in some PS versions
-    $vbaSourceFiles = Get-ChildItem -Path $modulesDir | Where-Object { $_.Extension -match "\.(bas|cls|frm)$" }
-    
-    $tempImportDir = Join-Path ([System.IO.Path]::GetTempPath()) ("BeaverAddin-VbaImport-" + [System.Guid]::NewGuid().ToString("N"))
-    try {
-        foreach ($file in $vbaSourceFiles) {
-            Write-Host "  Importing $($file.Name)..."
-            $importPath = New-NormalizedImportCopy -SourcePath $file.FullName -TempRoot $tempImportDir
-            
-            if ($file.Extension -eq ".frm") {
-                $frxPath = [System.IO.Path]::ChangeExtension($file.FullName, ".frx")
-                if (Test-Path $frxPath) {
-                    $tempFrxPath = Join-Path $tempImportDir ([System.IO.Path]::GetFileName($frxPath))
-                    Copy-Item -Path $frxPath -Destination $tempFrxPath -Force
-                }
-            }
-            
-            $vbaProject.VBComponents.Import($importPath) | Out-Null
+        Start-Sleep -Seconds 2
+        if (Test-Path $lockFile) {
+            throw "Excel file is still open. Please close it manually and retry."
         }
-    } finally {
-        if (Test-Path $tempImportDir) {
-            Remove-Item -Path $tempImportDir -Recurse -Force -ErrorAction SilentlyContinue
-        }
-    }
-    
-    # ThisWorkbook specially handled
-    if (Test-Path $desktopThisWorkbookCls) {
-        Write-Host "  Updating ThisWorkbook..."
-        $twCode = $vbaProject.VBComponents.Item("ThisWorkbook").CodeModule
-        if ($twCode.CountOfLines -gt 0) { $twCode.DeleteLines(1, $twCode.CountOfLines) }
-        # Strip header lines that Excel manages automatically (e.g., VERSION, BEGIN, Attribute)
-        $lines = Get-Content $desktopThisWorkbookCls | Where-Object { 
-            $_ -notmatch "^VERSION\s+\d+\.\d+" -and 
-            $_ -notmatch "^BEGIN\s*$" -and 
-            $_ -notmatch "^\s+MultiUse\s*=" -and 
-            $_ -notmatch "^END\s*$" -and 
-            $_ -notmatch "^Attribute\s+"
-        }
-        $twCode.AddFromString([string]::Join("`r`n", $lines))
-    }
 
-    # Compilation Check
-    Write-Host "Compiling VBA Project..."
-    if ($null -ne $excel.VBE) {
-        Write-Host "  VBE object found."
-        
-        # Search all command bars recursively
+        return "lock file cleared"
+    } | Out-Null
+
+    # --- 3. BEGIN UPDATE ---
+    Invoke-Stage -Stage "workbook_update" -Action {
+        Write-Host "Starting Excel... (This may take a moment)"
+        $excel = Start-ExcelApplication -Purpose "workbook update"
+        $excel.Visible = $false
+        $excel.DisplayAlerts = $false
+        $workbook = $null
+        $vbaProject = $null
         $btn = $null
-        foreach ($cb in $excel.VBE.CommandBars) {
-            # Helper function for recursive search
-            function Find-ControlRecursive {
-                param($Parent)
-                foreach ($c in $Parent.Controls) {
-                    try {
-                        if ($c.Id -eq 578 -or $c.Caption -match "Compile") {
-                            return $c
-                        }
-                        if ($c.Type -eq 10 -or $c.Type -eq 12) { # Popup or ButtonPopup
-                            $found = Find-ControlRecursive -Parent $c
-                            if ($found) { return $found }
-                        }
-                    } catch { }
-                }
-                return $null
-            }
-            $btn = Find-ControlRecursive -Parent $cb
-            if ($btn) { break }
-        }
+        $activePane = $null
+        $commandBars = $null
+        $cb = $null
 
-        if ($null -ne $btn) { 
-            Write-Host "  Found '$($btn.Caption)' button (Enabled: $($btn.Enabled))."
-            if ($btn.Enabled) {
-                # Suppress the blocking MsgBox that VBA shows on compile errors
-                $excel.DisplayAlerts = $false 
-                
-                try {
-                    Write-Host "  Executing compile..."
-                    $btn.Execute()
-                } catch {
-                    Write-Host "  Execute() threw an exception: $($_.Exception.Message)"
+        try {
+            $workbook = $excel.Workbooks.Open($excelPath)
+            $vbaProject = $workbook.VBProject
+
+            Write-Host "Updating modules..."
+            $compsToRemove = @()
+            for ($i = 1; $i -le $vbaProject.VBComponents.Count; $i++) {
+                $comp = $vbaProject.VBComponents.Item($i)
+                if (($comp.Type -ge 1 -and $comp.Type -le 3) -and ($comp.Name -ne "ThisWorkbook")) {
+                    $compsToRemove += $comp
                 }
-                
-                # If still enabled after execution, compilation failed
-                if ($btn.Enabled) {
-                    Write-Host "  ERROR: VBA Compilation failed (Button still enabled)." -ForegroundColor Red
-                    
-                    # Attempt to extract the error details from the VBE
-                    # When compile fails, the VBE usually highlights the error line 
-                    # in the active code pane.
-                    try {
-                        $activePane = $excel.VBE.ActiveCodePane
-                        if ($null -ne $activePane) {
-                            $modName = $activePane.CodeModule.Name
-                            
-                            # Get the current selection (highlighted error)
-                            $startLine = 0; $startCol = 0; $endLine = 0; $endCol = 0
-                            $activePane.GetSelection([ref]$startLine, [ref]$startCol, [ref]$endLine, [ref]$endCol)
-                            
-                            $errorLineText = $activePane.CodeModule.Lines($startLine, 1).Trim()
-                            
-                            Write-Host "  [Diagnostics] Module: $modName" -ForegroundColor Yellow
-                            Write-Host "  [Diagnostics] Line $($startLine): $errorLineText" -ForegroundColor Yellow
-                            
-                            throw "VBA Compilation failed in module '$modName' at line $($startLine): '$errorLineText'. Please fix the syntax or missing definitions."
-                        } else {
-                            Write-Host "  [Diagnostics] No ActiveCodePane found after failure." -ForegroundColor Yellow
-                            throw "VBA Compilation failed. Check your code for syntax or definition errors."
-                        }
-                    } catch {
-                        # If we fail to get the active pane details, throw a generic error
-                        if ($_.Exception.Message -match "VBA Compilation failed") {
-                            throw $_.Exception.Message
-                        } else {
-                            Write-Host "  [Diagnostics] Error retrieving active pane: $($_.Exception.Message)" -ForegroundColor Red
-                            throw "VBA Compilation failed. Check your code for 'Variable not defined' or syntax errors."
+            }
+
+            foreach ($comp in $compsToRemove) {
+                try {
+                    $vbaProject.VBComponents.Remove($comp)
+                } catch {
+                    Write-Warning "  Could not remove component: $($comp.Name)"
+                }
+            }
+
+            $vbaSourceFiles = Get-ChildItem -Path $modulesDir | Where-Object { $_.Extension -match "\.(bas|cls|frm)$" }
+            $tempImportDir = Join-Path ([System.IO.Path]::GetTempPath()) ("BeaverAddin-VbaImport-" + [System.Guid]::NewGuid().ToString("N"))
+
+            try {
+                foreach ($file in $vbaSourceFiles) {
+                    Write-Host "  Importing $($file.Name)..."
+                    $importPath = New-NormalizedImportCopy -SourcePath $file.FullName -TempRoot $tempImportDir
+
+                    if ($file.Extension -eq ".frm") {
+                        $frxPath = [System.IO.Path]::ChangeExtension($file.FullName, ".frx")
+                        if (Test-Path $frxPath) {
+                            $tempFrxPath = Join-Path $tempImportDir ([System.IO.Path]::GetFileName($frxPath))
+                            Copy-Item -Path $frxPath -Destination $tempFrxPath -Force
                         }
                     }
+
+                    $vbaProject.VBComponents.Import($importPath) | Out-Null
+                }
+            } finally {
+                if (Test-Path $tempImportDir) {
+                    Remove-Item -Path $tempImportDir -Recurse -Force -ErrorAction SilentlyContinue
+                }
+            }
+
+            if (Test-Path $desktopThisWorkbookCls) {
+                Write-Host "  Updating ThisWorkbook..."
+                $twCode = $vbaProject.VBComponents.Item("ThisWorkbook").CodeModule
+                if ($twCode.CountOfLines -gt 0) { $twCode.DeleteLines(1, $twCode.CountOfLines) }
+                $lines = Get-Content $desktopThisWorkbookCls | Where-Object {
+                    $_ -notmatch "^VERSION\s+\d+\.\d+" -and
+                    $_ -notmatch "^BEGIN\s*$" -and
+                    $_ -notmatch "^\s+MultiUse\s*=" -and
+                    $_ -notmatch "^END\s*$" -and
+                    $_ -notmatch "^Attribute\s+"
+                }
+                $twCode.AddFromString([string]::Join("`r`n", $lines))
+            }
+
+            Write-Host "Compiling VBA Project..."
+            if ($null -ne $excel.VBE) {
+                Write-Host "  VBE object found."
+
+                $commandBars = $excel.VBE.CommandBars
+                foreach ($cb in $commandBars) {
+                    function Find-ControlRecursive {
+                        param($Parent)
+                        foreach ($c in $Parent.Controls) {
+                            try {
+                                if ($c.Id -eq 578 -or $c.Caption -match "Compile") {
+                                    return $c
+                                }
+                                if ($c.Type -eq 10 -or $c.Type -eq 12) {
+                                    $found = Find-ControlRecursive -Parent $c
+                                    if ($found) { return $found }
+                                }
+                            } catch { }
+                        }
+                        return $null
+                    }
+                    $btn = Find-ControlRecursive -Parent $cb
+                    if ($btn) { break }
+                }
+
+                if ($null -ne $btn) {
+                    Write-Host "  Found '$($btn.Caption)' button (Enabled: $($btn.Enabled))."
+                    if ($btn.Enabled) {
+                        $excel.DisplayAlerts = $false
+
+                        try {
+                            Write-Host "  Executing compile..."
+                            $btn.Execute()
+                        } catch {
+                            Write-Host "  Execute() threw an exception: $($_.Exception.Message)"
+                        }
+
+                        if ($btn.Enabled) {
+                            Write-Host "  ERROR: VBA Compilation failed (Button still enabled)." -ForegroundColor Red
+
+                            try {
+                                $activePane = $excel.VBE.ActiveCodePane
+                                if ($null -ne $activePane) {
+                                    $modName = $activePane.CodeModule.Name
+                                    $startLine = 0
+                                    $startCol = 0
+                                    $endLine = 0
+                                    $endCol = 0
+                                    $activePane.GetSelection([ref]$startLine, [ref]$startCol, [ref]$endLine, [ref]$endCol)
+
+                                    $errorLineText = $activePane.CodeModule.Lines($startLine, 1).Trim()
+
+                                    Write-Host "  [Diagnostics] Module: $modName" -ForegroundColor Yellow
+                                    Write-Host "  [Diagnostics] Line $($startLine): $errorLineText" -ForegroundColor Yellow
+
+                                    throw "VBA Compilation failed in module '$modName' at line $($startLine): '$errorLineText'. Please fix the syntax or missing definitions."
+                                }
+
+                                Write-Host "  [Diagnostics] No ActiveCodePane found after failure." -ForegroundColor Yellow
+                                throw "VBA Compilation failed. Check your code for syntax or definition errors."
+                            } catch {
+                                if ($_.Exception.Message -match "VBA Compilation failed") {
+                                    throw $_.Exception.Message
+                                }
+
+                                Write-Host "  [Diagnostics] Error retrieving active pane: $($_.Exception.Message)" -ForegroundColor Red
+                                throw "VBA Compilation failed. Check your code for 'Variable not defined' or syntax errors."
+                            }
+                        } else {
+                            Write-Host "  Compilation successful." -ForegroundColor Green
+                        }
+                    } else {
+                        Write-Host "  Project already compiled." -ForegroundColor Gray
+                    }
                 } else {
-                    Write-Host "  Compilation successful." -ForegroundColor Green
+                    Write-Host "  'Compile Project' button NOT found. Listing available CommandBars:" -ForegroundColor Yellow
+                    foreach ($cb in $commandBars) {
+                        Write-Host "    - $($cb.Name) (Visible: $($cb.Visible))"
+                    }
                 }
             } else {
-                Write-Host "  Project already compiled." -ForegroundColor Gray
+                Write-Host "  VBE object NOT found." -ForegroundColor Yellow
             }
-        } else {
-            Write-Host "  'Compile Project' button NOT found. Listing available CommandBars:" -ForegroundColor Yellow
-            foreach ($cb in $excel.VBE.CommandBars) {
-                Write-Host "    - $($cb.Name) (Visible: $($cb.Visible))"
+
+            if ($BumpVersion) {
+                Update-Version -ConfigPath $configPath
+            } else {
+                Write-Host "Skipping version bump (pass -BumpVersion for release builds)." -ForegroundColor Gray
             }
+
+            if ($RefreshBlueprintGuide) {
+                Update-BlueprintDate -BlueprintMdPath $blueprintMdPath
+            } else {
+                Write-Host "Skipping BLUEPRINT.md date refresh (pass -RefreshBlueprintGuide when needed)." -ForegroundColor Gray
+            }
+
+            $workbook.Save()
+            $workbook.Close($true)
+            Release-ComObjectSafely $activePane
+            Release-ComObjectSafely $btn
+            Release-ComObjectSafely $cb
+            Release-ComObjectSafely $commandBars
+            Release-ComObjectSafely $vbaProject
+            Release-ComObjectSafely $workbook
+            $activePane = $null
+            $btn = $null
+            $cb = $null
+            $commandBars = $null
+            $vbaProject = $null
+            $workbook = $null
+            Write-Host "SUCCESS: Modules updated."
+            return "modules imported and workbook saved"
+        } finally {
+            if ($workbook) {
+                try { $workbook.Close($false) } catch { }
+            }
+            Release-ComObjectSafely $activePane
+            Release-ComObjectSafely $btn
+            Release-ComObjectSafely $cb
+            Release-ComObjectSafely $commandBars
+            Release-ComObjectSafely $vbaProject
+            Release-ComObjectSafely $workbook
+            if ($excel) {
+                try { $excel.Quit() } catch { }
+            }
+            Release-ComObjectSafely $excel
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
         }
-    } else {
-        Write-Host "  VBE object NOT found." -ForegroundColor Yellow
+    } | Out-Null
+
+    Invoke-Stage -Stage "ribbon_injection" -Action {
+        Update-RibbonInWorkbook -WorkbookPath $excelPath -RibbonXmlPath $ribbonXmlPath
+        return "customUI14.xml refreshed"
+    } | Out-Null
+
+    # --- 4. RUNTIME TESTING ---
+    if ($SkipRuntimeTests) {
+        Add-SkippedStageResult -Stage "runtime_tests" -Details "Skipped by -SkipRuntimeTests"
+        Write-StageSummary
+        Write-Host "Skipping runtime testing (`-SkipRuntimeTests`)." -ForegroundColor Yellow
+        exit 0
     }
 
-    if ($BumpVersion) {
-        Update-Version -ConfigPath $configPath
-    } else {
-        Write-Host "Skipping version bump (pass -BumpVersion for release builds)." -ForegroundColor Gray
-    }
-    if ($RefreshBlueprintGuide) {
-        Update-BlueprintDate -BlueprintMdPath $blueprintMdPath
-    } else {
-        Write-Host "Skipping BLUEPRINT.md date refresh (pass -RefreshBlueprintGuide when needed)." -ForegroundColor Gray
-    }
-    $workbook.Save()
-    $workbook.Close($true)
-    $workbook = $null
-    Write-Host "SUCCESS: Modules updated."
-    Add-StageResult -Stage "workbook_update" -Status "success"
+    Invoke-Stage -Stage "runtime_tests" -Action {
+        Write-Host "Starting Runtime Testing..." -ForegroundColor Cyan
+        Reset-StructuredTestResults -Path $structuredTestResultsPath
 
-    # --- RIBBON ---
-    Update-RibbonInWorkbook -WorkbookPath $excelPath -RibbonXmlPath $ribbonXmlPath
-    Add-StageResult -Stage "ribbon_injection" -Status "success"
-} catch {
-    Add-StageResult -Stage "workbook_update" -Status "failure" -Details $_.Exception.Message
-    Stop-Script "An error occurred: $($_.Exception.Message)"
-    # If compilation fails, we shouldn't run tests
-} finally {
-    if ($workbook) { $workbook.Close($false) }
-    if ($excel) { $excel.Quit() }
-    [System.GC]::Collect()
-    [System.GC]::WaitForPendingFinalizers()
-}
+        $testExcel = Start-ExcelApplication -Purpose "runtime testing"
+        $testExcel.Visible = $false
+        $testExcel.DisplayAlerts = $false
+        $testWorkbook = $null
+        $watcher = $null
+        $ribbonUiErrorsEnabled = $false
+        $testExcelPid = 0
 
-# --- 4. RUNTIME TESTING ---
-if ($SkipRuntimeTests) {
-    Add-StageResult -Stage "runtime_tests" -Status "skipped" -Details "Skipped by -SkipRuntimeTests"
+        try {
+            Set-RibbonUiErrors -Enabled $true
+            $ribbonUiErrorsEnabled = $true
+
+            $testExcelPid = Get-ExcelProcessId -ExcelApplication $testExcel
+
+            if ($testExcelPid -gt 0) {
+                $watcher = Start-Job -ScriptBlock {
+                    param($ProcessIdToScrape, $code)
+                    Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
+                    return [WindowScraper]::ScrapeAndClose($ProcessIdToScrape, 20)
+                } -ArgumentList $testExcelPid, $scraperCode
+
+                Write-Host "Opening workbook and checking for Ribbon UI errors..."
+                $testExcel.Visible = $true
+                $testExcel.DisplayAlerts = $true
+
+                $testWorkbook = $testExcel.Workbooks.Open($excelPath)
+
+                $testExcel.Visible = $false
+                $testExcel.DisplayAlerts = $false
+
+                $ribbonError = Receive-Job -Job $watcher -Wait
+                Remove-Job $watcher -Force
+                $watcher = $null
+
+                if ($ribbonError) {
+                    Write-Host "  ERROR: Ribbon UI Validation failed." -ForegroundColor Red
+                    $cleanError = $ribbonError -replace "\r\n+", " | " -replace "\s+", " "
+                    Write-Host "  [Diagnostics] $cleanError" -ForegroundColor Yellow
+                    throw "Ribbon UI Error: $cleanError"
+                }
+
+                Write-Host "  Ribbon UI loaded without errors." -ForegroundColor Green
+            } else {
+                $testWorkbook = $testExcel.Workbooks.Open($excelPath)
+            }
+
+            Write-Host "Running internal unit tests..." -ForegroundColor Cyan
+            try {
+                $testExcel.Run("Lib_Tests.RunAllTests")
+                Write-Host "  SUCCESS: Unit tests completed." -ForegroundColor Green
+            } catch {
+                Write-Host "  FAILURE: Unit tests failed." -ForegroundColor Red
+                throw "Unit tests failed: $($_.Exception.Message)"
+            }
+
+            $structuredResults = Read-StructuredTestResults -Path $structuredTestResultsPath
+            Assert-StructuredTestResults -StructuredResults $structuredResults -Path $structuredTestResultsPath | Out-Null
+
+            $headlessCallbacks = Get-EnabledHeadlessCallbacks -ManifestPath $featureManifestPath -IncludeDev:$IncludeDevFeatures
+            Invoke-HeadlessCallbackTests -ExcelApplication $testExcel -Callbacks $headlessCallbacks | Out-Null
+
+            Write-Host "Runtime testing completed with structured test collection." -ForegroundColor Green
+            return (Get-StructuredTestResultsDetails -StructuredResults $structuredResults)
+        } finally {
+            if ($watcher) {
+                Remove-Job $watcher -Force -ErrorAction SilentlyContinue
+            }
+            if ($ribbonUiErrorsEnabled) {
+                Set-RibbonUiErrors -Enabled $false
+            }
+            if ($testWorkbook) {
+                try { $testWorkbook.Close($false) } catch { }
+            }
+            Release-ComObjectSafely $testWorkbook
+            if ($testExcel) {
+                try { $testExcel.Quit() } catch { }
+            }
+            Release-ComObjectSafely $testExcel
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
+        }
+    } | Out-Null
+
     Write-StageSummary
-    Write-Host "Skipping runtime testing (`-SkipRuntimeTests`)." -ForegroundColor Yellow
-    exit 0
-}
-
-Write-Host "Starting Runtime Testing..." -ForegroundColor Cyan
-
-# We use a fresh Excel instance to ensure clean state after ribbon injection
-try {
-    $testExcel = Start-ExcelApplication -Purpose "runtime testing"
 } catch {
     Stop-Script $_.Exception.Message
 }
-$testExcel.Visible = $false # Keep hidden to prevent focus stealing
-$testExcel.DisplayAlerts = $false
-$testWorkbook = $null
-
-try {
-    # 1. Check for Ribbon UI Errors (Invalid imageMso, etc.)
-    Set-RibbonUiErrors -Enabled $true
-    
-    # Get the PID of the Excel instance we just started
-    # We use a slightly more complex way to ensure we get the right one if multiple are running
-    $excelPid = 0
-    try {
-        $excelPid = (Get-Process -Name "EXCEL" | Sort-Object StartTime -Descending | Select-Object -First 1).Id
-    } catch { }
-
-    if ($excelPid -gt 0) {
-        # Start a background job to watch for and close error dialogs
-        $watcher = Start-Job -ScriptBlock {
-            param($ProcessIdToScrape, $code)
-            Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
-            # Poll for Ribbon error dialogs for up to 20 seconds to catch all sequential errors
-            return [WindowScraper]::ScrapeAndClose($ProcessIdToScrape, 20)
-        } -ArgumentList $excelPid, $scraperCode
-        
-        Write-Host "Opening workbook and checking for Ribbon UI errors..."
-        # We MUST show Excel and enable alerts for the Ribbon UI error dialog to appear
-        $testExcel.Visible = $true
-        $testExcel.DisplayAlerts = $true
-        
-        $testWorkbook = $testExcel.Workbooks.Open($excelPath)
-        
-        # Re-hide and disable alerts for the rest of the testing
-        $testExcel.Visible = $false
-        $testExcel.DisplayAlerts = $false
-        
-        # Wait for the watcher to finish scraping
-        $ribbonError = Receive-Job -Job $watcher -Wait
-        Remove-Job $watcher
-        Set-RibbonUiErrors -Enabled $false
-        
-        if ($ribbonError) {
-            Write-Host "  ERROR: Ribbon UI Validation failed." -ForegroundColor Red
-            # Clean up the output to make it readable for the AI agent
-            $cleanError = $ribbonError -replace "\r\n+", " | " -replace "\s+", " "
-            Write-Host "  [Diagnostics] $cleanError" -ForegroundColor Yellow
-            throw "Ribbon UI Error: $cleanError"
-        } else {
-            Write-Host "  Ribbon UI loaded without errors." -ForegroundColor Green
-        }
-    } else {
-        $testWorkbook = $testExcel.Workbooks.Open($excelPath)
-    }
-
-    Write-Host "Running internal unit tests..." -ForegroundColor Cyan
-    try {
-        $testExcel.Run("Lib_Tests.RunAllTests")
-        Write-Host "  SUCCESS: Unit tests passed." -ForegroundColor Green
-    } catch {
-        Write-Host "  FAILURE: Unit tests failed." -ForegroundColor Red
-        throw "Unit tests failed: $($_.Exception.Message)"
-    }
-
-    $structuredResults = Read-StructuredTestResults -Path $structuredTestResultsPath
-    if ($null -ne $structuredResults -and $null -ne $structuredResults.Summary) {
-        Write-Host ("  Structured test results: total={0}, passed={1}, failed={2}" -f $structuredResults.Summary.Total, $structuredResults.Summary.Passed, $structuredResults.Summary.Failed) -ForegroundColor Cyan
-        foreach ($failedResult in @($structuredResults.Results | Where-Object { -not $_.Passed })) {
-            Write-Host ("  [Test Failure] {0}: {1}" -f $failedResult.Name, $failedResult.Message) -ForegroundColor Yellow
-        }
-    } else {
-        Write-Host "  Structured test results file was not produced." -ForegroundColor Yellow
-    }
-
-    $headlessCallbacks = Get-EnabledHeadlessCallbacks -ManifestPath $featureManifestPath -IncludeDev:$IncludeDevFeatures
-    if ($headlessCallbacks.Count -gt 0) {
-        Write-Host "Running headless-safe callback tests..." -ForegroundColor Cyan
-        foreach ($callbackFeature in $headlessCallbacks) {
-            Write-Host "  Testing callback: $($callbackFeature.OnAction)" -ForegroundColor Yellow
-            $testExcel.Run($callbackFeature.OnAction, $null)
-        }
-    } else {
-        Write-Host "No enabled headless-safe callbacks declared in features.json." -ForegroundColor Gray
-    }
-
-    Add-StageResult -Stage "runtime_tests" -Status "success" -Details "Ribbon, unit tests, and headless callback checks passed"
-    Write-Host "Runtime testing completed with structured test collection." -ForegroundColor Green
-} catch {
-    Add-StageResult -Stage "runtime_tests" -Status "failure" -Details $_.Exception.Message
-    Stop-Script "Test phase failed: $($_.Exception.Message)"
-} finally {
-    if ($testWorkbook) { $testWorkbook.Close($false) }
-    if ($testExcel) { $testExcel.Quit() }
-    [System.GC]::Collect()
-    [System.GC]::WaitForPendingFinalizers()
-}
-
-Write-StageSummary

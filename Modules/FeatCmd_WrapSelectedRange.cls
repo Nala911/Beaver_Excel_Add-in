@@ -16,8 +16,6 @@ Implements ICommand
 ' @Description: Wraps selected cell formulas with a user-supplied function (e.g., IFERROR).
 
 Private Const PLACEHOLDER As String = "[value]"
-Private Const REG_SECTION As String = "Settings"
-Private Const REG_KEY_PATTERN As String = "WrapFormulaPattern"
 Private Const MAX_CELLS_LIMIT As Long = 50000
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
@@ -36,7 +34,6 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim formulaCells As Range
     Dim constantCells As Range
     Dim userPattern As String
-    Dim lastPattern As String
     Dim totalErrors As Long
     Dim ctx As Infra_ActionContext
 
@@ -51,15 +48,12 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
                                          "This may take a moment to process. Continue?") Then GoTo CleanExit
     End If
 
-    ' 2. Retrieve last used pattern or default
-    lastPattern = GetSetting(Infra_Config.ADDIN_NAME, REG_SECTION, REG_KEY_PATTERN, PLACEHOLDER)
-
-    ' 3. Prompt for the wrapper formula pattern
-    userPattern = Infra_UIFactory.PromptForWrapFormulaPattern(ctx, lastPattern, PLACEHOLDER)
+    ' 2. Prompt for the wrapper formula pattern
+    userPattern = Infra_UIFactory.PromptForWrapFormulaPattern(ctx, PLACEHOLDER)
     If userPattern = vbNullString Then GoTo CleanExit
-    
-    ' 5. Save pattern for next time
-    SaveSetting Infra_Config.ADDIN_NAME, REG_SECTION, REG_KEY_PATTERN, userPattern
+
+    ' 3. Register Undo
+    Infra_Undo.SaveState rng, "Wrap Formula"
 
     Application.StatusBar = "Wrapping formulas in " & Format(rng.CountLarge, "#,##0") & " cells..."
 

@@ -116,7 +116,7 @@ wiring.
 - `AppContainer.ExecuteEntryPoint` resolves the command name from the callback
   macro and creates the command object.
 - `CommandInvoker.ExecuteCommand` runs `CanExecute`, applies
-  `Infra_AppStateGuard`, and then calls `Execute`.
+  `Infra_AppStateGuard`, calls `Execute`, and registers pending Undo actions.
 - Shared helpers in `Infra_CommandSupport` convert `ICommandContext` into
   `Infra_ActionContext`.
 
@@ -330,7 +330,7 @@ Rules:
   hotkey wrapper, and workbook event.
 - Use `Infra_AppStateGuard` for code that changes Excel application state.
 - Use `Infra_Undo.SaveState` before mutating ranges when custom undo should be
-  preserved.
+  preserved. Registration is automatically delayed until the command finishes.
 - Use `Infra_Progress` for operations that may take noticeable time.
 - Prefer a single `CleanExit` label when there are early returns.
 - Route failures through `Infra_Error.HandleError` instead of ad hoc dialogs.

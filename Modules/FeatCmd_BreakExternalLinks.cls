@@ -53,6 +53,9 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     ' 4. EXECUTION
     Dim stats As String
+    If Not processWholeWorkbook Then
+        Infra_Undo.SaveState ctx.WorksheetRef.UsedRange, "Break Links"
+    End If
     stats = ExecuteBreakLinks(wb, processWholeWorkbook, linkArr, ctx.WorksheetRef)
 
     ' 5. COMPLETION

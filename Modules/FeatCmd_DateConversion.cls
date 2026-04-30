@@ -64,6 +64,9 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     targetMonth = Infra_UIFactory.PromptForDateConversionMonth(ctx)
     If targetMonth = 0 Then GoTo CleanExit
 
+    ' Register Undo
+    Infra_Undo.SaveState rng, "Date Conversion"
+
     ' 3. Read data into memory array
     If rng.Cells.Count = 1 Then
         ReDim dataArr(1 To 1, 1 To 1)

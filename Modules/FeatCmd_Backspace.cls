@@ -33,6 +33,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     If Not Infra_AppState.CanModifyContext(ctx) Then GoTo CleanExit
     If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
 
+    Infra_Undo.SaveState ctx.SelectionRange, "Clear"
     ctx.SelectionRange.ClearContents
     
 CleanExit:

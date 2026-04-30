@@ -125,6 +125,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
 
     If Not visibleRange Is Nothing Then
+        Infra_Undo.SaveState ws.Range(sourceRng, fillRange), "Fill Down"
         sourceRng.Copy
         visibleRange.PasteSpecial Paste:=xlPasteAll
         Application.CutCopyMode = False

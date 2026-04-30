@@ -286,7 +286,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function PromptForWrapFormulaPattern(ByVal ctx As Infra_ActionContext, ByVal lastPattern As String, ByVal placeholder As String) As String
+Public Function PromptForWrapFormulaPattern(ByVal ctx As Infra_ActionContext, ByVal placeholder As String) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForWrapFormulaPattern")
     On Error GoTo ErrHandler
 
@@ -298,7 +298,7 @@ Public Function PromptForWrapFormulaPattern(ByVal ctx As Infra_ActionContext, By
             BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
             "Use " & placeholder & " where the existing cell content should go." & vbCrLf & _
             "Example: =ROUND(" & placeholder & ", 0)", _
-            BuildDialogTitle("Wrap Formula"), lastPattern, userInput) Then GoTo CleanExit
+            BuildDialogTitle("Wrap Formula"), placeholder, userInput) Then GoTo CleanExit
 
         PromptForWrapFormulaPattern = Trim$(CStr(userInput))
         If PromptForWrapFormulaPattern = vbNullString Then GoTo CleanExit
@@ -456,9 +456,9 @@ Public Function PromptForRelatedCell(ByVal sourceCell As Range) As Range
     If sourceCell Is Nothing Then GoTo CleanExit
 
     promptText = "You selected " & sourceCell.Address(False, False) & "." & vbCrLf & _
-                 "Please select the related cell (Precedent or Dependent)."
+                 "Please select the wrapper cell that contains the formula to apply."
 
-    If Not Infra_Interaction.PromptRange(promptText, BuildDialogTitle("Select Related Cell"), selectedRange) Then GoTo CleanExit
+    If Not Infra_Interaction.PromptRange(promptText, BuildDialogTitle("Select Wrapper Cell"), selectedRange) Then GoTo CleanExit
     Set PromptForRelatedCell = selectedRange
 
 CleanExit:

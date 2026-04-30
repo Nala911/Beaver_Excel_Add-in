@@ -35,11 +35,14 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set targetRange = ctx.SelectionRange
     If targetRange Is Nothing Then GoTo CleanExit
 
+    Infra_Undo.SaveState targetRange, "Paste Format"
+
     On Error Resume Next
     targetRange.PasteSpecial Paste:=xlPasteFormats
     
     If Err.Number <> 0 Then
         Err.Clear
+        Infra_Undo.ClearPendingUndo
         Infra_Interaction.ShowWarning "Nothing to paste. Please copy a range first."
     End If
     On Error GoTo ErrHandler

@@ -9,6 +9,11 @@ Option Explicit
 
 Private Const UNDO_SHEET_NAME As String = "_BeaverUndo"
 Private Const MAX_UNDO_CELLS As Long = 1000000 ' 1M cells safety limit
+Private Const UNDO_META_WORKBOOK_NAME As String = "BeaverUndoWorkbook"
+Private Const UNDO_META_WORKSHEET_NAME As String = "BeaverUndoWorksheet"
+Private Const UNDO_META_ADDRESS_NAME As String = "BeaverUndoAddress"
+Private Const UNDO_META_ACTION_NAME As String = "BeaverUndoAction"
+Private m_PendingUndoAction As String
 
 ' Captures the state of a range and registers an Undo action.
 ' Call this BEFORE modifying the range.
@@ -30,18 +35,16 @@ Public Sub SaveState(ByVal Target As Range, ByVal ActionName As String)
     ' Clear previous undo data
     undoSh.Cells.Clear
     
-    ' Copy Target to Undo Sheet (Formulas and Formats)
-    Target.Copy
-    undoSh.Range("A1").PasteSpecial xlPasteAll
+    ' Copy Target to Undo Sheet at the same address so relative formulas
+    ' keep their original references instead of being re-based from A1.
+    Target.Copy Destination:=undoSh.Range(Target.Address)
+
+    ' Store metadata outside the undo payload so large target ranges cannot
+    ' overwrite it.
+    StoreUndoMetadata Target.Worksheet.Parent.Name, Target.Worksheet.Name, Target.Address, ActionName
     
-    ' Store Metadata (Target Address, Workbook, Sheet)
-    undoSh.Range("ZZ1").Value = Target.Worksheet.Parent.Name ' Workbook Name
-    undoSh.Range("ZZ2").Value = Target.Worksheet.Name        ' Worksheet Name
-    undoSh.Range("ZZ3").Value = Target.Address               ' Address
-    undoSh.Range("ZZ4").Value = ActionName                   ' Action Name
-    
-    ' Register the Undo macro
-    Application.OnUndo "Undo " & ActionName, "Infra_Undo.PerformUndo"
+    ' Stage the Undo macro (registration happens later)
+    m_PendingUndoAction = ActionName
     
     ' Clean up clipboard
     Application.CutCopyMode = False
@@ -49,7 +52,39 @@ Public Sub SaveState(ByVal Target As Range, ByVal ActionName As String)
 CleanExit:
     Exit Sub
 ErrHandler:
+    ClearUndoMetadata
     Infra_Error.HandleError "SaveState", Err
+    Resume CleanExit
+End Sub
+
+' Registers the staged undo action with Excel. Called at the end of command execution.
+Public Sub RegisterPendingUndo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("RegisterPendingUndo")
+    On Error GoTo ErrHandler
+    
+    If m_PendingUndoAction <> "" Then
+        Application.OnUndo "Undo " & m_PendingUndoAction, "Infra_Undo.PerformUndo"
+        m_PendingUndoAction = ""
+    End If
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "RegisterPendingUndo", Err
+    Resume CleanExit
+End Sub
+
+' Clears any staged undo action.
+Public Sub ClearPendingUndo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ClearPendingUndo")
+    On Error GoTo ErrHandler
+    
+    m_PendingUndoAction = ""
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "ClearPendingUndo", Err
     Resume CleanExit
 End Sub
 
@@ -61,9 +96,9 @@ Public Sub PerformUndo()
     Dim undoSh As Worksheet
     Set undoSh = GetUndoSheet()
     
-    Dim wbName As String: wbName = undoSh.Range("ZZ1").Value
-    Dim wsName As String: wsName = undoSh.Range("ZZ2").Value
-    Dim addr As String: addr = undoSh.Range("ZZ3").Value
+    Dim wbName As String: wbName = GetUndoMetadataValue(UNDO_META_WORKBOOK_NAME)
+    Dim wsName As String: wsName = GetUndoMetadataValue(UNDO_META_WORKSHEET_NAME)
+    Dim addr As String: addr = GetUndoMetadataValue(UNDO_META_ADDRESS_NAME)
     
     If wbName = "" Or wsName = "" Or addr = "" Then GoTo CleanExit
     
@@ -83,16 +118,16 @@ Public Sub PerformUndo()
     Dim targetRange As Range
     Set targetRange = targetWs.Range(addr)
     
-    ' Restore data
-    ' Note: We ignore the metadata column (ZZ)
+    ' Restore data from the same address it was captured at so formula
+    ' references are restored exactly as they were before the mutation.
     Dim dataRange As Range
-    Set dataRange = undoSh.Range("A1").Resize(targetRange.Rows.Count, targetRange.Columns.Count)
-    
-    dataRange.Copy
-    targetRange.PasteSpecial xlPasteAll
+    Set dataRange = undoSh.Range(addr)
+
+    dataRange.Copy Destination:=targetRange
     
     ' Clear undo sheet to prevent accidental double-restore
     undoSh.Cells.Clear
+    ClearUndoMetadata
     Application.CutCopyMode = False
     
     ' Select the restored range
@@ -118,4 +153,62 @@ Private Function GetUndoSheet() As Worksheet
         GetUndoSheet.Visible = xlSheetVeryHidden
     End If
     On Error GoTo 0
+End Function
+
+Private Sub StoreUndoMetadata(ByVal WorkbookName As String, ByVal WorksheetName As String, ByVal AddressText As String, ByVal ActionName As String)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("StoreUndoMetadata")
+    On Error GoTo ErrHandler
+
+    SetUndoMetadataValue UNDO_META_WORKBOOK_NAME, WorkbookName
+    SetUndoMetadataValue UNDO_META_WORKSHEET_NAME, WorksheetName
+    SetUndoMetadataValue UNDO_META_ADDRESS_NAME, AddressText
+    SetUndoMetadataValue UNDO_META_ACTION_NAME, ActionName
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "StoreUndoMetadata", Err
+    Resume CleanExit
+End Sub
+
+Private Sub ClearUndoMetadata()
+    DeleteUndoMetadataValue UNDO_META_WORKBOOK_NAME
+    DeleteUndoMetadataValue UNDO_META_WORKSHEET_NAME
+    DeleteUndoMetadataValue UNDO_META_ADDRESS_NAME
+    DeleteUndoMetadataValue UNDO_META_ACTION_NAME
+End Sub
+
+Private Sub SetUndoMetadataValue(ByVal NameText As String, ByVal ValueText As String)
+    Dim existingName As Name
+
+    On Error Resume Next
+    ThisWorkbook.Names(NameText).Delete
+    On Error GoTo 0
+
+    ThisWorkbook.Names.Add Name:=NameText, RefersTo:="=""" & Replace(ValueText, """", """""") & """", Visible:=False
+End Sub
+
+Private Sub DeleteUndoMetadataValue(ByVal NameText As String)
+    On Error Resume Next
+    ThisWorkbook.Names(NameText).Delete
+    On Error GoTo 0
+End Sub
+
+Private Function GetUndoMetadataValue(ByVal NameText As String) As String
+    Dim nameObj As Name
+    Dim evaluatedValue As Variant
+
+    On Error Resume Next
+    Set nameObj = ThisWorkbook.Names(NameText)
+    On Error GoTo 0
+
+    If nameObj Is Nothing Then Exit Function
+
+    On Error Resume Next
+    evaluatedValue = Application.Evaluate(nameObj.RefersTo)
+    On Error GoTo 0
+
+    If Not IsError(evaluatedValue) Then
+        GetUndoMetadataValue = CStr(evaluatedValue)
+    End If
 End Function

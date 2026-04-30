@@ -64,6 +64,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     
     Select Case selType
         Case "Range"
+            Infra_Undo.SaveState ctx.SelectionRange, "Delete"
             ctx.SelectionRange.Clear
 
         Case "Picture", "Shape", "DrawingObjects", "OLEObject", "ChartObject"
