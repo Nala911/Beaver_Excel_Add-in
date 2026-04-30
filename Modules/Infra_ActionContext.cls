@@ -20,3 +20,6 @@ Public WorksheetRef As Worksheet
 Public SelectionRange As Range
 Public ActiveCellRef As Range
 Public HasRangeSelection As Boolean
+Public SelectionTypeName As String
+Public SelectionRef As Object
+Public WindowRef As Window

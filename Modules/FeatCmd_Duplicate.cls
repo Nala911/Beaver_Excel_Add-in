@@ -15,10 +15,13 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Duplicates the current workbook to the Desktop as a macro-free .xlsx file.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("Duplicate.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = True ' Always can attempt if a workbook is open
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Not ctx Is Nothing
+    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WorkbookRef Is Nothing
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "Duplicate.CanExecute", Err
@@ -36,7 +39,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim baseName As String
     Dim ctx As Infra_ActionContext
     
-    Set ctx = Infra_AppState.CaptureActionContext()
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
 
     Set sourceWB = ctx.WorkbookRef

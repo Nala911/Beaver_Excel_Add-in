@@ -15,10 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Converts selection to values.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("MakePermanent.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "MakePermanent.CanExecute", Err
@@ -30,9 +32,11 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
 
     Dim rng As Range
+    Dim ctx As Infra_ActionContext
 
-    If Not Infra_AppState.IsRangeSelected() Then GoTo CleanExit
-    Set rng = Selection
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
+    Set rng = ctx.SelectionRange
     If rng Is Nothing Then GoTo CleanExit
 
     Infra_Undo.SaveState rng, "Make Permanent"

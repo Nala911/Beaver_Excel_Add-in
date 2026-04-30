@@ -15,10 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Quick-filter a range based on the value of the active cell.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("FilterByCell.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "FilterByCell.CanExecute", Err
@@ -57,7 +59,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim newWidth As Long
 
     Dim ctx As Infra_ActionContext
-    Set ctx = Infra_AppState.CaptureActionContext()
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WorksheetRef Is Nothing Then GoTo CleanExit
     

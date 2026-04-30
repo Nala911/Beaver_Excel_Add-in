@@ -15,10 +15,13 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Creates a new worksheet with a user-supplied name and smart positioning.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("CreateSheet.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = True
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Not ctx Is Nothing
+    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WorkbookRef Is Nothing
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "CreateSheet.CanExecute", Err
@@ -34,7 +37,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim nameLower As String
     Dim ctx As Infra_ActionContext
 
-    Set ctx = Infra_AppState.CaptureActionContext()
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
 
     sheetName = InputBox("Please enter the name for the new sheet:", "Beaver Add-in â€” Create Sheet")

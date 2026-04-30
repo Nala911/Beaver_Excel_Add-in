@@ -25,6 +25,10 @@ Public Function CaptureActionContext() As Infra_ActionContext
     Set CaptureActionContext = AppContainer.State.CaptureActionContext()
 End Function
 
+Public Function CanModifyContext(ByVal ctx As Infra_ActionContext) As Boolean
+    CanModifyContext = AppContainer.State.CanModifyContext(ctx)
+End Function
+
 ' Returns the path to the current user's Desktop folder.
 ' Detects OneDrive-synced Desktops for improved reliability.
 Public Function GetDesktopPath() As String

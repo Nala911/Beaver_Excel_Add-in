@@ -22,10 +22,16 @@ Private Sub ICommand_Execute(ByVal Context As ICommandContext)
     Dim guard As New Infra_AppStateGuard
     On Error GoTo ErrHandler
 
-    If ActiveWorkbook Is Nothing Then GoTo CleanExit
-
+    Dim ctx As Infra_ActionContext
+    Dim targetWorkbook As Workbook
     Dim ws As Worksheet
-    Set ws = ActiveWorkbook.Worksheets.Add
+
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(Context)
+    If ctx Is Nothing Then GoTo CleanExit
+    Set targetWorkbook = ctx.WorkbookRef
+    If targetWorkbook Is Nothing Then GoTo CleanExit
+
+    Set ws = targetWorkbook.Worksheets.Add
     ws.Name = "Dashboard_" & Format(Now, "hhmmss")
     
     ' Minimum effort financial dashboard
@@ -43,7 +49,7 @@ Private Sub ICommand_Execute(ByVal Context As ICommandContext)
     ws.Range("C6").Value = 45000
     
     ws.Range("B7").Value = "Net Profit"
-    ws.Range("C7").Formula = "=C5-C6"
+    ws.Range("C7").Formula2 = "=C5-C6"
     
     ' Simple formatting
     ws.Range("B4:C4").Interior.ThemeColor = xlThemeColorAccent1
@@ -61,6 +67,20 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Function ICommand_CanExecute() As Boolean
-    ICommand_CanExecute = True
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FeatCmd_Dashboard.CanExecute")
+    On Error GoTo ErrHandler
+
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Not ctx Is Nothing
+    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WorkbookRef Is Nothing
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "FeatCmd_Dashboard.CanExecute", Err
+    ICommand_CanExecute = False
+    Resume CleanExit
 End Function

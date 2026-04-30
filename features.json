@@ -53,6 +53,7 @@
       "Label": "Merge Formulas",
       "OnAction": "Ribbon_OnMergeFormulas",
       "Macro": "UI_Ribbon.Ribbon_OnMergeFormulas",
+      "CommandName": "MergeFormulas",
       "Icon": "MergeCells",
       "Keytip": "MF",
       "Screentip": "Merge Formulas",
@@ -65,6 +66,7 @@
       "Label": "Wrap Formula",
       "OnAction": "Ribbon_OnWrapSelectionWithFormula",
       "Macro": "UI_Ribbon.Ribbon_OnWrapSelectionWithFormula",
+      "CommandName": "WrapSelectedRange",
       "Icon": "FunctionWizard",
       "Keytip": "W",
       "Screentip": "Wrap Formula",
@@ -77,6 +79,7 @@
       "Label": "Static Sheet/WB",
       "OnAction": "Ribbon_OnStaticSheetWorkbook",
       "Macro": "UI_Ribbon.Ribbon_OnStaticSheetWorkbook",
+      "CommandName": "StaticSheetWorkbook",
       "Icon": "CalculateNow",
       "Keytip": "SW",
       "Screentip": "Convert Formulas to Static Values",
@@ -89,6 +92,7 @@
       "Label": "Clean Data",
       "OnAction": "Ribbon_OnCleanData",
       "Macro": "UI_Ribbon.Ribbon_OnCleanData",
+      "CommandName": "CleanData",
       "Icon": "Clear",
       "Keytip": "CD",
       "Screentip": "Clean Data",
@@ -101,6 +105,7 @@
       "Label": "Break Links",
       "OnAction": "Ribbon_OnBreakExternalLinks",
       "Macro": "UI_Ribbon.Ribbon_OnBreakExternalLinks",
+      "CommandName": "BreakExternalLinks",
       "Icon": "WorkbookLinks",
       "Keytip": "BL",
       "Screentip": "Break External Links",
@@ -113,6 +118,7 @@
       "Label": "Convert to Dates",
       "OnAction": "Ribbon_OnConvertTextToProperDate",
       "Macro": "UI_Ribbon.Ribbon_OnConvertTextToProperDate",
+      "CommandName": "DateConversion",
       "Icon": "DateAndTimeInsert",
       "Keytip": "FX",
       "Screentip": "Fix Text Dates",
@@ -125,6 +131,7 @@
       "Label": "Duplicate Workbook",
       "OnAction": "Ribbon_OnDuplicate",
       "Macro": "UI_Ribbon.Ribbon_OnDuplicate",
+      "CommandName": "Duplicate",
       "Icon": "FileSaveAs",
       "Keytip": "DP",
       "Screentip": "Copy to Desktop",
@@ -137,6 +144,7 @@
       "Label": "Export Range",
       "OnAction": "Ribbon_OnExport",
       "Macro": "UI_Ribbon.Ribbon_OnExport",
+      "CommandName": "ExportImageOrPdf",
       "Icon": "Export",
       "Keytip": "EX",
       "Screentip": "Export as Image or PDF",
@@ -149,6 +157,7 @@
       "Label": "Dashboard",
       "OnAction": "Ribbon_OnDashboard",
       "Macro": "UI_Ribbon.Ribbon_OnDashboard",
+      "CommandName": "Dashboard",
       "Icon": "ChartInsert",
       "Keytip": "DB",
       "Screentip": "Financial Dashboard",
@@ -161,18 +170,20 @@
       "Label": "Focus Mode",
       "OnAction": "Ribbon_OnToggleFullScreen",
       "Macro": "UI_Ribbon.Ribbon_OnToggleFullScreen",
+      "CommandName": "ToggleFullScreen",
       "Icon": "ViewFullScreenView",
       "Keytip": "FM",
       "Screentip": "Toggle Focus Mode",
       "Supertip": "Hides or restores worksheet chrome to maximise working area.",
       "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
+      "RuntimeTestMode": "headless"
     },
     {
       "ControlId": "BtnHotkeys",
       "Label": "Hotkeys",
       "OnAction": "Ribbon_OnShowHotkeysHelp",
       "Macro": "Infra_Hotkeys.ShowHotkeysHelp",
+      "CommandName": "ShowHotkeysHelp",
       "Icon": "Help",
       "Keytip": "H",
       "Screentip": "Show Keyboard Shortcuts",
@@ -185,54 +196,63 @@
     {
       "Key": "^+4",
       "Macro": "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat",
+      "CommandName": "ApplyCustomNumberFormat",
       "Description": "Apply custom number format",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^+p",
       "Macro": "UI_Hotkeys.Hotkey_MakePermanent",
+      "CommandName": "MakePermanent",
       "Description": "Make selection permanent (values)",
       "ReleaseTier": "stable"
     },
     {
       "Key": "+{F11}",
       "Macro": "UI_Hotkeys.Hotkey_CreateNamedSheet",
+      "CommandName": "CreateSheet",
       "Description": "Create named sheet",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^%{DOWN}",
       "Macro": "UI_Hotkeys.Hotkey_FillDown",
+      "CommandName": "FillDown",
       "Description": "Fill formula/format down",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^+f",
       "Macro": "UI_Hotkeys.Hotkey_FilterBySelectedCell",
+      "CommandName": "FilterByCell",
       "Description": "Filter by selected cell",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^+m",
       "Macro": "UI_Hotkeys.Hotkey_PasteFormat",
+      "CommandName": "PasteFormat",
       "Description": "Paste formats only",
       "ReleaseTier": "stable"
     },
     {
       "Key": "^+q",
       "Macro": "UI_Hotkeys.Hotkey_FormatSelectedRange",
+      "CommandName": "FormatRange",
       "Description": "Format selected range",
       "ReleaseTier": "stable"
     },
     {
       "Key": "{BACKSPACE}",
       "Macro": "UI_Hotkeys.Hotkey_Backspace",
+      "CommandName": "Backspace",
       "Description": "Clear cell contents",
       "ReleaseTier": "stable"
     },
     {
       "Key": "{DELETE}",
       "Macro": "UI_Hotkeys.Hotkey_Delete",
+      "CommandName": "Delete",
       "Description": "Clear or delete selection",
       "ReleaseTier": "stable"
     }

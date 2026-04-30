@@ -15,10 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Merges directly related formulas by inlining a precedent into its dependent.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("MergeFormulas.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "MergeFormulas.CanExecute", Err
@@ -36,12 +38,14 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim precFormula As String
     Dim depFormula As String
     Dim finalFormula As String
+    Dim ctx As Infra_ActionContext
     
-    If Not Infra_AppState.IsRangeSelected() Then
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then
         MsgBox "Please select a single cell first.", vbExclamation, Infra_Config.ADDIN_NAME
         GoTo CleanExit
     End If
-    Set userSelection = Selection.Cells(1, 1)
+    Set userSelection = ctx.SelectionRange.Cells(1, 1)
     
     On Error Resume Next
     Set otherSelection = Application.InputBox( _

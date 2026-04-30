@@ -12,6 +12,8 @@ Option Explicit
 ' @Module: StateStore
 ' @Category: Infrastructure
 ' @Description: Centralized State Management holding application-level state and UI toggles.
+' @ManagedBy: BeaverAddin Agent
+' @Dependencies: Infra_ActionContext
 
 Private m_IsRangeSelected As Boolean
 Private m_CanModifyActiveCell As Boolean
@@ -26,24 +28,22 @@ Public Property Get IsRangeSelected() As Boolean
 End Property
 
 Public Property Get CanModifyActiveCell() As Boolean
-    If TypeName(Selection) <> "Range" Then Exit Property
-    If TypeName(ActiveSheet) <> "Worksheet" Then Exit Property
-    If ActiveCell Is Nothing Then Exit Property
-
-    If Not ActiveSheet.ProtectContents Then
-        CanModifyActiveCell = True
-    Else
-        CanModifyActiveCell = Not ActiveCell.Locked
-    End If
+    CanModifyActiveCell = CanModifyContext(CaptureActionContext())
 End Property
 
 Public Function CaptureActionContext() As Infra_ActionContext
     Dim ctx As New Infra_ActionContext
-    
+
     If Not ActiveWorkbook Is Nothing Then Set ctx.WorkbookRef = ActiveWorkbook
     If TypeName(ActiveSheet) = "Worksheet" Then Set ctx.WorksheetRef = ActiveSheet
-    
-    If TypeName(Selection) = "Range" Then
+
+    On Error Resume Next
+    ctx.SelectionTypeName = TypeName(Selection)
+    Set ctx.SelectionRef = Selection
+    If Not ActiveWindow Is Nothing Then Set ctx.WindowRef = ActiveWindow
+    On Error GoTo 0
+
+    If ctx.SelectionTypeName = "Range" Then
         ctx.HasRangeSelection = True
         Set ctx.SelectionRange = Selection
     End If
@@ -53,4 +53,17 @@ Public Function CaptureActionContext() As Infra_ActionContext
     End If
     
     Set CaptureActionContext = ctx
+End Function
+
+Public Function CanModifyContext(ByVal ctx As Infra_ActionContext) As Boolean
+    If ctx Is Nothing Then Exit Function
+    If Not ctx.HasRangeSelection Then Exit Function
+    If ctx.WorksheetRef Is Nothing Then Exit Function
+    If ctx.ActiveCellRef Is Nothing Then Exit Function
+
+    If Not ctx.WorksheetRef.ProtectContents Then
+        CanModifyContext = True
+    Else
+        CanModifyContext = Not ctx.ActiveCellRef.Locked
+    End If
 End Function

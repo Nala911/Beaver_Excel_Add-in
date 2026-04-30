@@ -15,10 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Converts text strings to proper Excel Date values with ambiguous format resolution.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("DateConversion.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "DateConversion.CanExecute", Err
@@ -38,10 +40,10 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim convertedCount As Long
 
     ' 1. Validate selection
-    If Not Infra_AppState.IsRangeSelected() Then GoTo CleanExit
-    Set rng = Selection
-    Set ctx = Infra_AppState.CaptureActionContext()
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
+    Set rng = ctx.SelectionRange
 
     ' 2. Safety Check: single column only
     If rng.Columns.Count > 1 Then

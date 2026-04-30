@@ -15,11 +15,11 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Exports selected range as a PNG image or high-quality PDF.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("Export.CanExecute")
     On Error GoTo ErrHandler
     Dim ctx As Infra_ActionContext
-    Set ctx = Infra_AppState.CaptureActionContext()
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     ICommand_CanExecute = Not ctx Is Nothing
     If ICommand_CanExecute Then
         ICommand_CanExecute = Not ctx.WorksheetRef Is Nothing
@@ -39,7 +39,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim stateInfo As Collection
     Set stateInfo = Infra_Error.NewStateInfo()
     
-    Set ctx = Infra_AppState.CaptureActionContext()
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WorksheetRef Is Nothing Then GoTo CleanExit
     Infra_Error.AddState stateInfo, "Worksheet", ctx.WorksheetRef.Name

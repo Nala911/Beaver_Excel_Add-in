@@ -9,7 +9,7 @@ Public Sub Hotkey_MakePermanent()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_MakePermanent")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "MakePermanent", "Hotkey_MakePermanent", "Hotkey"
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_MakePermanent", "Hotkey_MakePermanent", "Hotkey"
 
 CleanExit:
     Exit Sub
@@ -22,7 +22,7 @@ Public Sub Hotkey_ApplyCustomNumberFormat()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_ApplyCustomNumberFormat")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "ApplyCustomNumberFormat", "Hotkey_ApplyCustomNumberFormat", "Hotkey"
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat", "Hotkey_ApplyCustomNumberFormat", "Hotkey"
 
 CleanExit:
     Exit Sub
@@ -35,7 +35,7 @@ Public Sub Hotkey_CreateNamedSheet()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_CreateNamedSheet")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "CreateSheet", "Hotkey_CreateNamedSheet", "Hotkey"
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_CreateNamedSheet", "Hotkey_CreateNamedSheet", "Hotkey"
 
 CleanExit:
     Exit Sub
@@ -48,7 +48,7 @@ Public Sub Hotkey_FillDown()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_FillDown")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "FillDown", "Hotkey_FillDown", "Hotkey"
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_FillDown", "Hotkey_FillDown", "Hotkey"
 
 CleanExit:
     Exit Sub
@@ -61,7 +61,7 @@ Public Sub Hotkey_FilterBySelectedCell()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_FilterBySelectedCell")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "FilterByCell", "Hotkey_FilterBySelectedCell", "Hotkey"
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_FilterBySelectedCell", "Hotkey_FilterBySelectedCell", "Hotkey"
 
 CleanExit:
     Exit Sub
@@ -74,7 +74,7 @@ Public Sub Hotkey_PasteFormat()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_PasteFormat")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "PasteFormat", "Hotkey_PasteFormat", "Hotkey"
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_PasteFormat", "Hotkey_PasteFormat", "Hotkey"
 
 CleanExit:
     Exit Sub
@@ -87,7 +87,7 @@ Public Sub Hotkey_FormatSelectedRange()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_FormatSelectedRange")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "FormatRange", "Hotkey_FormatSelectedRange", "Hotkey"
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_FormatSelectedRange", "Hotkey_FormatSelectedRange", "Hotkey"
 
 CleanExit:
     Exit Sub
@@ -100,7 +100,7 @@ Public Sub Hotkey_Backspace()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_Backspace")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "Backspace", "Hotkey_Backspace", "Hotkey"
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_Backspace", "Hotkey_Backspace", "Hotkey"
 
 CleanExit:
     Exit Sub
@@ -113,7 +113,7 @@ Public Sub Hotkey_Delete()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_Delete")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "Delete", "Hotkey_Delete", "Hotkey"
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_Delete", "Hotkey_Delete", "Hotkey"
 
 CleanExit:
     Exit Sub

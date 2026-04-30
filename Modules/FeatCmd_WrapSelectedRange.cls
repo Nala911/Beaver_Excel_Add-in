@@ -20,10 +20,12 @@ Private Const REG_SECTION As String = "Settings"
 Private Const REG_KEY_PATTERN As String = "WrapFormulaPattern"
 Private Const MAX_CELLS_LIMIT As Long = 50000
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("WrapSelectedRange.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "WrapSelectedRange.CanExecute", Err
@@ -42,10 +44,10 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim totalErrors As Long
     Dim ctx As Infra_ActionContext
 
-    If Not Infra_AppState.IsRangeSelected() Then GoTo CleanExit
-    Set rng = Selection
-    Set ctx = Infra_AppState.CaptureActionContext()
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
+    Set rng = ctx.SelectionRange
     
     ' 1. Guard against massive selections
     If rng.CountLarge > MAX_CELLS_LIMIT Then

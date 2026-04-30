@@ -34,7 +34,7 @@ Public Sub Ribbon_OnShowHotkeysHelp(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnShowHotkeysHelp")
     On Error GoTo ErrHandler
     
-    Infra_Hotkeys.ShowHotkeysHelp
+    AppContainer.ExecuteEntryPoint "Infra_Hotkeys.ShowHotkeysHelp", "Ribbon_OnShowHotkeysHelp", "Ribbon"
 
 CleanExit:
     Exit Sub
@@ -49,7 +49,7 @@ Public Sub Ribbon_OnMergeFormulas(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnMergeFormulas")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "MergeFormulas", "Ribbon_OnMergeFormulas", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnMergeFormulas", "Ribbon_OnMergeFormulas", "Ribbon"
 
 CleanExit:
     Exit Sub
@@ -62,7 +62,7 @@ Public Sub Ribbon_OnWrapSelectionWithFormula(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnWrapSelectionWithFormula")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "WrapSelectedRange", "Ribbon_OnWrapSelectionWithFormula", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnWrapSelectionWithFormula", "Ribbon_OnWrapSelectionWithFormula", "Ribbon"
 
 CleanExit:
     Exit Sub
@@ -75,7 +75,7 @@ Public Sub Ribbon_OnStaticSheetWorkbook(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnStaticSheetWorkbook")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "StaticSheetWorkbook", "Ribbon_OnStaticSheetWorkbook", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnStaticSheetWorkbook", "Ribbon_OnStaticSheetWorkbook", "Ribbon"
 
 CleanExit:
     Exit Sub
@@ -90,7 +90,7 @@ Public Sub Ribbon_OnCleanData(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnCleanData")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "CleanData", "Ribbon_OnCleanData", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnCleanData", "Ribbon_OnCleanData", "Ribbon"
 
 CleanExit:
     Exit Sub
@@ -103,7 +103,7 @@ Public Sub Ribbon_OnBreakExternalLinks(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnBreakExternalLinks")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "BreakExternalLinks", "Ribbon_OnBreakExternalLinks", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnBreakExternalLinks", "Ribbon_OnBreakExternalLinks", "Ribbon"
 
 CleanExit:
     Exit Sub
@@ -116,7 +116,7 @@ Public Sub Ribbon_OnConvertTextToProperDate(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnConvertTextToProperDate")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "DateConversion", "Ribbon_OnConvertTextToProperDate", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnConvertTextToProperDate", "Ribbon_OnConvertTextToProperDate", "Ribbon"
 
 CleanExit:
     Exit Sub
@@ -131,7 +131,7 @@ Public Sub Ribbon_OnDashboard(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnDashboard")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "Dashboard", "Ribbon_OnDashboard", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnDashboard", "Ribbon_OnDashboard", "Ribbon"
 
 CleanExit:
     Exit Sub
@@ -144,7 +144,7 @@ Public Sub Ribbon_OnDuplicate(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnDuplicate")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "Duplicate", "Ribbon_OnDuplicate", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnDuplicate", "Ribbon_OnDuplicate", "Ribbon"
 CleanExit:
     Exit Sub
 ErrHandler:
@@ -156,7 +156,7 @@ Public Sub Ribbon_OnExport(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnExport")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "ExportImageOrPdf", "Ribbon_OnExport", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnExport", "Ribbon_OnExport", "Ribbon"
 
 CleanExit:
     Exit Sub
@@ -171,7 +171,7 @@ Public Sub Ribbon_OnToggleFullScreen(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnToggleFullScreen")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteCommand "ToggleFullScreen", "Ribbon_OnToggleFullScreen", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnToggleFullScreen", "Ribbon_OnToggleFullScreen", "Ribbon"
 
 CleanExit:
     Exit Sub

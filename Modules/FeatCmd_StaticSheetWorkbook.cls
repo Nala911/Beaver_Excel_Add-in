@@ -20,10 +20,13 @@ Private Enum StaticConversionScope
     StaticConversionScopeWorkbook = 2
 End Enum
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("StaticSheetWorkbook.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = True ' Always can attempt, will prompt for scope.
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Not ctx Is Nothing
+    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WorkbookRef Is Nothing And Not ctx.WorksheetRef Is Nothing
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "StaticSheetWorkbook.CanExecute", Err
@@ -37,7 +40,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim ctx As Infra_ActionContext
     Dim request As Infra_StaticRequest
 
-    Set ctx = Infra_AppState.CaptureActionContext()
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WorkbookRef Is Nothing Or ctx.WorksheetRef Is Nothing Then GoTo CleanExit
 

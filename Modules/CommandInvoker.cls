@@ -19,7 +19,7 @@ Public Sub ExecuteCommand(ByVal cmd As ICommand, ByVal context As ICommandContex
     
     If cmd Is Nothing Then GoTo CleanExit
     
-    If Not cmd.CanExecute() Then
+    If Not cmd.CanExecute(context) Then
         MsgBox "This command cannot be executed in the current context.", vbExclamation, "Command Invalid"
         GoTo CleanExit
     End If

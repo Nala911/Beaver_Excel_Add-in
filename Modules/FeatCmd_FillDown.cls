@@ -15,10 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Intelligent fill-down functionality that respects tables and filtered data.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("FillDown.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "FillDown.CanExecute", Err
@@ -39,8 +41,11 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim foundRef As Boolean
     Dim fillRange As Range, visibleRange As Range
 
-    If Not Infra_AppState.IsRangeSelected() Then GoTo CleanExit
-    Set sourceRng = Selection
+    Dim ctx As Infra_ActionContext
+
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
+    Set sourceRng = ctx.SelectionRange
 
     Set ws = sourceRng.Worksheet
 

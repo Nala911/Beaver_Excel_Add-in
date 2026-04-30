@@ -15,12 +15,17 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Custom handlers for Delete key with protection awareness.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("Delete.CanExecute")
     On Error GoTo ErrHandler
     
-    If TypeName(Selection) = "Range" Then
-        ICommand_CanExecute = Infra_AppState.CanModifyActiveCell()
+    Dim ctx As Infra_ActionContext
+
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If ctx Is Nothing Then Exit Function
+
+    If ctx.SelectionTypeName = "Range" Then
+        ICommand_CanExecute = Infra_AppState.CanModifyContext(ctx)
     Else
         ICommand_CanExecute = True ' Allow deleting objects unconditionally for now
     End If
@@ -35,33 +40,36 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
     
     ' Guard: for range selections, check modifiability
-    If TypeName(Selection) = "Range" Then
-        If Not Infra_AppState.CanModifyActiveCell() Then GoTo CleanExit
+    Dim ctx As Infra_ActionContext
+    Dim selectionRef As Object
+
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If ctx Is Nothing Then GoTo CleanExit
+
+    If ctx.SelectionTypeName = "Range" Then
+        If Not Infra_AppState.CanModifyContext(ctx) Then GoTo CleanExit
     End If
 
     Dim selType As String
-    selType = TypeName(Selection)
+    selType = ctx.SelectionTypeName
+    Set selectionRef = ctx.SelectionRef
     
     Select Case selType
         Case "Range"
-            ' Clear values + formats
-            Selection.Clear
+            ctx.SelectionRange.Clear
 
         Case "Picture", "Shape", "DrawingObjects", "OLEObject", "ChartObject"
-            ' Directly deletable objects
-            Selection.Delete
+            selectionRef.Delete
 
         Case "ChartArea"
-            Selection.Parent.Parent.Delete
+            selectionRef.Parent.Parent.Delete
 
         Case "PlotArea", "Legend", "Axis", "Series", "ChartTitle", "DataLabel", "Floor", "Walls"
-            ' Deeper chart sub-elements
-            Selection.Parent.Parent.Delete
+            selectionRef.Parent.Parent.Delete
 
         Case Else
-            ' Last resort: try to delete
             On Error Resume Next
-            Selection.Delete
+            selectionRef.Delete
             On Error GoTo ErrHandler
     End Select
     

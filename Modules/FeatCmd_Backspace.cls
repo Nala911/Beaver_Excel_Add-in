@@ -15,10 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Custom handlers for Backspace with protection awareness.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("Backspace.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Infra_AppState.CanModifyActiveCell()
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Infra_AppState.CanModifyContext(ctx)
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "Backspace.CanExecute", Err
@@ -29,12 +31,13 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Backspace.Execute")
     On Error GoTo ErrHandler
     
-    If Not Infra_AppState.CanModifyActiveCell() Then GoTo CleanExit
-    
-    ' Checks if the current selection is a range of cells
-    If TypeName(Selection) = "Range" Then
-        Selection.ClearContents
-    End If
+    Dim ctx As Infra_ActionContext
+
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If Not Infra_AppState.CanModifyContext(ctx) Then GoTo CleanExit
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
+
+    ctx.SelectionRange.ClearContents
     
 CleanExit:
     Exit Sub

@@ -15,10 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Applies a custom number format to the selected range.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("ApplyCustomNumberFormat.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "ApplyCustomNumberFormat.CanExecute", Err
@@ -30,9 +32,11 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
     
     Dim targetRange As Range
+    Dim ctx As Infra_ActionContext
 
-    If Not Infra_AppState.IsRangeSelected() Then GoTo CleanExit
-    Set targetRange = Selection
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
+    Set targetRange = ctx.SelectionRange
     If targetRange Is Nothing Then GoTo CleanExit
 
     targetRange.NumberFormat = Infra_Config.Model.DefaultNumberFormat

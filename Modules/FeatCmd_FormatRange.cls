@@ -15,10 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Bulk formatting tools for tables, custom numbering, and specialized pasting.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("FormatRange.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Infra_AppState.IsRangeSelected()
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "FormatRange.CanExecute", Err
@@ -36,14 +38,17 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim firstDataCell As Range
     Dim dataRange As Range
 
+    Dim ctx As Infra_ActionContext
+
     ' --- Step 1: Ensure user selected a range ---
-    If Not Infra_AppState.IsRangeSelected() Then
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then
         MsgBox "Please select a range before running the macro.", vbExclamation, Infra_Config.ADDIN_NAME
         GoTo CleanExit
     End If
 
-    Set ws = ActiveSheet
-    Set selRange = Selection
+    Set ws = ctx.WorksheetRef
+    Set selRange = ctx.SelectionRange
     If ws Is Nothing Or selRange Is Nothing Then GoTo CleanExit
 
     ' --- Step 2: Save State for Undo ---

@@ -15,10 +15,13 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Toggles Excel's full screen (Ribbon and status bar) visibility.
 
-Private Function ICommand_CanExecute() As Boolean
+Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("ToggleFullScreen.CanExecute")
     On Error GoTo ErrHandler
-    ICommand_CanExecute = Not (ActiveWindow Is Nothing)
+    Dim ctx As Infra_ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    ICommand_CanExecute = Not ctx Is Nothing
+    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WindowRef Is Nothing
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "ToggleFullScreen.CanExecute", Err
@@ -29,9 +32,13 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ToggleFullScreen.Execute")
     On Error GoTo ErrHandler
     
-    If ActiveWindow Is Nothing Then GoTo CleanExit
+    Dim ctx As Infra_ActionContext
 
-    With ActiveWindow
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If ctx Is Nothing Then GoTo CleanExit
+    If ctx.WindowRef Is Nothing Then GoTo CleanExit
+
+    With ctx.WindowRef
         .DisplayHeadings = Not .DisplayHeadings
         .DisplayWorkbookTabs = Not .DisplayWorkbookTabs
         .DisplayHorizontalScrollBar = Not .DisplayHorizontalScrollBar

@@ -12,22 +12,48 @@ Option Explicit
 ' @Module: AppContainer
 ' @Category: Infrastructure
 ' @Description: Central Dependency Injection container / Service Locator. Uses PredeclaredId = True for global singleton access.
+' @ManagedBy: BeaverAddin Agent
+' @Dependencies: IConfig, Infra_Error, StateStore, BasicCommandContext, Infra_CommandCatalog, Infra_Bootstrap
 
-Public Config As Object
-Public ErrorTracker As Object
-Public State As Object
+Private pConfig As IConfig
+Private pErrorTracker As Infra_Error
+Private pState As StateStore
+Private pIsInitialized As Boolean
 
 Private Sub Class_Initialize()
     ' Wait until explicit Init() is called so we can inject mocks if needed
 End Sub
 
-Public Sub Init(ByVal cfg As Object, ByVal errTrk As Object, ByVal stateStore As Object)
-    Set Config = cfg
-    Set ErrorTracker = errTrk
-    Set State = stateStore
+Public Sub Initialize(ByVal cfg As IConfig, ByVal errTrk As Infra_Error, ByVal stateStore As StateStore)
+    Set pConfig = cfg
+    Set pErrorTracker = errTrk
+    Set pState = stateStore
+    pIsInitialized = True
+    Infra_CommandCatalog.ResetCatalog
 End Sub
 
+Public Sub EnsureInitialized()
+    If pIsInitialized Then Exit Sub
+    Initialize Infra_Config, Infra_Error, StateStore
+End Sub
+
+Public Property Get Config() As IConfig
+    EnsureInitialized
+    Set Config = pConfig
+End Property
+
+Public Property Get ErrorTracker() As Infra_Error
+    EnsureInitialized
+    Set ErrorTracker = pErrorTracker
+End Property
+
+Public Property Get State() As StateStore
+    EnsureInitialized
+    Set State = pState
+End Property
+
 Public Function ResolveCommand(ByVal commandName As String) As ICommand
+    EnsureInitialized
     Select Case UCase$(Trim$(commandName))
         Case "APPLYCUSTOMNUMBERFORMAT"
             Set ResolveCommand = New FeatCmd_ApplyCustomNumberFormat
@@ -61,6 +87,8 @@ Public Function ResolveCommand(ByVal commandName As String) As ICommand
             Set ResolveCommand = New FeatCmd_MergeFormulas
         Case "PASTEFORMAT"
             Set ResolveCommand = New FeatCmd_PasteFormat
+        Case "SHOWHOTKEYSHELP"
+            Set ResolveCommand = New FeatCmd_ShowHotkeysHelp
         Case "STATICSHEETWORKBOOK"
             Set ResolveCommand = New FeatCmd_StaticSheetWorkbook
         Case "TOGGLEFULLSCREEN"
@@ -70,10 +98,14 @@ Public Function ResolveCommand(ByVal commandName As String) As ICommand
     End Select
 End Function
 
-Public Function CreateCommandContext(Optional ByVal sourceName As String = vbNullString, Optional ByVal triggerKind As String = vbNullString) As ICommandContext
+Public Function CreateCommandContext(ByVal commandName As String, Optional ByVal entryMacro As String = vbNullString, Optional ByVal sourceName As String = vbNullString, Optional ByVal triggerKind As String = vbNullString) As ICommandContext
+    EnsureInitialized
     Dim ctx As New BasicCommandContext
+    ctx.CommandName = commandName
+    ctx.EntryMacro = entryMacro
     ctx.SourceName = sourceName
     ctx.TriggerKind = triggerKind
+    Set ctx.ActionContext = State.CaptureActionContext()
     Set CreateCommandContext = ctx
 End Function
 
@@ -86,6 +118,29 @@ Public Sub ExecuteCommand(ByVal commandName As String, Optional ByVal sourceName
     If cmd Is Nothing Then Err.Raise 5, "AppContainer.ExecuteCommand", "Unknown command: " & commandName
 
     Set invoker = New CommandInvoker
-    Set ctx = CreateCommandContext(sourceName, triggerKind)
+    Set ctx = CreateCommandContext(commandName, vbNullString, sourceName, triggerKind)
+    invoker.ExecuteCommand cmd, ctx
+End Sub
+
+Public Sub ExecuteEntryPoint(ByVal entryMacro As String, Optional ByVal sourceName As String = vbNullString, Optional ByVal triggerKind As String = vbNullString)
+    Dim commandName As String
+    Dim invoker As CommandInvoker
+    Dim cmd As ICommand
+    Dim ctx As ICommandContext
+
+    EnsureInitialized
+
+    commandName = Infra_CommandCatalog.ResolveCommandName(entryMacro)
+    If commandName = vbNullString Then
+        Err.Raise 5, "AppContainer.ExecuteEntryPoint", "Unknown entry point: " & entryMacro
+    End If
+
+    Set cmd = ResolveCommand(commandName)
+    If cmd Is Nothing Then
+        Err.Raise 5, "AppContainer.ExecuteEntryPoint", "Unknown command for entry point: " & entryMacro
+    End If
+
+    Set invoker = New CommandInvoker
+    Set ctx = CreateCommandContext(commandName, entryMacro, sourceName, triggerKind)
     invoker.ExecuteCommand cmd, ctx
 End Sub

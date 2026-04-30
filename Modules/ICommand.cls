@@ -23,7 +23,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Public Function CanExecute() As Boolean
+Public Function CanExecute(ByVal context As ICommandContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("CanExecute")
     On Error GoTo ErrHandler
 CleanExit:

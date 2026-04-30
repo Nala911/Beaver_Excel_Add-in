@@ -18,3 +18,12 @@ End Property
 
 Public Property Get TriggerKind() As String
 End Property
+
+Public Property Get CommandName() As String
+End Property
+
+Public Property Get EntryMacro() As String
+End Property
+
+Public Property Get ActionContext() As Infra_ActionContext
+End Property

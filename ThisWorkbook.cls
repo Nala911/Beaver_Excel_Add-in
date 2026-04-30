@@ -23,25 +23,29 @@ Option Explicit
 ' ==============================================================================
 
 Private Sub Workbook_Open()
-    AppContainer.Init Infra_Config, Infra_Error, StateStore
-    
-    Infra_Error.PushContext "Workbook_Open"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Workbook_Open")
     On Error GoTo ErrHandler
-    Infra_Hotkeys.RegisterHotkeys
-    Infra_Error.PopContext
+
+    Infra_Bootstrap.Startup
+
+CleanExit:
     Exit Sub
 
 ErrHandler:
     Infra_Error.HandleError "Workbook_Open", Err
+    Resume CleanExit
 End Sub
 
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
-    Infra_Error.PushContext "Workbook_BeforeClose"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Workbook_BeforeClose")
     On Error GoTo ErrHandler
-    Infra_Hotkeys.UnregisterHotkeys
-    Infra_Error.PopContext
+
+    Infra_Bootstrap.Shutdown
+
+CleanExit:
     Exit Sub
 
 ErrHandler:
     Infra_Error.HandleError "Workbook_BeforeClose", Err
+    Resume CleanExit
 End Sub
