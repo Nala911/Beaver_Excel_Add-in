@@ -15,17 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Duplicates the current workbook to the Desktop as a macro-free .xlsx file.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Duplicate.CanExecute")
-    On Error GoTo ErrHandler
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Not ctx Is Nothing
-    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WorkbookRef Is Nothing
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "Duplicate.CanExecute", Err
-    ICommand_CanExecute = False
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasWorkbook(context)
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -50,9 +45,6 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         baseName = Left(baseName, InStrRev(baseName, ".") - 1)
     End If
 
-    ' --- Show screen so prompt is visible ---
-    Application.ScreenUpdating = True
-
     ' --- Prompt user for new name ---
     Dim inputResult As Variant
     inputResult = Infra_UIFactory.PromptForDuplicateName(ctx, baseName)
@@ -60,12 +52,10 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     baseName = CStr(inputResult)
 
-    Application.ScreenUpdating = False
-
     ' --- Build full path ---
     desktopPath = Infra_AppState.GetDesktopPath()
     If desktopPath = "" Then
-        MsgBox "Could not locate the Desktop path. Cannot save the file.", vbCritical, Infra_Config.ADDIN_NAME
+        Infra_Interaction.ShowCritical "Could not locate the Desktop path. Cannot save the file."
         GoTo CleanExit
     End If
 
@@ -84,7 +74,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     ' --- Re-activate the original workbook ---
     sourceWB.Activate
 
-    MsgBox "Duplicate saved to Desktop:" & vbCrLf & baseName & ".xlsx", vbInformation, Infra_Config.ADDIN_NAME
+    Infra_Interaction.ShowInfo "Duplicate saved to Desktop:" & vbCrLf & baseName & ".xlsx"
 
 CleanExit:
     Exit Sub

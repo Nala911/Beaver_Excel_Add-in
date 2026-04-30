@@ -49,7 +49,7 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
                 Set ShowCleanDataDialog = request
                 Exit Do
             Case Else
-                MsgBox "Please type Range, Sheet, or Workbook.", vbExclamation, BuildDialogTitle("Clean Data")
+                Infra_Interaction.ShowWarning "Please type Range, Sheet, or Workbook.", BuildDialogTitle("Clean Data")
         End Select
     Loop
 
@@ -75,11 +75,9 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_Expo
     request.ScaleFactor = Infra_Config.DEFAULT_EXPORT_SCALE
     
     If request.SourceRange Is Nothing Then
-        MsgBox "No data found on the active sheet to export.", vbExclamation, Infra_Config.ADDIN_NAME
+        Infra_Interaction.ShowWarning "No data found on the active sheet to export."
         GoTo CleanExit
     End If
-    
-    Application.ScreenUpdating = True
 
     Do
         If Not ShowInputBox( _
@@ -100,7 +98,7 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_Expo
                 request.ExportAsPng = False
                 Exit Do
             Case Else
-                MsgBox "Please type PNG or PDF.", vbExclamation, BuildDialogTitle("Export")
+                Infra_Interaction.ShowWarning "Please type PNG or PDF.", BuildDialogTitle("Export")
         End Select
     Loop
 
@@ -149,11 +147,11 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
                 Set ShowStaticConversionDialog = request
                 Exit Do
             Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-                If MsgBox( _
+                If Not Infra_Interaction.Confirm( _
                     "You are about to convert formulas on every worksheet in " & SafeWorkbookName(ctx) & "." & vbCrLf & vbCrLf & _
                     "This is not reversible as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
                     "Continue with workbook-wide conversion?", _
-                    vbOKCancel + vbExclamation + vbDefaultButton2, BuildDialogTitle("Confirm Workbook Scope")) <> vbOK Then
+                    BuildDialogTitle("Confirm Workbook Scope"), vbDefaultButton2) Then
                     GoTo CleanExit
                 End If
                 Set request = New Infra_StaticRequest
@@ -162,7 +160,7 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
                 Set ShowStaticConversionDialog = request
                 Exit Do
             Case Else
-                MsgBox "Please type Sheet or Workbook.", vbExclamation, BuildDialogTitle("Make Static")
+                Infra_Interaction.ShowWarning "Please type Sheet or Workbook.", BuildDialogTitle("Make Static")
         End Select
     Loop
 
@@ -199,16 +197,16 @@ Public Function ShowBreakLinksScopeDialog(ByVal ctx As Infra_ActionContext, ByVa
                 ShowBreakLinksScopeDialog = 1
                 Exit Do
             Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-                If MsgBox( _
+                If Not Infra_Interaction.Confirm( _
                     "This will remove workbook-level links and connections and flatten external content." & vbCrLf & vbCrLf & _
                     "Continue with whole-workbook processing?", _
-                    vbOKCancel + vbExclamation + vbDefaultButton2, BuildDialogTitle("Confirm Workbook Scope")) <> vbOK Then
+                    BuildDialogTitle("Confirm Workbook Scope"), vbDefaultButton2) Then
                     GoTo CleanExit
                 End If
                 ShowBreakLinksScopeDialog = 2
                 Exit Do
             Case Else
-                MsgBox "Please type Sheet or Workbook.", vbExclamation, BuildDialogTitle("Break External Links")
+                Infra_Interaction.ShowWarning "Please type Sheet or Workbook.", BuildDialogTitle("Break External Links")
         End Select
     Loop
 
@@ -240,7 +238,7 @@ Public Function PromptForDateConversionMonth(ByVal ctx As Infra_ActionContext) A
             Exit Do
         End If
 
-        MsgBox "Please enter a valid month name or number from 1 to 12.", vbExclamation, BuildDialogTitle("Date Conversion")
+        Infra_Interaction.ShowWarning "Please enter a valid month name or number from 1 to 12.", BuildDialogTitle("Date Conversion")
     Loop
 
 CleanExit:
@@ -276,8 +274,8 @@ Public Function PromptForDuplicateName(ByVal ctx As Infra_ActionContext, ByVal s
             Exit Do
         End If
 
-        MsgBox "The file name contains characters Windows cannot save. Avoid: \ / : * ? "" < > |", _
-               vbExclamation, BuildDialogTitle("Create Duplicate")
+        Infra_Interaction.ShowWarning "The file name contains characters Windows cannot save. Avoid: \ / : * ? "" < > |", _
+                                       BuildDialogTitle("Create Duplicate")
     Loop
 
 CleanExit:
@@ -307,8 +305,8 @@ Public Function PromptForWrapFormulaPattern(ByVal ctx As Infra_ActionContext, By
 
         If InStr(1, PromptForWrapFormulaPattern, placeholder, vbTextCompare) > 0 Then Exit Do
 
-        MsgBox "Your formula pattern must include the placeholder " & placeholder & ".", _
-               vbExclamation, BuildDialogTitle("Wrap Formula")
+        Infra_Interaction.ShowWarning "Your formula pattern must include the placeholder " & placeholder & ".", _
+                                       BuildDialogTitle("Wrap Formula")
     Loop
 
 CleanExit:
@@ -369,8 +367,8 @@ Private Function PromptForExportScale(ByVal defaultScale As Long) As Long
             End If
         End If
 
-        MsgBox "Please enter a whole number from 1 to " & Infra_Config.MAX_EXPORT_SCALE & ".", _
-               vbExclamation, BuildDialogTitle("PNG Quality")
+        Infra_Interaction.ShowWarning "Please enter a whole number from 1 to " & Infra_Config.MAX_EXPORT_SCALE & ".", _
+                                       BuildDialogTitle("PNG Quality")
     Loop
 
 CleanExit:
@@ -417,14 +415,57 @@ Private Function NormalizeChoiceText(ByVal rawValue As Variant) As String
 End Function
 
 Private Function ShowInputBox(ByVal promptMsg As String, ByVal title As String, ByVal defaultText As String, ByRef outResult As String) As Boolean
-    Dim result As String
-    result = InputBox(promptMsg, title, defaultText)
-    If StrPtr(result) = 0 Then
-        ShowInputBox = False
-    Else
-        outResult = result
-        ShowInputBox = True
-    End If
+    ShowInputBox = Infra_Interaction.PromptText(promptMsg, title, defaultText, outResult)
+End Function
+
+Public Function PromptForSheetName(ByVal ctx As Infra_ActionContext) As String
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForSheetName")
+    On Error GoTo ErrHandler
+
+    Dim userInput As String
+
+    Do
+        If Not ShowInputBox( _
+            "Create a new worksheet in " & SafeWorkbookName(ctx) & "." & vbCrLf & vbCrLf & _
+            "Enter the name for the new sheet.", _
+            BuildDialogTitle("Create Sheet"), vbNullString, userInput) Then GoTo CleanExit
+
+        userInput = Trim$(userInput)
+        If userInput = vbNullString Then
+            Infra_Interaction.ShowWarning "Sheet name cannot be blank.", BuildDialogTitle("Create Sheet")
+        Else
+            PromptForSheetName = userInput
+            Exit Do
+        End If
+    Loop
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "PromptForSheetName", Err
+    Resume CleanExit
+End Function
+
+Public Function PromptForRelatedCell(ByVal sourceCell As Range) As Range
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForRelatedCell")
+    On Error GoTo ErrHandler
+
+    Dim selectedRange As Range
+    Dim promptText As String
+
+    If sourceCell Is Nothing Then GoTo CleanExit
+
+    promptText = "You selected " & sourceCell.Address(False, False) & "." & vbCrLf & _
+                 "Please select the related cell (Precedent or Dependent)."
+
+    If Not Infra_Interaction.PromptRange(promptText, BuildDialogTitle("Select Related Cell"), selectedRange) Then GoTo CleanExit
+    Set PromptForRelatedCell = selectedRange
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "PromptForRelatedCell", Err
+    Resume CleanExit
 End Function
 
 Private Function IsValidWindowsFileName(ByVal fileName As String) As Boolean

@@ -15,16 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Quick-filter a range based on the value of the active cell.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("FilterByCell.CanExecute")
-    On Error GoTo ErrHandler
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "FilterByCell.CanExecute", Err
-    ICommand_CanExecute = False
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy()
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasRangeSelection(context)
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -121,7 +117,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         Next pt
 
         If dataRange.Cells.Count <= 1 Then
-            MsgBox "The selected cell is not part of a larger data range.", vbExclamation, "Beaver Add-in"
+            Infra_Interaction.ShowWarning "The selected cell is not part of a larger data range."
             GoTo CleanExit
         End If
         

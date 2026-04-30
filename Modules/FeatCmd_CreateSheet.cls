@@ -15,24 +15,19 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Creates a new worksheet with a user-supplied name and smart positioning.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("CreateSheet.CanExecute")
-    On Error GoTo ErrHandler
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Not ctx Is Nothing
-    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WorkbookRef Is Nothing
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "CreateSheet.CanExecute", Err
-    ICommand_CanExecute = False
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasWorkbook(context)
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("CreateSheet.Execute")
     On Error GoTo ErrHandler
 
-    Dim sheetName As Variant
+    Dim sheetName As String
     Dim newSheet As Worksheet
     Dim nameLower As String
     Dim ctx As Infra_ActionContext
@@ -40,16 +35,10 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
 
-    sheetName = InputBox("Please enter the name for the new sheet:", "Beaver Add-in â€” Create Sheet")
+    sheetName = Infra_UIFactory.PromptForSheetName(ctx)
+    If sheetName = vbNullString Then GoTo CleanExit
 
-    If StrPtr(sheetName) = 0 Then GoTo CleanExit
-
-    If Trim(CStr(sheetName)) = "" Then
-        MsgBox "Sheet name cannot be blank.", vbExclamation, "Beaver Add-in"
-        GoTo CleanExit
-    End If
-
-    nameLower = LCase(CStr(sheetName))
+    nameLower = LCase$(sheetName)
 
     If (Left(nameLower, 7) = "summary") Or (Left(nameLower, 5) = "recon") Then
         Set newSheet = ctx.WorkbookRef.Worksheets.Add(Before:=ctx.WorksheetRef)
@@ -57,7 +46,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         Set newSheet = ctx.WorkbookRef.Worksheets.Add(After:=ctx.WorksheetRef)
     End If
 
-    newSheet.Name = CStr(sheetName)
+    newSheet.Name = sheetName
 
 CleanExit:
     Exit Sub

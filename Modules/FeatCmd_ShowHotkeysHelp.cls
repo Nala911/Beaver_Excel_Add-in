@@ -17,19 +17,12 @@ Option Explicit
 
 Implements ICommand
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("ShowHotkeysHelp.CanExecute")
-    On Error GoTo ErrHandler
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+End Property
 
-    ICommand_CanExecute = True
-
-CleanExit:
-    Exit Function
-
-ErrHandler:
-    Infra_Error.HandleError "ShowHotkeysHelp.CanExecute", Err
-    ICommand_CanExecute = False
-    Resume CleanExit
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)

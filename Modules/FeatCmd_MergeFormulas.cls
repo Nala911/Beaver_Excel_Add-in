@@ -15,16 +15,31 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Merges directly related formulas by inlining a precedent into its dependent.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("MergeFormulas.CanExecute")
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Dim tracker As Object: Set tracker = Infra_Error.Track("MergeFormulas.Validate")
     On Error GoTo ErrHandler
+
     Dim ctx As Infra_ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
+
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then
+        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("Please select a single cell first.")
+    ElseIf ctx.SelectionRange.Cells.CountLarge <> 1 Then
+        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("Please select a single cell first.")
+    Else
+        Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
+    End If
+
+CleanExit:
     Exit Function
 ErrHandler:
-    Infra_Error.HandleError "MergeFormulas.CanExecute", Err
-    ICommand_CanExecute = False
+    Infra_Error.HandleError "MergeFormulas.Validate", Err
+    Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("The selected formula cells cannot be merged right now.")
+    Resume CleanExit
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -38,28 +53,21 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim precFormula As String
     Dim depFormula As String
     Dim finalFormula As String
+    Dim targetCell As Range
     Dim ctx As Infra_ActionContext
     
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then
-        MsgBox "Please select a single cell first.", vbExclamation, Infra_Config.ADDIN_NAME
         GoTo CleanExit
     End If
     Set userSelection = ctx.SelectionRange.Cells(1, 1)
     
-    On Error Resume Next
-    Set otherSelection = Application.InputBox( _
-        Prompt:="You selected " & userSelection.Address(False, False) & "." & vbCrLf & _
-                "Please select the related cell (Precedent or Dependent):", _
-        Title:="Select Related Cell", _
-        Type:=8)
-    On Error GoTo ErrHandler
-    
+    Set otherSelection = Infra_UIFactory.PromptForRelatedCell(userSelection)
     If otherSelection Is Nothing Then GoTo CleanExit
     Set otherSelection = otherSelection.Cells(1, 1)
     
     If otherSelection.Address = userSelection.Address Then
-        MsgBox "You selected the same cell twice.", vbExclamation, Infra_Config.ADDIN_NAME
+        Infra_Interaction.ShowWarning "You selected the same cell twice."
         GoTo CleanExit
     End If
 
@@ -90,8 +98,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     End If
     
     If Not foundRelationship Then
-        MsgBox "Could not detect a direct dependency between these two cells." & vbCrLf & _
-               "Ensure one cell's formula directly references the other.", vbCritical, Infra_Config.ADDIN_NAME
+        Infra_Interaction.ShowCritical "Could not detect a direct dependency between these two cells." & vbCrLf & _
+                                       "Ensure one cell's formula directly references the other."
         GoTo CleanExit
     End If
 
@@ -132,12 +140,17 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         finalFormula = Replace(finalFormula, addrRel, precFormula)
     End If
     
+    Set targetCell = depCell
+    If targetCell Is Nothing Then GoTo CleanExit
+    Infra_Undo.SaveState targetCell, "Merge Formulas"
+
     On Error Resume Next
-    userSelection.Formula2 = finalFormula
+    targetCell.Formula2 = finalFormula
     
     If Err.Number <> 0 Then
-        MsgBox "Error applying merged formula. The result might be too long or invalid." & vbCrLf & _
-               "Attempted Formula: " & finalFormula, vbExclamation, Infra_Config.ADDIN_NAME
+        Err.Clear
+        Infra_Interaction.ShowWarning "Error applying merged formula. The result might be too long or invalid." & vbCrLf & _
+                                      "Attempted Formula: " & finalFormula
         On Error GoTo ErrHandler
         GoTo CleanExit
     End If

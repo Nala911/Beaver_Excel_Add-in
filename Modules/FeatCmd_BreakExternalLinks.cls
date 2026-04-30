@@ -15,17 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Detects and breaks external Excel links, connections, and external named ranges.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("BreakExternalLinks.CanExecute")
-    On Error GoTo ErrHandler
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Not ctx Is Nothing
-    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WorkbookRef Is Nothing
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "BreakExternalLinks.CanExecute", Err
-    ICommand_CanExecute = False
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasWorkbook(context)
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -47,7 +42,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     ' 1. DETECTION
     linkInfo = GetExternalElementsSummary(wb, linkArr)
     If linkInfo = vbNullString Then
-        MsgBox "No external links, connections, or named ranges were found.", vbInformation, Infra_Config.ADDIN_NAME
+        Infra_Interaction.ShowInfo "No external links, connections, or named ranges were found."
         GoTo CleanExit
     End If
 
@@ -61,7 +56,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     stats = ExecuteBreakLinks(wb, processWholeWorkbook, linkArr, ctx.WorksheetRef)
 
     ' 5. COMPLETION
-    MsgBox "Process Completed for: " & IIf(processWholeWorkbook, "Whole Workbook", "Active Sheet") & vbCrLf & vbCrLf & stats, vbInformation, Infra_Config.ADDIN_NAME
+    Infra_Interaction.ShowInfo "Process Completed for: " & IIf(processWholeWorkbook, "Whole Workbook", "Active Sheet") & vbCrLf & vbCrLf & stats
 
 CleanExit:
     Exit Sub

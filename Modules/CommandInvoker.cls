@@ -16,28 +16,40 @@ Option Explicit
 Public Sub ExecuteCommand(ByVal cmd As ICommand, ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteCommand")
     On Error GoTo ErrHandler
-    
+
+    Dim validation As CommandValidationResult
+    Dim policy As CommandExecutionPolicy
+    Dim guard As Infra_AppStateGuard
+
     If cmd Is Nothing Then GoTo CleanExit
-    
-    If Not cmd.CanExecute(context) Then
-        MsgBox "This command cannot be executed in the current context.", vbExclamation, "Command Invalid"
+
+    Set validation = cmd.Validate(context)
+    If validation Is Nothing Then
+        Set validation = Infra_CommandSupport.ValidationSuccess()
+    End If
+
+    If Not validation.IsExecutable Then
+        Infra_CommandSupport.ShowValidationFailure validation
         GoTo CleanExit
     End If
-    
-    ' Unified Guard
-    Dim guard As New Infra_AppStateGuard
-    guard.ScreenUpdating = False
-    guard.EnableEvents = False
-    guard.DisplayAlerts = True
-    guard.Calculation = xlCalculationManual
-    guard.UpdateState
-    
-    ' Execute
+
+    Set policy = cmd.ExecutionPolicy
+    If policy Is Nothing Then Set policy = Infra_CommandSupport.CreateExecutionPolicy()
+
+    If policy.UseAppStateGuard Then
+        Set guard = New Infra_AppStateGuard
+        guard.ScreenUpdating = policy.ScreenUpdating
+        guard.EnableEvents = policy.EnableEvents
+        guard.DisplayAlerts = policy.DisplayAlerts
+        guard.Calculation = policy.Calculation
+        guard.UpdateState
+    End If
+
     cmd.Execute context
 
 CleanExit:
     Exit Sub
-    
+
 ErrHandler:
     Infra_Error.HandleError "ExecuteCommand", Err
     Resume CleanExit

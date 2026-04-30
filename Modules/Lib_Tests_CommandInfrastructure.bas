@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Tests for manifest-driven command resolution and typed command context capture.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, Infra_CommandCatalog, AppContainer, Infra_Error
+' @Dependencies: Lib_Tests, Infra_CommandCatalog, Infra_CommandRegistry, AppContainer, Infra_Error
 
 Public Sub Test_CommandCatalogResolvesRibbonEntries()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandCatalogResolvesRibbonEntries")
@@ -46,7 +46,7 @@ Public Sub Test_CommandContextIncludesMetadataAndActionContext()
 
     Dim ctx As ICommandContext
 
-    AppContainer.Initialize Infra_Config, Infra_Error, StateStore
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
     Set ctx = AppContainer.CreateCommandContext("FormatRange", "UI_Hotkeys.Hotkey_FormatSelectedRange", "Hotkey_FormatSelectedRange", "Hotkey")
 
     AssertEqual ctx.CommandName, "FormatRange", "Command context should store the resolved command name"
@@ -61,5 +61,20 @@ CleanExit:
 
 ErrHandler:
     Infra_Error.HandleError "Test_CommandContextIncludesMetadataAndActionContext", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_CommandRegistryCreatesKnownCommands()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandRegistryCreatesKnownCommands")
+    On Error GoTo ErrHandler
+
+    AssertTrue Not Infra_CommandRegistry.CreateCommand("FormatRange") Is Nothing, "Command registry should create FormatRange command instances"
+    AssertTrue Not Infra_CommandRegistry.CreateCommand("ShowHotkeysHelp") Is Nothing, "Command registry should create ShowHotkeysHelp command instances"
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "Test_CommandRegistryCreatesKnownCommands", Err
     Resume CleanExit
 End Sub

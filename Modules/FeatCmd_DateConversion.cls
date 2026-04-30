@@ -15,16 +15,31 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Converts text strings to proper Excel Date values with ambiguous format resolution.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("DateConversion.CanExecute")
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Dim tracker As Object: Set tracker = Infra_Error.Track("DateConversion.Validate")
     On Error GoTo ErrHandler
+
     Dim ctx As Infra_ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
+
+    If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then
+        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("Please select a range before running this command.")
+    ElseIf ctx.SelectionRange.Columns.Count > 1 Then
+        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("Please select only one column of dates at a time.")
+    Else
+        Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
+    End If
+
+CleanExit:
     Exit Function
 ErrHandler:
-    Infra_Error.HandleError "DateConversion.CanExecute", Err
-    ICommand_CanExecute = False
+    Infra_Error.HandleError "DateConversion.Validate", Err
+    Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("The selected dates cannot be processed right now.")
+    Resume CleanExit
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -45,19 +60,11 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
     Set rng = ctx.SelectionRange
 
-    ' 2. Safety Check: single column only
-    If rng.Columns.Count > 1 Then
-        MsgBox "Please select only one column of dates at a time.", vbExclamation, Infra_Config.ADDIN_NAME
-        GoTo CleanExit
-    End If
-
-    ' 3. Show screen so user can see context, then ask for the month
-    Application.ScreenUpdating = True
+    ' 2. Ask for the month used to resolve ambiguous dates
     targetMonth = Infra_UIFactory.PromptForDateConversionMonth(ctx)
     If targetMonth = 0 Then GoTo CleanExit
-    Application.ScreenUpdating = False
 
-    ' 4. Read data into memory array
+    ' 3. Read data into memory array
     If rng.Cells.Count = 1 Then
         ReDim dataArr(1 To 1, 1 To 1)
         dataArr(1, 1) = rng.Value
@@ -65,7 +72,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         dataArr = rng.Value
     End If
 
-    ' 5. Loop through the array (process in memory)
+    ' 4. Loop through the array (process in memory)
     For i = LBound(dataArr, 1) To UBound(dataArr, 1)
         txt = Trim(CStr(dataArr(i, 1)))
 
@@ -78,11 +85,11 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         End If
     Next i
 
-    ' 6. Dump array back to Excel (one single write operation)
+    ' 5. Dump array back to Excel (one single write operation)
     rng.Value = dataArr
     rng.NumberFormat = Infra_Config.DEFAULT_DATE_FORMAT
 
-    MsgBox "Conversion Complete! " & convertedCount & " cell(s) updated.", vbInformation, Infra_Config.ADDIN_NAME
+    Infra_Interaction.ShowInfo "Conversion Complete! " & convertedCount & " cell(s) updated."
 
 CleanExit:
     Exit Sub

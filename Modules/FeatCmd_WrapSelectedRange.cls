@@ -20,16 +20,12 @@ Private Const REG_SECTION As String = "Settings"
 Private Const REG_KEY_PATTERN As String = "WrapFormulaPattern"
 Private Const MAX_CELLS_LIMIT As Long = 50000
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("WrapSelectedRange.CanExecute")
-    On Error GoTo ErrHandler
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "WrapSelectedRange.CanExecute", Err
-    ICommand_CanExecute = False
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasRangeSelection(context)
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -51,9 +47,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     
     ' 1. Guard against massive selections
     If rng.CountLarge > MAX_CELLS_LIMIT Then
-        If MsgBox("You have selected " & Format(rng.CountLarge, "#,##0") & " cells. " & _
-                  "This may take a moment to process. Continue?", _
-                  vbQuestion + vbYesNo, Infra_Config.ADDIN_NAME) = vbNo Then GoTo CleanExit
+        If Not Infra_Interaction.Confirm("You have selected " & Format(rng.CountLarge, "#,##0") & " cells. " & _
+                                         "This may take a moment to process. Continue?") Then GoTo CleanExit
     End If
 
     ' 2. Retrieve last used pattern or default
@@ -87,8 +82,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     ' 7. Summary report
     If totalErrors > 0 Then
-        MsgBox "Completed with " & totalErrors & " errors. Failed cells are highlighted in yellow.", _
-               vbInformation, Infra_Config.ADDIN_NAME
+        Infra_Interaction.ShowInfo "Completed with " & totalErrors & " errors. Failed cells are highlighted in yellow."
     End If
 
 CleanExit:

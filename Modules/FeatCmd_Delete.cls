@@ -15,24 +15,32 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Custom handlers for Delete key with protection awareness.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Delete.CanExecute")
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy()
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Delete.Validate")
     On Error GoTo ErrHandler
-    
+
     Dim ctx As Infra_ActionContext
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    If ctx Is Nothing Then Exit Function
-
-    If ctx.SelectionTypeName = "Range" Then
-        ICommand_CanExecute = Infra_AppState.CanModifyContext(ctx)
+    If ctx Is Nothing Then
+        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("There is no active Excel selection available for this command.")
+    ElseIf ctx.SelectionTypeName = "Range" Then
+        Set ICommand_Validate = Infra_CommandSupport.ValidateCanModifySelection(context)
     Else
-        ICommand_CanExecute = True ' Allow deleting objects unconditionally for now
+        Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
     End If
+
+CleanExit:
     Exit Function
+
 ErrHandler:
-    Infra_Error.HandleError "Delete.CanExecute", Err
-    ICommand_CanExecute = False
+    Infra_Error.HandleError "Delete.Validate", Err
+    Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("The current selection cannot be deleted.")
+    Resume CleanExit
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)

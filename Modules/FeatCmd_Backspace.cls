@@ -15,16 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Custom handlers for Backspace with protection awareness.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Backspace.CanExecute")
-    On Error GoTo ErrHandler
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Infra_AppState.CanModifyContext(ctx)
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "Backspace.CanExecute", Err
-    ICommand_CanExecute = False
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy()
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateCanModifySelection(context)
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)

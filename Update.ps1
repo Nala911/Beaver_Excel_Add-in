@@ -13,16 +13,18 @@ param(
     [switch]$SkipRuntimeTests,
     [switch]$IncludeDevFeatures,
     [switch]$BumpVersion,
-    [switch]$RefreshAgentsGuide
+    [Alias("RefreshAgentsGuide")]
+    [switch]$RefreshBlueprintGuide
 )
 
 $excelPath = Join-Path $PSScriptRoot "Beaver Add-in.xlsm"
 $modulesDir = Join-Path $PSScriptRoot "Modules"
 $desktopThisWorkbookCls = Join-Path $PSScriptRoot "ThisWorkbook.cls"
 $ribbonXmlPath = Join-Path $PSScriptRoot "ribbon.xml"
-$agentsMdPath = Join-Path $PSScriptRoot "AGENTS.md"
+$blueprintMdPath = Join-Path $PSScriptRoot "BLUEPRINT.md"
 $featureManifestPath = Join-Path $PSScriptRoot "features.json"
 $testManifestPath = Join-Path $modulesDir "Lib_TestManifest.bas"
+$commandRegistryPath = Join-Path $modulesDir "Infra_CommandRegistry.bas"
 $structuredTestResultsPath = Join-Path $env:TEMP "BeaverAddin.TestResults.tsv"
 $script:StageResults = New-Object System.Collections.ArrayList
 
@@ -237,6 +239,107 @@ function Sync-TestManifest {
     $lines += 'End Sub'
     [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
     Write-Host "  Test manifest generated with $($testProcedures.Count) test(s)." -ForegroundColor Green
+}
+
+function Sync-CommandRegistry {
+    param(
+        [string]$ManifestPath,
+        [string]$OutputPath
+    )
+
+    Write-Host "Generating command registry..." -ForegroundColor Cyan
+    $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
+
+    $entryMap = [ordered]@{}
+    $commandMap = [ordered]@{}
+
+    foreach ($feature in @($manifest.Features)) {
+        if (-not [string]::IsNullOrWhiteSpace($feature.Macro) -and -not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
+            $entryMap[$feature.Macro.Trim().ToUpperInvariant()] = $feature.CommandName.Trim()
+        }
+        if (-not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
+            $commandName = $feature.CommandName.Trim()
+            $commandClass = if (-not [string]::IsNullOrWhiteSpace($feature.CommandClass)) { $feature.CommandClass.Trim() } else { "FeatCmd_$commandName" }
+            $commandMap[$commandName.ToUpperInvariant()] = [pscustomobject]@{
+                CommandName = $commandName
+                CommandClass = $commandClass
+            }
+        }
+    }
+
+    foreach ($hotkey in @($manifest.Hotkeys)) {
+        if (-not [string]::IsNullOrWhiteSpace($hotkey.Macro) -and -not [string]::IsNullOrWhiteSpace($hotkey.CommandName)) {
+            $entryMap[$hotkey.Macro.Trim().ToUpperInvariant()] = $hotkey.CommandName.Trim()
+        }
+        if (-not [string]::IsNullOrWhiteSpace($hotkey.CommandName)) {
+            $commandName = $hotkey.CommandName.Trim()
+            $commandClass = if (-not [string]::IsNullOrWhiteSpace($hotkey.CommandClass)) { $hotkey.CommandClass.Trim() } else { "FeatCmd_$commandName" }
+            $commandMap[$commandName.ToUpperInvariant()] = [pscustomobject]@{
+                CommandName = $commandName
+                CommandClass = $commandClass
+            }
+        }
+    }
+
+    if ($entryMap.Contains("INFRA_HOTKEYS.SHOWHOTKEYSHELP")) {
+        $entryMap["UI_RIBBON.RIBBON_ONSHOWHOTKEYSHELP"] = $entryMap["INFRA_HOTKEYS.SHOWHOTKEYSHELP"]
+    }
+
+    $lines = @(
+        'Attribute VB_Name = "Infra_CommandRegistry"',
+        'Option Explicit',
+        '',
+        ''' @Module: Infra_CommandRegistry',
+        ''' @Category: Infrastructure',
+        ''' @Description: Generated command registry mapping entry macros and command names to command classes.',
+        ''' @ManagedBy: BeaverAddin Agent',
+        ''' @Dependencies: ICommand',
+        '',
+        'Public Function ResolveCommandName(ByVal entryMacro As String) As String',
+        '    Dim tracker As Object: Set tracker = Infra_Error.Track("ResolveCommandName")',
+        '    On Error GoTo ErrHandler',
+        '',
+        '    Select Case UCase$(Trim$(entryMacro))'
+    )
+
+    foreach ($entry in $entryMap.GetEnumerator()) {
+        $lines += ('        Case "{0}"' -f $entry.Key.Replace('"', '""'))
+        $lines += ('            ResolveCommandName = "{0}"' -f $entry.Value.Replace('"', '""'))
+    }
+
+    $lines += '    End Select'
+    $lines += ''
+    $lines += 'CleanExit:'
+    $lines += '    Exit Function'
+    $lines += ''
+    $lines += 'ErrHandler:'
+    $lines += '    Infra_Error.HandleError "ResolveCommandName", Err'
+    $lines += '    Resume CleanExit'
+    $lines += 'End Function'
+    $lines += ''
+    $lines += 'Public Function CreateCommand(ByVal commandName As String) As ICommand'
+    $lines += '    Dim tracker As Object: Set tracker = Infra_Error.Track("CreateCommand")'
+    $lines += '    On Error GoTo ErrHandler'
+    $lines += ''
+    $lines += '    Select Case UCase$(Trim$(commandName))'
+
+    foreach ($entry in $commandMap.GetEnumerator()) {
+        $lines += ('        Case "{0}"' -f $entry.Key.Replace('"', '""'))
+        $lines += ('            Set CreateCommand = New {0}' -f $entry.Value.CommandClass)
+    }
+
+    $lines += '    End Select'
+    $lines += ''
+    $lines += 'CleanExit:'
+    $lines += '    Exit Function'
+    $lines += ''
+    $lines += 'ErrHandler:'
+    $lines += '    Infra_Error.HandleError "CreateCommand", Err'
+    $lines += '    Resume CleanExit'
+    $lines += 'End Function'
+
+    [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
+    Write-Host "  Command registry generated with $($commandMap.Count) command(s) and $($entryMap.Count) entry point(s)." -ForegroundColor Green
 }
 
 function Read-StructuredTestResults {
@@ -726,22 +829,22 @@ function Update-Version {
 }
 
 # ==============================================================================
-# Function: Update-AgentsGuideDate
-# Purpose:  Updates the "Last updated:" date in AGENTS.md to today.
+# Function: Update-BlueprintDate
+# Purpose:  Updates the "Last updated:" date in BLUEPRINT.md to today.
 # ==============================================================================
-function Update-AgentsGuideDate {
-    param ([string]$AgentsMdPath)
-    if (-not (Test-Path $AgentsMdPath)) { return }
+function Update-BlueprintDate {
+    param ([string]$BlueprintMdPath)
+    if (-not (Test-Path $BlueprintMdPath)) { return }
     
-    Write-Host "Updating date in AGENTS.md..." -ForegroundColor Cyan
+    Write-Host "Updating date in BLUEPRINT.md..." -ForegroundColor Cyan
     try {
-        $content = Get-Content $AgentsMdPath -Raw
+        $content = Get-Content $BlueprintMdPath -Raw
         $dateStr = (Get-Date).ToString("yyyy-MM-dd")
         $newContent = $content -replace "Last updated: \d{4}-\d{2}-\d{2}", "Last updated: $dateStr"
-        [System.IO.File]::WriteAllText($AgentsMdPath, $newContent)
-        Write-Host "  AGENTS.md date updated to: $dateStr" -ForegroundColor Green
+        [System.IO.File]::WriteAllText($BlueprintMdPath, $newContent)
+        Write-Host "  BLUEPRINT.md date updated to: $dateStr" -ForegroundColor Green
     } catch {
-        Write-Warning "  Failed to update AGENTS.md date: $($_.Exception.Message)"
+        Write-Warning "  Failed to update BLUEPRINT.md date: $($_.Exception.Message)"
     }
 }
 
@@ -834,6 +937,8 @@ $configPath = Join-Path $PSScriptRoot "config.json"
 
 Sync-FeatureManifest -ManifestPath $featureManifestPath -ConfigPath $configPath -RibbonPath $ribbonXmlPath -IncludeDev:$IncludeDevFeatures
 Add-StageResult -Stage "manifest_sync" -Status "success" -Details "features synced from features.json"
+Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
+Add-StageResult -Stage "command_registry_generation" -Status "success"
 Sync-TestManifest -SourceDir $modulesDir -OutputPath $testManifestPath
 Add-StageResult -Stage "test_manifest_generation" -Status "success"
 
@@ -1049,10 +1154,10 @@ try {
     } else {
         Write-Host "Skipping version bump (pass -BumpVersion for release builds)." -ForegroundColor Gray
     }
-    if ($RefreshAgentsGuide) {
-        Update-AgentsGuideDate -AgentsMdPath $agentsMdPath
+    if ($RefreshBlueprintGuide) {
+        Update-BlueprintDate -BlueprintMdPath $blueprintMdPath
     } else {
-        Write-Host "Skipping AGENTS.md date refresh (pass -RefreshAgentsGuide when needed)." -ForegroundColor Gray
+        Write-Host "Skipping BLUEPRINT.md date refresh (pass -RefreshBlueprintGuide when needed)." -ForegroundColor Gray
     }
     $workbook.Save()
     $workbook.Close($true)

@@ -20,17 +20,31 @@ Private Enum StaticConversionScope
     StaticConversionScopeWorkbook = 2
 End Enum
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("StaticSheetWorkbook.CanExecute")
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Dim tracker As Object: Set tracker = Infra_Error.Track("StaticSheetWorkbook.Validate")
     On Error GoTo ErrHandler
+
     Dim ctx As Infra_ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Not ctx Is Nothing
-    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WorkbookRef Is Nothing And Not ctx.WorksheetRef Is Nothing
+
+    If ctx Is Nothing Then
+        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("There is no active workbook available for this command.")
+    ElseIf ctx.WorkbookRef Is Nothing Or ctx.WorksheetRef Is Nothing Then
+        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("There is no active worksheet available for this command.")
+    Else
+        Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
+    End If
+
+CleanExit:
     Exit Function
 ErrHandler:
-    Infra_Error.HandleError "StaticSheetWorkbook.CanExecute", Err
-    ICommand_CanExecute = False
+    Infra_Error.HandleError "StaticSheetWorkbook.Validate", Err
+    Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("The workbook cannot be converted to static values right now.")
+    Resume CleanExit
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -88,8 +102,8 @@ Private Sub ExecuteStaticConversion(ByVal request As Infra_StaticRequest)
     Next wsItem
 
     scopeLabel = IIf(request.Scope = StaticConversionScopeWorkbook, "Whole Workbook", "Active Sheet")
-    MsgBox "Done! Converted " & convertedCount & " formula cell(s) - " & scopeLabel & ".", _
-           vbInformation, Infra_Config.ADDIN_NAME & " - Process Complete"
+    Infra_Interaction.ShowInfo "Done! Converted " & convertedCount & " formula cell(s) - " & scopeLabel & ".", _
+                               Infra_Config.ADDIN_NAME & " - Process Complete"
 
 CleanExit:
     Infra_Progress.EndProgress

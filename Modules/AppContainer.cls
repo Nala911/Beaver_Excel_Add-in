@@ -13,28 +13,28 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Central Dependency Injection container / Service Locator. Uses PredeclaredId = True for global singleton access.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: IConfig, Infra_Error, StateStore, BasicCommandContext, Infra_CommandCatalog, Infra_Bootstrap
+' @Dependencies: IConfig, Infra_Error, ExcelContextProvider, BasicCommandContext, Infra_CommandRegistry, Infra_Bootstrap
 
 Private pConfig As IConfig
 Private pErrorTracker As Infra_Error
-Private pState As StateStore
+Private pContextProvider As ExcelContextProvider
 Private pIsInitialized As Boolean
 
 Private Sub Class_Initialize()
     ' Wait until explicit Init() is called so we can inject mocks if needed
 End Sub
 
-Public Sub Initialize(ByVal cfg As IConfig, ByVal errTrk As Infra_Error, ByVal stateStore As StateStore)
+Public Sub Initialize(ByVal cfg As IConfig, ByVal errTrk As Infra_Error, ByVal contextProvider As ExcelContextProvider)
     Set pConfig = cfg
     Set pErrorTracker = errTrk
-    Set pState = stateStore
+    Set pContextProvider = contextProvider
     pIsInitialized = True
     Infra_CommandCatalog.ResetCatalog
 End Sub
 
 Public Sub EnsureInitialized()
     If pIsInitialized Then Exit Sub
-    Initialize Infra_Config, Infra_Error, StateStore
+    Initialize Infra_Config, Infra_Error, ExcelContextProvider
 End Sub
 
 Public Property Get Config() As IConfig
@@ -47,55 +47,19 @@ Public Property Get ErrorTracker() As Infra_Error
     Set ErrorTracker = pErrorTracker
 End Property
 
-Public Property Get State() As StateStore
+Public Property Get ContextProvider() As ExcelContextProvider
     EnsureInitialized
-    Set State = pState
+    Set ContextProvider = pContextProvider
+End Property
+
+Public Property Get State() As ExcelContextProvider
+    EnsureInitialized
+    Set State = pContextProvider
 End Property
 
 Public Function ResolveCommand(ByVal commandName As String) As ICommand
     EnsureInitialized
-    Select Case UCase$(Trim$(commandName))
-        Case "APPLYCUSTOMNUMBERFORMAT"
-            Set ResolveCommand = New FeatCmd_ApplyCustomNumberFormat
-        Case "BACKSPACE"
-            Set ResolveCommand = New FeatCmd_Backspace
-        Case "BREAKEXTERNALLINKS"
-            Set ResolveCommand = New FeatCmd_BreakExternalLinks
-        Case "CLEANDATA"
-            Set ResolveCommand = New FeatCmd_CleanData
-        Case "CREATESHEET"
-            Set ResolveCommand = New FeatCmd_CreateSheet
-        Case "DASHBOARD"
-            Set ResolveCommand = New FeatCmd_Dashboard
-        Case "DATECONVERSION"
-            Set ResolveCommand = New FeatCmd_DateConversion
-        Case "DELETE"
-            Set ResolveCommand = New FeatCmd_Delete
-        Case "DUPLICATE"
-            Set ResolveCommand = New FeatCmd_Duplicate
-        Case "EXPORTIMAGEORPDF"
-            Set ResolveCommand = New FeatCmd_ExportImageOrPdf
-        Case "FILLDOWN"
-            Set ResolveCommand = New FeatCmd_FillDown
-        Case "FILTERBYCELL"
-            Set ResolveCommand = New FeatCmd_FilterByCell
-        Case "FORMATRANGE"
-            Set ResolveCommand = New FeatCmd_FormatRange
-        Case "MAKEPERMANENT"
-            Set ResolveCommand = New FeatCmd_MakePermanent
-        Case "MERGEFORMULAS"
-            Set ResolveCommand = New FeatCmd_MergeFormulas
-        Case "PASTEFORMAT"
-            Set ResolveCommand = New FeatCmd_PasteFormat
-        Case "SHOWHOTKEYSHELP"
-            Set ResolveCommand = New FeatCmd_ShowHotkeysHelp
-        Case "STATICSHEETWORKBOOK"
-            Set ResolveCommand = New FeatCmd_StaticSheetWorkbook
-        Case "TOGGLEFULLSCREEN"
-            Set ResolveCommand = New FeatCmd_ToggleFullScreen
-        Case "WRAPSELECTEDRANGE"
-            Set ResolveCommand = New FeatCmd_WrapSelectedRange
-    End Select
+    Set ResolveCommand = Infra_CommandRegistry.CreateCommand(commandName)
 End Function
 
 Public Function CreateCommandContext(ByVal commandName As String, Optional ByVal entryMacro As String = vbNullString, Optional ByVal sourceName As String = vbNullString, Optional ByVal triggerKind As String = vbNullString) As ICommandContext
@@ -105,7 +69,7 @@ Public Function CreateCommandContext(ByVal commandName As String, Optional ByVal
     ctx.EntryMacro = entryMacro
     ctx.SourceName = sourceName
     ctx.TriggerKind = triggerKind
-    Set ctx.ActionContext = State.CaptureActionContext()
+    Set ctx.ActionContext = ContextProvider.CaptureActionContext()
     Set CreateCommandContext = ctx
 End Function
 

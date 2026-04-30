@@ -5,13 +5,13 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Centralized startup and shutdown workflow for the add-in host.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: AppContainer, Infra_Config, Infra_Error, Infra_Hotkeys, StateStore
+' @Dependencies: AppContainer, Infra_Config, Infra_Error, Infra_Hotkeys, ExcelContextProvider
 
 Public Sub Startup()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Startup")
     On Error GoTo ErrHandler
 
-    AppContainer.Initialize Infra_Config, Infra_Error, StateStore
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
     Infra_Hotkeys.RegisterHotkeys
 
 CleanExit:

@@ -13,13 +13,20 @@ Option Explicit
 ' @Category: Feature
 ' @Description: Generates a minimal financial dashboard.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: ICommand, ICommandContext, AppContainer, Infra_Error, Infra_AppStateGuard, Infra_Undo
+' @Dependencies: ICommand, ICommandContext, Infra_CommandSupport, Infra_Error
 
 Implements ICommand
 
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy()
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasWorkbook(context)
+End Function
+
 Private Sub ICommand_Execute(ByVal Context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("FeatCmd_Dashboard.Execute")
-    Dim guard As New Infra_AppStateGuard
     On Error GoTo ErrHandler
 
     Dim ctx As Infra_ActionContext
@@ -66,21 +73,3 @@ ErrHandler:
     Infra_Error.HandleError "FeatCmd_Dashboard.Execute", Err
     Resume CleanExit
 End Sub
-
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("FeatCmd_Dashboard.CanExecute")
-    On Error GoTo ErrHandler
-
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Not ctx Is Nothing
-    If ICommand_CanExecute Then ICommand_CanExecute = Not ctx.WorkbookRef Is Nothing
-
-CleanExit:
-    Exit Function
-
-ErrHandler:
-    Infra_Error.HandleError "FeatCmd_Dashboard.CanExecute", Err
-    ICommand_CanExecute = False
-    Resume CleanExit
-End Function

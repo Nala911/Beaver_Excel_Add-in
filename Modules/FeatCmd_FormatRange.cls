@@ -15,16 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Bulk formatting tools for tables, custom numbering, and specialized pasting.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("FormatRange.CanExecute")
-    On Error GoTo ErrHandler
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Infra_CommandSupport.HasRangeSelectionInContext(ctx)
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "FormatRange.CanExecute", Err
-    ICommand_CanExecute = False
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy()
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasRangeSelection(context)
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -43,7 +39,6 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     ' --- Step 1: Ensure user selected a range ---
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then
-        MsgBox "Please select a range before running the macro.", vbExclamation, Infra_Config.ADDIN_NAME
         GoTo CleanExit
     End If
 
@@ -68,7 +63,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     ' --- Step 5: Handle empty selection ---
     If WorksheetFunction.CountA(selRange) = 0 Then
-        MsgBox "The selected range is empty. Nothing to format.", vbInformation, Infra_Config.ADDIN_NAME
+        Infra_Interaction.ShowInfo "The selected range is empty. Nothing to format."
         GoTo CleanExit
     End If
 

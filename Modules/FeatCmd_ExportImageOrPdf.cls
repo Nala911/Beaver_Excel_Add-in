@@ -15,19 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Exports selected range as a PNG image or high-quality PDF.
 
-Private Function ICommand_CanExecute(ByVal context As ICommandContext) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Export.CanExecute")
-    On Error GoTo ErrHandler
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-    ICommand_CanExecute = Not ctx Is Nothing
-    If ICommand_CanExecute Then
-        ICommand_CanExecute = Not ctx.WorksheetRef Is Nothing
-    End If
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "Export.CanExecute", Err
-    ICommand_CanExecute = False
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasWorksheet(context)
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -67,8 +60,6 @@ Private Sub ExecuteExport(ByVal request As Infra_ExportRequest)
     If request Is Nothing Then GoTo CleanExit
     If request.SourceRange Is Nothing Then GoTo CleanExit
     
-    Application.ScreenUpdating = False
-    
     If request.ExportAsPng Then
         Application.StatusBar = "Beaver: Exporting image - please wait..."
         ExportAsPngImpl request.SourceRange, request.ScaleFactor
@@ -105,7 +96,8 @@ Private Sub ExportAsPngImpl(ByVal selRng As Range, ByVal scaleFactor As Long)
     On Error Resume Next
     selRng.CopyPicture Appearance:=xlPrinter, Format:=xlPicture
     If Err.Number <> 0 Then
-        MsgBox "Failed to copy range as picture.", vbCritical, Infra_Config.ADDIN_NAME
+        Err.Clear
+        Infra_Interaction.ShowCritical "Failed to copy range as picture."
         On Error GoTo ErrHandler
         GoTo CleanExit
     End If
@@ -124,7 +116,8 @@ Private Sub ExportAsPngImpl(ByVal selRng As Range, ByVal scaleFactor As Long)
     chtObj.Activate
     chtObj.Chart.Paste
     If Err.Number <> 0 Then
-        MsgBox "Failed to paste picture into chart.", vbCritical, Infra_Config.ADDIN_NAME
+        Err.Clear
+        Infra_Interaction.ShowCritical "Failed to paste picture into chart."
         On Error GoTo ErrHandler
         GoTo PngCleanup
     End If
@@ -143,8 +136,8 @@ Private Sub ExportAsPngImpl(ByVal selRng As Range, ByVal scaleFactor As Long)
     Next i
 
     If Not chtObj.Chart.Export(filePath) Then
-        MsgBox "Export failed. Try a lower scale factor or check Desktop permissions.", _
-               vbCritical, Infra_Config.ADDIN_NAME & " - Export Error"
+        Infra_Interaction.ShowCritical "Export failed. Try a lower scale factor or check Desktop permissions.", _
+                                       Infra_Config.ADDIN_NAME & " - Export Error"
     End If
 
 PngCleanup:

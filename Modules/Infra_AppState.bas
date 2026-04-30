@@ -10,23 +10,23 @@ Option Explicit
 ' Returns True if the active cell on the active sheet can be modified.
 ' Checks for sheet protection and the cell's locked status.
 Public Function CanModifyActiveCell() As Boolean
-    CanModifyActiveCell = AppContainer.State.CanModifyActiveCell
+    CanModifyActiveCell = AppContainer.ContextProvider.CanModifyActiveCell
 End Function
 
 ' Returns True if the current selection is a Range.
 ' Use as a guard at the top of any macro that requires a range selection.
 Public Function IsRangeSelected() As Boolean
-    IsRangeSelected = AppContainer.State.IsRangeSelected
+    IsRangeSelected = AppContainer.ContextProvider.IsRangeSelected
 End Function
 
 ' Captures the current workbook, worksheet, selection, and active-cell state
 ' into a typed object for downstream feature logic.
 Public Function CaptureActionContext() As Infra_ActionContext
-    Set CaptureActionContext = AppContainer.State.CaptureActionContext()
+    Set CaptureActionContext = AppContainer.ContextProvider.CaptureActionContext()
 End Function
 
 Public Function CanModifyContext(ByVal ctx As Infra_ActionContext) As Boolean
-    CanModifyContext = AppContainer.State.CanModifyContext(ctx)
+    CanModifyContext = AppContainer.ContextProvider.CanModifyContext(ctx)
 End Function
 
 ' Returns the path to the current user's Desktop folder.

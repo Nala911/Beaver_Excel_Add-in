@@ -120,7 +120,7 @@ Public Sub ShowHotkeysHelp()
     If Not frm Is Nothing Then
         frm.Show
     Else
-        MsgBox "Could not load Hotkeys Help form.", vbCritical, Infra_Config.ADDIN_NAME
+        Infra_Interaction.ShowCritical "Could not load Hotkeys Help form."
     End If
 
 CleanExit:
