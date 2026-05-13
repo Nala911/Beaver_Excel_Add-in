@@ -387,7 +387,7 @@ Useful commands:
 - replaces `ThisWorkbook` from `ThisWorkbook.cls`
 - compiles the VBA project through Excel/VBE automation
 - saves the workbook
-- injects `ribbon.xml` into the `.xlsm` archive as `customUI/customUI14.xml`
+- injects `ribbon.xml` into the `.xlsm` archive as `customUI/customUI14.xml` and ensures the required relationship is registered in `_rels/.rels` (allowing the custom tab to appear in fresh or replaced workbooks)
 - runs runtime smoke tests unless `-SkipRuntimeTests` is used
 - bumps the patch/build version when `-BumpVersion` is passed
 
