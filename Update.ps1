@@ -26,8 +26,8 @@ $desktopThisWorkbookCls = Join-Path $PSScriptRoot "ThisWorkbook.cls"
 $ribbonXmlPath = Join-Path $PSScriptRoot "ribbon.xml"
 $blueprintMdPath = Join-Path $PSScriptRoot "BLUEPRINT.md"
 $featureManifestPath = Join-Path $PSScriptRoot "features.json"
-$testManifestPath = Join-Path $modulesDir "Lib_TestManifest.bas"
-$commandRegistryPath = Join-Path $modulesDir "Infra_CommandRegistry.bas"
+$testManifestPath = Join-Path $modulesDir "Libraries\Lib_TestManifest.bas"
+$commandRegistryPath = Join-Path $modulesDir "Infrastructure\Infra_CommandRegistry.bas"
 $structuredTestResultsPath = Join-Path $env:TEMP "BeaverAddin.TestResults.tsv"
 $script:StageResults = New-Object System.Collections.ArrayList
 

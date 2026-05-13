@@ -64,13 +64,19 @@ Excel Add-in\
 |- BLUEPRINT.md
 |- GEMINI.md
 \- Modules\
-   |- Feat_*.bas               legacy or thin feature entry modules
-   |- FeatCmd_*.cls            ICommand feature implementations
-   |- Infra_*.bas/.cls         infrastructure, config, diagnostics, typed requests/contexts
-   |- UI_Ribbon.bas            Ribbon callbacks
-   |- UI_Hotkeys.bas           hotkey callbacks
-   |- Lib_*.bas                libraries, UDFs, and test manifest
-   \- AppContainer.cls         DI / service locator and command resolver
+   |- Commands\
+   |  |- FeatCmd_*.cls         ICommand feature implementations
+   |  \- Feat_*.bas            legacy or thin feature entry modules
+   |- Core\
+   |  |- AppContainer.cls      DI / service locator and command resolver
+   |  \- ICommand.cls          command execution interfaces
+   |- Infrastructure\
+   |  \- Infra_*.bas/.cls      infrastructure, config, diagnostics, typed requests/contexts
+   |- Libraries\
+   |  \- Lib_*.bas             libraries, UDFs, and test manifest
+   \- UI\
+      |- UI_Ribbon.bas         Ribbon callbacks
+      \- UI_Hotkeys.bas        hotkey callbacks
 ```
 
 ## Runtime Architecture
