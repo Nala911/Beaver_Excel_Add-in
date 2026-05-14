@@ -18,3 +18,12 @@ End Property
 
 Public Property Get GetIcon(ByVal controlId As String) As String
 End Property
+
+Public Property Get ReleaseTier() As String
+End Property
+
+Public Property Get IncludeDevFeatures() As Boolean
+End Property
+
+Public Property Get GeneratedFeatureCount() As Long
+End Property

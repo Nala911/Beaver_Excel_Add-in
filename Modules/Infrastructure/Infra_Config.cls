@@ -97,6 +97,10 @@ Public Property Get COLUMN_WIDTH_THRESHOLD() As Long
     COLUMN_WIDTH_THRESHOLD = Model.ColumnWidthThreshold
 End Property
 
+Public Property Get GENERATED_FEATURE_COUNT() As Long
+    GENERATED_FEATURE_COUNT = Model.GeneratedFeatureCount
+End Property
+
 ' Returns the icon imageMso for a given control ID.
 Public Property Get GetIcon(ByVal controlId As String) As String
     If pConfigModel Is Nothing Then LoadConfig
@@ -114,17 +118,13 @@ End Property
 
 Public Property Get RELEASE_TIER() As String
     If pConfigModel Is Nothing Then LoadConfig
-    On Error Resume Next
-    RELEASE_TIER = CStr(pConfigModel.FeatureFlags("ReleaseTier"))
+    RELEASE_TIER = pConfigModel.ReleaseTier
     If RELEASE_TIER = "" Then RELEASE_TIER = "stable"
-    On Error GoTo 0
 End Property
 
 Public Property Get INCLUDE_DEV_FEATURES() As Boolean
     If pConfigModel Is Nothing Then LoadConfig
-    On Error Resume Next
-    INCLUDE_DEV_FEATURES = CBool(pConfigModel.FeatureFlags("IncludeDevFeatures"))
-    On Error GoTo 0
+    INCLUDE_DEV_FEATURES = pConfigModel.IncludeDevFeatures
 End Property
 
 ' --- Internal Logic ---
@@ -173,6 +173,10 @@ Private Sub LoadConfig()
         .HeaderColor = ParseHexColor(CStr(GetValue("UIConstants", "HeaderColor", "#AEAAAA")))
         .DefaultExportScale = GetValidatedValue("UIConstants", "DefaultExportScale", .DefaultExportScale, "Long", 1, 10)
         .MaxExportScale = GetValidatedValue("UIConstants", "MaxExportScale", .MaxExportScale, "Long", 1, 20)
+        .ReleaseTier = GetValidatedValue("FeatureFlags", "ReleaseTier", .ReleaseTier, "String")
+        If .ReleaseTier = "" Then .ReleaseTier = "stable"
+        .IncludeDevFeatures = GetValidatedValue("FeatureFlags", "IncludeDevFeatures", .IncludeDevFeatures, "Boolean")
+        .GeneratedFeatureCount = GetValidatedValue("FeatureFlags", "GeneratedFeatureCount", .GeneratedFeatureCount, "Long", 0, 100000)
         
         ' Icons
         On Error Resume Next
@@ -210,6 +214,9 @@ Private Sub ApplyDefaultConfigModel(ByVal model As Infra_ConfigModel)
     model.HeaderColor = RGB(174, 170, 170)
     model.DefaultExportScale = 3
     model.MaxExportScale = 10
+    model.ReleaseTier = "stable"
+    model.IncludeDevFeatures = False
+    model.GeneratedFeatureCount = 0
     Set model.Icons = CreateObject("Scripting.Dictionary")
     Set model.FeatureFlags = CreateObject("Scripting.Dictionary")
     Set model.Hotkeys = New Collection
@@ -310,6 +317,8 @@ Private Function GetValidatedValue(Category As String, Key As String, DefaultVal
         Case "Long", "Integer", "Double"
             If Not IsNumeric(val) Then GoTo ValidationFailed
             val = CDbl(val)
+        Case "Boolean"
+            If VarType(val) <> vbBoolean Then val = CBool(val)
         Case "String"
             If Not VarType(val) = vbString Then val = CStr(val)
     End Select
@@ -368,4 +377,16 @@ End Property
 
 Private Property Get IConfig_GetIcon(ByVal controlId As String) As String
     IConfig_GetIcon = Me.GetIcon(controlId)
+End Property
+
+Private Property Get IConfig_ReleaseTier() As String
+    IConfig_ReleaseTier = Me.RELEASE_TIER
+End Property
+
+Private Property Get IConfig_IncludeDevFeatures() As Boolean
+    IConfig_IncludeDevFeatures = Me.INCLUDE_DEV_FEATURES
+End Property
+
+Private Property Get IConfig_GeneratedFeatureCount() As Long
+    IConfig_GeneratedFeatureCount = Me.GENERATED_FEATURE_COUNT
 End Property

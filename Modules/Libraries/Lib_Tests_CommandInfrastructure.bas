@@ -11,7 +11,6 @@ Public Sub Test_CommandCatalogResolvesRibbonEntries()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandCatalogResolvesRibbonEntries")
     On Error GoTo ErrHandler
 
-    Infra_CommandCatalog.ResetCatalog
     AssertEqual Infra_CommandCatalog.ResolveCommandName("UI_Ribbon.Ribbon_OnExport"), "ExportImageOrPdf", "Ribbon export callback should resolve to ExportImageOrPdf"
     AssertEqual Infra_CommandCatalog.ResolveCommandName("UI_Ribbon.Ribbon_OnToggleFullScreen"), "ToggleFullScreen", "Ribbon focus-mode callback should resolve to ToggleFullScreen"
     AssertEqual Infra_CommandCatalog.ResolveCommandName("Infra_Hotkeys.ShowHotkeysHelp"), "ShowHotkeysHelp", "Hotkeys help callback should resolve to ShowHotkeysHelp"
@@ -28,7 +27,6 @@ Public Sub Test_CommandCatalogResolvesHotkeyEntries()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandCatalogResolvesHotkeyEntries")
     On Error GoTo ErrHandler
 
-    Infra_CommandCatalog.ResetCatalog
     AssertEqual Infra_CommandCatalog.ResolveCommandName("UI_Hotkeys.Hotkey_FormatSelectedRange"), "FormatRange", "Format hotkey should resolve to FormatRange"
     AssertEqual Infra_CommandCatalog.ResolveCommandName("UI_Hotkeys.Hotkey_Delete"), "Delete", "Delete hotkey should resolve to Delete"
 

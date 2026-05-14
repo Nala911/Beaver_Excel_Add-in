@@ -29,6 +29,9 @@ Private pDefaultExportScale As Long
 Private pMaxExportScale As Long
 Private pName As String
 Private pVersion As String
+Private pReleaseTier As String
+Private pIncludeDevFeatures As Boolean
+Private pGeneratedFeatureCount As Long
 Private pIcons As Object
 Private pFeatureFlags As Object
 Private pHotkeys As Collection
@@ -126,6 +129,29 @@ Public Property Get Version() As String
 End Property
 Public Property Let Version(ByVal v As String)
     pVersion = v ' @Internal
+End Property
+
+' --- Feature Flags (Read-Only) ---
+
+Public Property Get ReleaseTier() As String
+    ReleaseTier = pReleaseTier
+End Property
+Public Property Let ReleaseTier(ByVal v As String)
+    pReleaseTier = v ' @Internal
+End Property
+
+Public Property Get IncludeDevFeatures() As Boolean
+    IncludeDevFeatures = pIncludeDevFeatures
+End Property
+Public Property Let IncludeDevFeatures(ByVal v As Boolean)
+    pIncludeDevFeatures = v ' @Internal
+End Property
+
+Public Property Get GeneratedFeatureCount() As Long
+    GeneratedFeatureCount = pGeneratedFeatureCount
+End Property
+Public Property Let GeneratedFeatureCount(ByVal v As Long)
+    pGeneratedFeatureCount = v ' @Internal
 End Property
 
 ' --- Icons ---

@@ -4,7 +4,7 @@ This file is the canonical project blueprint for AI agents working in this repo.
 Read this first for stable project knowledge, architecture, invariants, and file
 ownership. For the actual work process and response style, see `GEMINI.md`.
 
-Last updated: 2026-04-30
+Last updated: 2026-05-14
 Current config version: 2.0.68
 
 ## Purpose
@@ -34,7 +34,8 @@ Treat the exported text files in this repo as authoritative:
   command names, icons, release tiers, runtime-test modes, and hotkeys.
 - `config.json` is the authoritative configuration for add-in identity and UI
   constants. `Update.ps1` synchronizes its `Hotkeys`, `Icons`, and
-  `FeatureFlags` sections from `features.json`.
+  `FeatureFlags` sections, including `GeneratedFeatureCount`, from
+  `features.json`.
 - `ribbon.xml` is generated from `features.json` by `Update.ps1`.
 - `Beaver Add-in.xlsm` is the compiled workbook artifact synchronized by
   `Update.ps1`.
@@ -117,8 +118,10 @@ wiring.
 ### Command Pipeline
 
 - `features.json` and hotkey metadata define `CommandName` values.
-- `Infra_CommandCatalog` reads `features.json` and maps entry macros to command
-  names.
+- `Infra_CommandRegistry` is generated from `features.json` and maps entry
+  macros to command names.
+- `Infra_CommandCatalog` is a thin compatibility facade over
+  `Infra_CommandRegistry.ResolveCommandName`.
 - `AppContainer.ExecuteEntryPoint` resolves the command name from the callback
   macro and creates the command object.
 - `CommandInvoker.ExecuteCommand` runs `CanExecute`, applies
@@ -258,7 +261,7 @@ inside feature modules.
     "ReleaseTier": "stable",
     "IncludeDevFeatures": false,
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 11
+    "GeneratedFeatureCount": 10
   },
   "Icons": {
     "BtnCleanData": "Clear"
@@ -281,6 +284,10 @@ If a new shared setting is needed:
 2. Update `Infra_ConfigModel`.
 3. Expose it via `Infra_Config`.
 4. Use the typed accessor instead of scattering literals.
+
+For stable feature flags, prefer first-class typed properties on
+`Infra_ConfigModel` and `Infra_Config`. Keep `FeatureFlags` as the fallback
+bucket for dynamic or low-frequency metadata.
 
 ## VBA Rules
 
@@ -344,8 +351,8 @@ Rules:
 
 - Prefer editing `features.json` over hand-editing `ribbon.xml`.
 - Keep `features.json`, `config.json`, `ribbon.xml`, `UI_Ribbon.bas`,
-  `UI_Hotkeys.bas`, `Infra_CommandCatalog`, and `AppContainer.ResolveCommand`
-  aligned.
+  `UI_Hotkeys.bas`, `Infra_CommandRegistry`, `Infra_CommandCatalog`, and
+  `AppContainer.ResolveCommand` aligned.
 - A new Ribbon feature usually needs:
   - a `Features` entry in `features.json`
   - a matching `Ribbon_On*` callback in `UI_Ribbon.bas`
@@ -422,8 +429,9 @@ When making future changes, prefer these directions:
 - If touching Ribbon behavior, verify callback names and manifest entries
   match.
 - If adding a command, update both `AppContainer.ResolveCommand` and the
-  manifest-driven entry mapping path.
+  manifest-driven entry mapping path in `Infra_CommandRegistry`.
 - If adding a config value, update both `Infra_ConfigModel` and `Infra_Config`.
+- If it is a stable flag, also update `IConfig`.
 - If mutating a range, consider `Infra_Undo.SaveState`.
 - If the task is slow, add `Infra_Progress`.
 - Run `.\Update.ps1` after meaningful changes.
@@ -436,8 +444,9 @@ When making future changes, prefer these directions:
 - `config.json` version values may be updated by `Update.ps1`; do not hand-
   manage patch increments.
 - Ribbon XML changes require workbook reload or Excel restart to be reflected.
-- `Infra_CommandCatalog` reads `features.json` at runtime and also has fallback
-  mappings; keeping both manifest and command resolver aligned avoids drift.
+- `Infra_CommandRegistry` is generated from `features.json`; `Infra_CommandCatalog`
+  remains as a compatibility facade. Keeping the generated registry and the
+  manifest aligned avoids drift.
 - `Infra_AppStateGuard` should be declared inline as
   `Dim guard As New Infra_AppStateGuard` so cleanup runs on scope exit.
 - `Infra_Error.Track` should be assigned to an object variable so RAII cleanup

@@ -90,7 +90,10 @@ checks and you have a clear reason to do so.
 - Add the key to `config.json`.
 - Update `Infra_ConfigModel`.
 - Update `Infra_Config`.
+- If the setting is stable and should be injectable, update `IConfig` too.
 - Use the typed accessor everywhere else.
+- If the value is a stable flag, add a typed property instead of leaving it as
+  a raw `FeatureFlags` lookup.
 
 ## Output Expectations
 

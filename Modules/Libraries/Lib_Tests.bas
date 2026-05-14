@@ -46,6 +46,8 @@ Public Sub Test_Infrastructure_Basics()
     AssertNotEqual Infra_Config.ADDIN_NAME, "", "Addin Name should not be empty"
     AssertNotEqual Infra_Config.ADDIN_VERSION, "", "Addin Version should not be empty"
     AssertNotEqual Infra_Config.RELEASE_TIER, "", "Release tier should not be empty"
+    AssertEqual TypeName(Infra_Config.INCLUDE_DEV_FEATURES), "Boolean", "Include-dev flag should be typed as Boolean"
+    AssertTrue Infra_Config.GENERATED_FEATURE_COUNT > 0, "Generated feature count should be available"
 
 CleanExit:
     Exit Sub

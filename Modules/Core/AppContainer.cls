@@ -29,7 +29,6 @@ Public Sub Initialize(ByVal cfg As IConfig, ByVal errTrk As Infra_Error, ByVal c
     Set pErrorTracker = errTrk
     Set pContextProvider = contextProvider
     pIsInitialized = True
-    Infra_CommandCatalog.ResetCatalog
 End Sub
 
 Public Sub EnsureInitialized()
@@ -50,11 +49,6 @@ End Property
 Public Property Get ContextProvider() As ExcelContextProvider
     EnsureInitialized
     Set ContextProvider = pContextProvider
-End Property
-
-Public Property Get State() As ExcelContextProvider
-    EnsureInitialized
-    Set State = pContextProvider
 End Property
 
 Public Function ResolveCommand(ByVal commandName As String) As ICommand
@@ -94,7 +88,7 @@ Public Sub ExecuteEntryPoint(ByVal entryMacro As String, Optional ByVal sourceNa
 
     EnsureInitialized
 
-    commandName = Infra_CommandCatalog.ResolveCommandName(entryMacro)
+    commandName = Infra_CommandRegistry.ResolveCommandName(entryMacro)
     If commandName = vbNullString Then
         Err.Raise 5, "AppContainer.ExecuteEntryPoint", "Unknown entry point: " & entryMacro
     End If
