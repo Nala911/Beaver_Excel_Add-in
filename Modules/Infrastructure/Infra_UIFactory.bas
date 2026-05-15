@@ -5,9 +5,9 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Centralized factory for creating and displaying standardized user prompts.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Error, Infra_Config, Infra_CleanDataRequest, Infra_ExportRequest, Infra_StaticRequest, Infra_ActionContext
+' @Dependencies: Infra_Error, Infra_Config, Infra_CleanDataRequest, Infra_ExportRequest, Infra_StaticRequest, Infra_BreakLinksRequest, Infra_ActionContext
 
-' Shows the Clean Data options via InputBox and returns a populated Request object.
+' Shows the Clean Data options via UserForm picker and returns a populated Request object.
 Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_CleanDataRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowCleanDataDialog")
     On Error GoTo ErrHandler
@@ -16,41 +16,67 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
     Dim userChoice As String
     Dim normalizedChoice As String
     Dim request As Infra_CleanDataRequest
+    Dim options As Variant
+    Dim defaultChoice As String
+    Dim hasSelection As Boolean
+
+    hasSelection = HasUsableSelection(ctx)
+    If hasSelection Then
+        options = BuildChoiceArray("Range", "Sheet", "Workbook")
+        defaultChoice = "Range"
+    Else
+        options = BuildChoiceArray("Sheet", "Workbook")
+        defaultChoice = "Sheet"
+    End If
 
     Do
-        promptMsg = "Clean text values using Excel TRIM and CLEAN." & vbCrLf & vbCrLf & _
-                    BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
-                    "Choose a scope:" & vbCrLf & _
-                    "Range     - Clean only the current selection" & vbCrLf & _
-                    "Sheet     - Clean the active worksheet" & vbCrLf & _
-                    "Workbook  - Clean every worksheet" & vbCrLf & vbCrLf & _
-                    "Type Range, Sheet, or Workbook."
+        promptMsg = "Clean text with TRIM and CLEAN." & vbCrLf & vbCrLf & _
+                    BuildCompactContextSummary(ctx, hasSelection) & vbCrLf & vbCrLf & _
+                    "Scope:" & vbCrLf & _
+                    "Sheet - Active sheet" & vbCrLf & _
+                    "Workbook - All sheets"
+        If hasSelection Then
+            promptMsg = promptMsg & vbCrLf & "Range - Current selection"
+        Else
+            promptMsg = promptMsg & vbCrLf & vbCrLf & "No selection is required for Sheet or Workbook scope."
+        End If
 
-        If Not ShowInputBox(promptMsg, BuildDialogTitle("Clean Data"), "Range", userChoice) Then GoTo CleanExit
+        If Not ShowOptionPicker(promptMsg, BuildDialogTitle("Clean Data"), defaultChoice, options, userChoice) Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(userChoice)
         Select Case normalizedChoice
             Case "", "R", "RANGE", "SELECTED", "SELECTION"
+                If Not hasSelection Then
+                    Infra_Interaction.ShowWarning "Select a range first if you want to clean only the current selection.", BuildDialogTitle("Clean Data")
+                    GoTo ContinueLoop
+                End If
                 Set request = New Infra_CleanDataRequest
                 Set request.Context = ctx
-                request.Scope = 1
+                request.Scope = CleanDataScopeSelection
                 Set ShowCleanDataDialog = request
                 Exit Do
             Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
                 Set request = New Infra_CleanDataRequest
                 Set request.Context = ctx
-                request.Scope = 2
+                request.Scope = CleanDataScopeActiveSheet
                 Set ShowCleanDataDialog = request
                 Exit Do
             Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
+                If Not Infra_Interaction.Confirm( _
+                    "Workbook-wide Clean Data updates every sheet and cannot be restored as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
+                    "Continue with workbook-wide cleaning?", _
+                    BuildDialogTitle("Confirm Workbook Scope"), vbDefaultButton2) Then
+                    GoTo CleanExit
+                End If
                 Set request = New Infra_CleanDataRequest
                 Set request.Context = ctx
-                request.Scope = 3
+                request.Scope = CleanDataScopeWorkbook
                 Set ShowCleanDataDialog = request
                 Exit Do
             Case Else
-                Infra_Interaction.ShowWarning "Please type Range, Sheet, or Workbook.", BuildDialogTitle("Clean Data")
+                Infra_Interaction.ShowWarning "Please choose Range, Sheet, or Workbook.", BuildDialogTitle("Clean Data")
         End Select
+ContinueLoop:
     Loop
 
 CleanExit:
@@ -60,7 +86,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-' Shows the Export options via MsgBox/InputBox and returns a populated Request object.
+' Shows the Export options via UserForm picker and returns a populated Request object.
 Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_ExportRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowExportDialog")
     On Error GoTo ErrHandler
@@ -80,14 +106,14 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_Expo
     End If
 
     Do
-        If Not ShowInputBox( _
-            "Export the selected content to your Desktop." & vbCrLf & vbCrLf & _
+        If Not ShowOptionPicker( _
+            "Export the selected content and choose where to save it." & vbCrLf & vbCrLf & _
             BuildExportSummary(request.SourceRange) & vbCrLf & vbCrLf & _
             "Choose a format:" & vbCrLf & _
             "PNG - High-resolution image" & vbCrLf & _
             "PDF - Print-ready document" & vbCrLf & vbCrLf & _
-            "Type PNG or PDF.", _
-            BuildDialogTitle("Export"), "PNG", exportChoice) Then GoTo CleanExit
+            "Choose PNG or PDF.", _
+            BuildDialogTitle("Export"), "PNG", Array("PNG", "PDF"), exportChoice) Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(exportChoice)
         Select Case normalizedChoice
@@ -98,7 +124,7 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_Expo
                 request.ExportAsPng = False
                 Exit Do
             Case Else
-                Infra_Interaction.ShowWarning "Please type PNG or PDF.", BuildDialogTitle("Export")
+                Infra_Interaction.ShowWarning "Please choose PNG or PDF.", BuildDialogTitle("Export")
         End Select
     Loop
 
@@ -106,6 +132,14 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_Expo
         request.ScaleFactor = PromptForExportScale(request.ScaleFactor)
         If request.ScaleFactor = 0 Then GoTo CleanExit
     End If
+
+    request.OutputPath = PromptForOutputPath( _
+        ctx, _
+        "Export", _
+        BuildSuggestedExportBaseName(request.SourceRange, request.ExportAsPng), _
+        IIf(request.ExportAsPng, "png", "pdf"), _
+        IIf(request.ExportAsPng, "PNG Files (*.png), *.png", "PDF Files (*.pdf), *.pdf"))
+    If request.OutputPath = vbNullString Then GoTo CleanExit
     
     Set ShowExportDialog = request
 
@@ -116,7 +150,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-' Shows the conversion scope dialog for formula-to-value actions.
+' Shows the conversion scope dialog for formula-to-value actions using a UserForm picker.
 Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As Infra_StaticRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowStaticConversionDialog")
     On Error GoTo ErrHandler
@@ -126,15 +160,13 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
     Dim normalizedChoice As String
 
     Do
-        If Not ShowInputBox( _
-            "Convert formulas into their current values." & vbCrLf & vbCrLf & _
-            BuildContextSummary(ctx, False) & vbCrLf & vbCrLf & _
-            "This is intended for permanent conversion." & vbCrLf & _
-            "Choose a scope:" & vbCrLf & _
-            "Sheet     - Convert formulas on the active sheet" & vbCrLf & _
-            "Workbook  - Convert formulas on every worksheet" & vbCrLf & vbCrLf & _
-            "Type Sheet or Workbook.", _
-            BuildDialogTitle("Make Static"), "Sheet", scopeChoice) Then GoTo CleanExit
+        If Not ShowOptionPicker( _
+            "Convert formulas to values." & vbCrLf & vbCrLf & _
+            BuildCompactContextSummary(ctx, False) & vbCrLf & vbCrLf & _
+            "Scope:" & vbCrLf & _
+            "Sheet - Active sheet" & vbCrLf & _
+            "Workbook - All sheets", _
+            BuildDialogTitle("Make Static"), "Sheet", Array("Sheet", "Workbook"), scopeChoice) Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(scopeChoice)
         If normalizedChoice = "" Then normalizedChoice = "SHEET"
@@ -143,7 +175,7 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
             Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
                 Set request = New Infra_StaticRequest
                 Set request.Context = ctx
-                request.Scope = 1
+                request.Scope = StaticConversionScopeActiveSheet
                 Set ShowStaticConversionDialog = request
                 Exit Do
             Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
@@ -156,11 +188,11 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
                 End If
                 Set request = New Infra_StaticRequest
                 Set request.Context = ctx
-                request.Scope = 2
+                request.Scope = StaticConversionScopeWorkbook
                 Set ShowStaticConversionDialog = request
                 Exit Do
             Case Else
-                Infra_Interaction.ShowWarning "Please type Sheet or Workbook.", BuildDialogTitle("Make Static")
+                Infra_Interaction.ShowWarning "Please choose Sheet or Workbook.", BuildDialogTitle("Make Static")
         End Select
     Loop
 
@@ -171,30 +203,50 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function ShowBreakLinksScopeDialog(ByVal ctx As Infra_ActionContext, ByVal linkInfo As String) As Long
-    Dim tracker As Object: Set tracker = Infra_Error.Track("ShowBreakLinksScopeDialog")
+Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal linkInfo As String) As Infra_BreakLinksRequest
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ShowBreakLinksDialog")
     On Error GoTo ErrHandler
 
     Dim userChoice As String
     Dim normalizedChoice As String
+    Dim options As Variant
+    Dim defaultChoice As String
+    Dim allowSheetScope As Boolean
+    Dim request As Infra_BreakLinksRequest
+
+    allowSheetScope = ActiveSheetHasBreakableItems(ctx)
+    If allowSheetScope Then
+        options = BuildChoiceArray("Sheet", "Workbook")
+        defaultChoice = "Sheet"
+    Else
+        options = BuildChoiceArray("Workbook")
+        defaultChoice = "Workbook"
+    End If
 
     Do
-        If Not ShowInputBox( _
+        If Not ShowOptionPicker( _
             "External links were found and can be permanently converted to values." & vbCrLf & vbCrLf & _
             BuildContextSummary(ctx, False) & vbCrLf & vbCrLf & _
             "Detected items:" & vbCrLf & linkInfo & vbCrLf & vbCrLf & _
             "Choose a scope:" & vbCrLf & _
-            "Sheet     - Process only the active sheet" & vbCrLf & _
-            "Workbook  - Process the whole workbook" & vbCrLf & vbCrLf & _
-            "Type Sheet or Workbook.", _
-            BuildDialogTitle("Break External Links"), "Sheet", userChoice) Then GoTo CleanExit
+            "Sheet     - Converts linked formulas, pivot tables, and external tables only on the active sheet" & vbCrLf & _
+            "Workbook  - Also removes workbook-level links, connections, and external names" & vbCrLf & vbCrLf & _
+            IIf(allowSheetScope, "Choose Sheet or Workbook.", "Only Workbook scope can remove the detected workbook-level items from this context."), _
+            BuildDialogTitle("Break External Links"), defaultChoice, options, userChoice) Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(userChoice)
-        If normalizedChoice = "" Then normalizedChoice = "SHEET"
+        If normalizedChoice = "" Then normalizedChoice = UCase$(defaultChoice)
 
         Select Case normalizedChoice
             Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-                ShowBreakLinksScopeDialog = 1
+                If Not allowSheetScope Then
+                    Infra_Interaction.ShowWarning "The active sheet has no breakable linked formulas, pivots, or tables. Use Workbook scope to remove the remaining workbook-level items.", BuildDialogTitle("Break External Links")
+                    GoTo ContinueBreakLinksLoop
+                End If
+                Set request = New Infra_BreakLinksRequest
+                Set request.Context = ctx
+                request.Scope = BreakLinksScopeActiveSheet
+                Set ShowBreakLinksDialog = request
                 Exit Do
             Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
                 If Not Infra_Interaction.Confirm( _
@@ -203,86 +255,82 @@ Public Function ShowBreakLinksScopeDialog(ByVal ctx As Infra_ActionContext, ByVa
                     BuildDialogTitle("Confirm Workbook Scope"), vbDefaultButton2) Then
                     GoTo CleanExit
                 End If
-                ShowBreakLinksScopeDialog = 2
+                Set request = New Infra_BreakLinksRequest
+                Set request.Context = ctx
+                request.Scope = BreakLinksScopeWorkbook
+                Set ShowBreakLinksDialog = request
                 Exit Do
             Case Else
-                Infra_Interaction.ShowWarning "Please type Sheet or Workbook.", BuildDialogTitle("Break External Links")
+                Infra_Interaction.ShowWarning "Please choose Sheet or Workbook.", BuildDialogTitle("Break External Links")
+        End Select
+ContinueBreakLinksLoop:
+    Loop
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "ShowBreakLinksDialog", Err
+    Resume CleanExit
+End Function
+
+Public Function PromptForDuplicateOutputPath(ByVal ctx As Infra_ActionContext, ByVal suggestedBaseName As String) As String
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForDuplicateOutputPath")
+    On Error GoTo ErrHandler
+
+    PromptForDuplicateOutputPath = PromptForOutputPath( _
+        ctx, _
+        "Create Duplicate", _
+        suggestedBaseName, _
+        "xlsx", _
+        "Excel Workbook (*.xlsx), *.xlsx")
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "PromptForDuplicateOutputPath", Err
+    PromptForDuplicateOutputPath = vbNullString
+    Resume CleanExit
+End Function
+
+Public Function PromptForSheetInsertPosition(ByVal ctx As Infra_ActionContext, ByVal sheetName As String) As SheetInsertPosition
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForSheetInsertPosition")
+    On Error GoTo ErrHandler
+
+    Dim userChoice As String
+    Dim normalizedChoice As String
+    Dim defaultChoice As String
+
+    defaultChoice = IIf(LooksLikeFrontLoadedSheet(sheetName), "Before Current", "After Current")
+
+    Do
+        If Not ShowOptionPicker( _
+            "Create a new worksheet in " & SafeWorkbookName(ctx) & "." & vbCrLf & vbCrLf & _
+            "Sheet name: " & sheetName & vbCrLf & vbCrLf & _
+            "Where should the new sheet be inserted?" & vbCrLf & _
+            "Before Current - Place it before the active sheet" & vbCrLf & _
+            "After Current  - Place it after the active sheet", _
+            BuildDialogTitle("Create Sheet"), defaultChoice, BuildChoiceArray("Before Current", "After Current"), userChoice) Then GoTo CleanExit
+
+        normalizedChoice = NormalizeChoiceText(userChoice)
+        If normalizedChoice = "" Then normalizedChoice = UCase$(defaultChoice)
+
+        Select Case normalizedChoice
+            Case "BEFORE CURRENT", "BEFORECURRENT", "BEFORE", "FRONT"
+                PromptForSheetInsertPosition = SheetInsertPositionBeforeCurrent
+                Exit Do
+            Case "AFTER CURRENT", "AFTERCURRENT", "AFTER", "BACK"
+                PromptForSheetInsertPosition = SheetInsertPositionAfterCurrent
+                Exit Do
+            Case Else
+                Infra_Interaction.ShowWarning "Please choose Before Current or After Current.", BuildDialogTitle("Create Sheet")
         End Select
     Loop
 
 CleanExit:
     Exit Function
+
 ErrHandler:
-    Infra_Error.HandleError "ShowBreakLinksScopeDialog", Err
-    Resume CleanExit
-End Function
-
-Public Function PromptForDateConversionMonth(ByVal ctx As Infra_ActionContext) As Long
-    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForDateConversionMonth")
-    On Error GoTo ErrHandler
-
-    Dim userInput As String
-    Dim monthValue As Long
-
-    Do
-        If Not ShowInputBox( _
-            "Convert text dates in the selected column into real Excel dates." & vbCrLf & vbCrLf & _
-            BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
-            "Enter the month to use when dates are ambiguous." & vbCrLf & _
-            "Examples: 9, 09, Sep, September", _
-            BuildDialogTitle("Date Conversion"), MonthName(Month(Date), True), userInput) Then GoTo CleanExit
-
-        monthValue = Lib_DateUtils.ParseMonthValue(userInput)
-        If monthValue >= 1 And monthValue <= 12 Then
-            PromptForDateConversionMonth = monthValue
-            Exit Do
-        End If
-
-        Infra_Interaction.ShowWarning "Please enter a valid month name or number from 1 to 12.", BuildDialogTitle("Date Conversion")
-    Loop
-
-CleanExit:
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "PromptForDateConversionMonth", Err
-    Resume CleanExit
-End Function
-
-Public Function PromptForDuplicateName(ByVal ctx As Infra_ActionContext, ByVal suggestedBaseName As String) As Variant
-    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForDuplicateName")
-    On Error GoTo ErrHandler
-
-    Dim userInput As String
-    Dim fileName As String
-
-    Do
-        If Not ShowInputBox( _
-            "Create a macro-free copy of the current workbook on your Desktop." & vbCrLf & vbCrLf & _
-            BuildContextSummary(ctx, False) & vbCrLf & vbCrLf & _
-            "Enter the new file name." & vbCrLf & _
-            "The .xlsx extension will be added automatically.", _
-            BuildDialogTitle("Create Duplicate"), suggestedBaseName, userInput) Then
-            PromptForDuplicateName = False
-            GoTo CleanExit
-        End If
-
-        fileName = Trim$(CStr(userInput))
-        If fileName = vbNullString Then fileName = suggestedBaseName
-
-        If IsValidWindowsFileName(fileName) Then
-            PromptForDuplicateName = fileName
-            Exit Do
-        End If
-
-        Infra_Interaction.ShowWarning "The file name contains characters Windows cannot save. Avoid: \ / : * ? "" < > |", _
-                                       BuildDialogTitle("Create Duplicate")
-    Loop
-
-CleanExit:
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "PromptForDuplicateName", Err
-    PromptForDuplicateName = False
+    Infra_Error.HandleError "PromptForSheetInsertPosition", Err
     Resume CleanExit
 End Function
 
@@ -322,11 +370,64 @@ Private Function ResolveExportRange(ByVal ctx As Infra_ActionContext) As Range
     
     If Not ctx.HasRangeSelection Or ctx.SelectionRange Is Nothing Then
         Set ResolveExportRange = ctx.WorksheetRef.UsedRange
-    ElseIf ctx.SelectionRange.Cells.Count = 1 Or ctx.SelectionRange.Width = 0 Or ctx.SelectionRange.Height = 0 Then
-        Set ResolveExportRange = ctx.WorksheetRef.UsedRange
+    ElseIf ctx.SelectionRange.Cells.CountLarge = 1 Then
+        Set ResolveExportRange = ResolveSingleCellExportRange(ctx)
     Else
         Set ResolveExportRange = ctx.SelectionRange
     End If
+End Function
+
+Private Function ResolveSingleCellExportRange(ByVal ctx As Infra_ActionContext) As Range
+    Dim sourceCell As Range
+    Dim userChoice As String
+    Dim normalizedChoice As String
+
+    If ctx Is Nothing Then Exit Function
+    If ctx.SelectionRange Is Nothing Then Exit Function
+    Set sourceCell = ctx.SelectionRange.Cells(1, 1)
+
+    Do
+        If Not ShowOptionPicker( _
+            "You selected a single cell." & vbCrLf & vbCrLf & _
+            BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
+            "Choose what to export:" & vbCrLf & _
+            "Cell          - Export only the selected cell" & vbCrLf & _
+            "CurrentRegion - Export the surrounding data block" & vbCrLf & _
+            "UsedRange     - Export the used range of the active sheet", _
+            BuildDialogTitle("Export Range"), "CurrentRegion", BuildChoiceArray("Cell", "CurrentRegion", "UsedRange"), userChoice) Then GoTo CleanExit
+
+        normalizedChoice = NormalizeChoiceText(userChoice)
+        If normalizedChoice = "" Then normalizedChoice = "CURRENTREGION"
+
+        Select Case normalizedChoice
+            Case "CELL", "SELECTED CELL", "SELECTEDCELL"
+                Set ResolveSingleCellExportRange = sourceCell
+                Exit Do
+            Case "CURRENTREGION", "CURRENT REGION", "REGION"
+                Set ResolveSingleCellExportRange = ResolveCurrentRegionOrCell(sourceCell)
+                Exit Do
+            Case "USEDRANGE", "USED RANGE", "SHEET"
+                Set ResolveSingleCellExportRange = ctx.WorksheetRef.UsedRange
+                Exit Do
+            Case Else
+                Infra_Interaction.ShowWarning "Please choose Cell, CurrentRegion, or UsedRange.", BuildDialogTitle("Export Range")
+        End Select
+    Loop
+
+CleanExit:
+    Exit Function
+End Function
+
+Private Function ResolveCurrentRegionOrCell(ByVal sourceCell As Range) As Range
+    On Error Resume Next
+    If sourceCell Is Nothing Then Exit Function
+    Set ResolveCurrentRegionOrCell = sourceCell.CurrentRegion
+    If ResolveCurrentRegionOrCell Is Nothing Then
+        Set ResolveCurrentRegionOrCell = sourceCell
+    ElseIf ResolveCurrentRegionOrCell.Cells.CountLarge = 1 And IsEmpty(ResolveCurrentRegionOrCell.Value) Then
+        Set ResolveCurrentRegionOrCell = sourceCell
+    End If
+    On Error GoTo 0
 End Function
 
 Private Function NormalizeExportScale(ByVal scaleInput As String) As Long
@@ -397,6 +498,19 @@ Private Function BuildContextSummary(ByVal ctx As Infra_ActionContext, Optional 
     BuildContextSummary = summary
 End Function
 
+Private Function BuildCompactContextSummary(ByVal ctx As Infra_ActionContext, Optional ByVal includeSelection As Boolean = True) As String
+    Dim summary As String
+
+    summary = "Book: " & SafeWorkbookName(ctx) & vbCrLf & _
+              "Sheet: " & SafeWorksheetName(ctx)
+
+    If includeSelection Then
+        summary = summary & vbCrLf & "Selection: " & SafeSelectionAddress(ctx)
+    End If
+
+    BuildCompactContextSummary = summary
+End Function
+
 Private Function BuildExportSummary(ByVal sourceRange As Range) As String
     Dim summary As String
 
@@ -410,12 +524,84 @@ Private Function BuildExportSummary(ByVal sourceRange As Range) As String
     BuildExportSummary = summary
 End Function
 
+Private Function BuildSuggestedExportBaseName(ByVal sourceRange As Range, ByVal exportAsPng As Boolean) As String
+    Dim fileStem As String
+
+    If sourceRange Is Nothing Then
+        fileStem = "BeaverExport"
+    Else
+        fileStem = IIf(exportAsPng, "RangeImage", "RangePDF") & "_" & _
+                   SanitizeFileNameStem(sourceRange.Worksheet.Name) & "_" & _
+                   BuildRangeFileLabel(sourceRange)
+    End If
+
+    BuildSuggestedExportBaseName = fileStem & "_" & Format(Now, "yyyymmdd_hhnnss")
+End Function
+
+Private Function BuildRangeFileLabel(ByVal sourceRange As Range) As String
+    If sourceRange Is Nothing Then
+        BuildRangeFileLabel = "Selection"
+    Else
+        BuildRangeFileLabel = Replace(sourceRange.Address(False, False), ":", "-")
+        BuildRangeFileLabel = Replace(BuildRangeFileLabel, "$", "")
+    End If
+End Function
+
+Private Function PromptForOutputPath(ByVal ctx As Infra_ActionContext, ByVal taskName As String, ByVal suggestedBaseName As String, ByVal extensionWithoutDot As String, ByVal fileFilter As String) As String
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForOutputPath")
+    On Error GoTo ErrHandler
+
+    Dim desktopPath As String
+    Dim initialPath As String
+    Dim selectedPath As String
+    Dim normalizedBaseName As String
+
+    desktopPath = Infra_AppState.GetDesktopPath()
+    If desktopPath = vbNullString Then
+        Infra_Interaction.ShowCritical "Could not locate a default save location."
+        GoTo CleanExit
+    End If
+
+    normalizedBaseName = SanitizeFileNameStem(suggestedBaseName)
+    If normalizedBaseName = vbNullString Then normalizedBaseName = "BeaverOutput"
+
+    initialPath = CombinePath(desktopPath, normalizedBaseName & "." & LCase$(extensionWithoutDot))
+    If Not Infra_Interaction.PromptSaveAsPath(BuildDialogTitle(taskName), initialPath, fileFilter, selectedPath) Then GoTo CleanExit
+
+    selectedPath = EnsureExtension(selectedPath, extensionWithoutDot)
+    If FileExists(selectedPath) Then
+        If Not Infra_Interaction.Confirm( _
+            "A file with this name already exists:" & vbCrLf & selectedPath & vbCrLf & vbCrLf & _
+            "Do you want to replace it?", _
+            BuildDialogTitle(taskName), vbDefaultButton2) Then
+            GoTo CleanExit
+        End If
+    End If
+
+    PromptForOutputPath = selectedPath
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "PromptForOutputPath", Err
+    Resume CleanExit
+End Function
+
 Private Function NormalizeChoiceText(ByVal rawValue As Variant) As String
     NormalizeChoiceText = UCase$(Trim$(CStr(rawValue)))
 End Function
 
+Private Function BuildChoiceArray(ParamArray values() As Variant) As Variant
+    BuildChoiceArray = values
+End Function
+
 Private Function ShowInputBox(ByVal promptMsg As String, ByVal title As String, ByVal defaultText As String, ByRef outResult As String) As Boolean
     ShowInputBox = Infra_Interaction.PromptText(promptMsg, title, defaultText, outResult)
+End Function
+
+Private Function ShowOptionPicker(ByVal promptMsg As String, ByVal title As String, ByVal defaultChoice As String, ByVal options As Variant, ByRef outResult As String) As Boolean
+    ShowOptionPicker = Infra_Interaction.PromptOption(promptMsg, title, defaultChoice, options, outResult)
 End Function
 
 Public Function PromptForWrapMode(ByVal ctx As Infra_ActionContext) As Long
@@ -426,27 +612,27 @@ Public Function PromptForWrapMode(ByVal ctx As Infra_ActionContext) As Long
     Dim normalizedChoice As String
 
     Do
-        If Not ShowInputBox( _
+        If Not ShowOptionPicker( _
             "Choose how you want to wrap the current selection." & vbCrLf & vbCrLf & _
             BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
-            "Type one of these options:" & vbCrLf & _
+            "Choose one of these options:" & vbCrLf & _
             "Cell  - Reuse a wrapper formula from another cell" & vbCrLf & _
             "Type  - Enter a formula pattern manually using [value]" & vbCrLf & vbCrLf & _
-            "Type Cell or Type.", _
-            BuildDialogTitle("Wrap"), "Type", userInput) Then GoTo CleanExit
+            "Choose Cell or Type.", _
+            BuildDialogTitle("Wrap"), "Type", Array("Cell", "Type"), userInput) Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(userInput)
         If normalizedChoice = "" Then normalizedChoice = "TYPE"
 
         Select Case normalizedChoice
             Case "C", "CELL", "WRAPPER CELL", "WRAPPERCELL"
-                PromptForWrapMode = 1
+                PromptForWrapMode = WrapModeCell
                 Exit Do
             Case "T", "TYPE", "TYPED", "PATTERN", "MANUAL"
-                PromptForWrapMode = 2
+                PromptForWrapMode = WrapModeTyped
                 Exit Do
             Case Else
-                Infra_Interaction.ShowWarning "Please type Cell or Type.", BuildDialogTitle("Wrap")
+                Infra_Interaction.ShowWarning "Please choose Cell or Type.", BuildDialogTitle("Wrap")
         End Select
     Loop
 
@@ -523,6 +709,62 @@ Private Function IsValidWindowsFileName(ByVal fileName As String) As Boolean
     IsValidWindowsFileName = True
 End Function
 
+Private Function SanitizeFileNameStem(ByVal fileName As String) As String
+    Dim invalidChars As Variant
+    Dim item As Variant
+
+    fileName = Trim$(fileName)
+    invalidChars = Array("\", "/", ":", "*", "?", """", "<", ">", "|")
+
+    For Each item In invalidChars
+        fileName = Replace(fileName, CStr(item), "_")
+    Next item
+
+    Do While InStr(fileName, "__") > 0
+        fileName = Replace(fileName, "__", "_")
+    Loop
+
+    fileName = Trim$(fileName)
+    If Right$(fileName, 1) = "." Then fileName = Left$(fileName, Len(fileName) - 1)
+    SanitizeFileNameStem = fileName
+End Function
+
+Private Function EnsureExtension(ByVal selectedPath As String, ByVal extensionWithoutDot As String) As String
+    Dim expectedExtension As String
+
+    expectedExtension = "." & LCase$(extensionWithoutDot)
+    If LCase$(Right$(selectedPath, Len(expectedExtension))) <> expectedExtension Then
+        EnsureExtension = selectedPath & expectedExtension
+    Else
+        EnsureExtension = selectedPath
+    End If
+End Function
+
+Private Function CombinePath(ByVal folderPath As String, ByVal fileName As String) As String
+    If Right$(folderPath, 1) = "\" Then
+        CombinePath = folderPath & fileName
+    Else
+        CombinePath = folderPath & "\" & fileName
+    End If
+End Function
+
+Private Function FileExists(ByVal filePath As String) As Boolean
+    Dim fso As Object
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    FileExists = fso.FileExists(filePath)
+    Set fso = Nothing
+    On Error GoTo 0
+End Function
+
+Private Function LooksLikeFrontLoadedSheet(ByVal sheetName As String) As Boolean
+    Dim nameLower As String
+
+    nameLower = LCase$(Trim$(sheetName))
+    LooksLikeFrontLoadedSheet = (Left$(nameLower, 7) = "summary" Or Left$(nameLower, 5) = "recon")
+End Function
+
 Private Function SafeWorkbookName(ByVal ctx As Infra_ActionContext) As String
     If ctx Is Nothing Then Exit Function
     If ctx.WorkbookRef Is Nothing Then Exit Function
@@ -542,4 +784,51 @@ Private Function SafeSelectionAddress(ByVal ctx As Infra_ActionContext) As Strin
     Else
         SafeSelectionAddress = ctx.SelectionRange.Address(False, False)
     End If
+End Function
+
+Private Function HasUsableSelection(ByVal ctx As Infra_ActionContext) As Boolean
+    If ctx Is Nothing Then Exit Function
+    HasUsableSelection = ctx.HasRangeSelection And Not ctx.SelectionRange Is Nothing
+End Function
+
+Private Function ActiveSheetHasBreakableItems(ByVal ctx As Infra_ActionContext) As Boolean
+    Dim ws As Worksheet
+    Dim formulaCells As Range
+    Dim cell As Range
+    Dim lo As ListObject
+    Dim pvt As PivotTable
+
+    On Error GoTo CleanExit
+
+    If ctx Is Nothing Then GoTo CleanExit
+    Set ws = ctx.WorksheetRef
+    If ws Is Nothing Then GoTo CleanExit
+
+    On Error Resume Next
+    Set formulaCells = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
+    On Error GoTo CleanExit
+
+    If Not formulaCells Is Nothing Then
+        For Each cell In formulaCells.Cells
+            If InStr(1, cell.Formula, "[", vbTextCompare) > 0 Then
+                ActiveSheetHasBreakableItems = True
+                Exit Function
+            End If
+        Next cell
+    End If
+
+    For Each pvt In ws.PivotTables
+        ActiveSheetHasBreakableItems = True
+        Exit Function
+    Next pvt
+
+    For Each lo In ws.ListObjects
+        If lo.SourceType <> xlSrcRange Then
+            ActiveSheetHasBreakableItems = True
+            Exit Function
+        End If
+    Next lo
+
+CleanExit:
+    Exit Function
 End Function

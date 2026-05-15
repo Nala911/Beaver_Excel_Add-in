@@ -4,7 +4,7 @@ This file is the operational guide for Gemini-style agents working in this repo.
 Read `BLUEPRINT.md` first for the project map, then use this file for the work
 sequence and decision rules.
 
-Last updated: 2026-04-30
+Last updated: 2026-05-15
 
 ## What This File Is For
 
@@ -33,16 +33,26 @@ Use this file for:
 
 - Edit exported source files, not the compiled workbook.
 - Keep `features.json`, `config.json`, `ribbon.xml`, `UI_Ribbon.bas`, and
-  `UI_Hotkeys.bas` aligned.
+  `UI_Hotkeys.bas` aligned. Remember that `Infra_CommandRegistry.bas` is
+  generated from `features.json` by `.\Update.ps1`.
 - Treat `FeatCmd_*` classes as the default home for new feature logic.
 - Keep Ribbon callbacks and hotkey wrappers thin.
 - Use `Infra_Error.Track` at the start of every public macro, callback, and
-  workbook event.
+  workbook event. Avoid it in high-frequency inner loops to minimize overhead.
+- Use shared enumerations in `Infra_Enums` for operation scopes and modes
+  instead of hardcoded magic numbers.
 - Use `Infra_AppStateGuard` whenever Excel application state changes.
 - Use `Infra_Undo.SaveState` before mutating ranges when user undo matters. (Registration is handled automatically by the command pipeline; do not call `Application.OnUndo` manually.)
 - Use `Infra_Progress` for slow work.
+- Prefer the shared interaction helpers in `Infra_Interaction` and
+  `Infra_UIFactory` over ad hoc `MsgBox`, `InputBox`, or one-off `UserForm`
+  code inside feature commands.
+- For file-producing commands, prefer the shared save-path flow instead of
+  hardcoding Desktop-only outputs or one-off filename prompts.
 - Never touch `Lib_JsonConverter.bas`, `.frx` files, or `_BeaverUndo`/
   `_BeaverTests` if they exist.
+- Do not hand-edit generated outputs such as `ribbon.xml` or
+  `Infra_CommandRegistry.bas` unless the generator/build path is the task.
 
 ## Safe Edit Order
 
@@ -66,6 +76,9 @@ When a change is meaningful, validate in this order:
 Use `-SkipRuntimeTests` only when you are intentionally deferring execution
 checks and you have a clear reason to do so.
 
+For interactive UI changes, prefer validating with the full `.\Update.ps1`
+flow so Ribbon load, workbook sync, compile, and runtime tests all run.
+
 ## Change Patterns
 
 ### New Ribbon command
@@ -74,7 +87,7 @@ checks and you have a clear reason to do so.
 - Add the matching `Ribbon_On*` callback in `UI_Ribbon.bas`.
 - Add or update the matching `CommandName`.
 - Add the `FeatCmd_*` implementation.
-- Add the resolver case in `AppContainer.ResolveCommand`.
+- Let `.\Update.ps1` regenerate `Infra_CommandRegistry.bas`.
 - Add the icon mapping in `config.json` if the control uses a Ribbon icon.
 
 ### New hotkey
@@ -83,7 +96,8 @@ checks and you have a clear reason to do so.
 - Add the wrapper in `UI_Hotkeys.bas`.
 - Add or update the `CommandName`.
 - Add the command implementation or map to an existing command.
-- Let `Update.ps1` sync the binding into `config.json`.
+- Let `.\Update.ps1` sync the binding into `config.json` and regenerate
+  `Infra_CommandRegistry.bas`.
 
 ### New config value
 
@@ -124,6 +138,9 @@ Before finishing, verify:
 - the ribbon and hotkey contract stayed aligned
 - the workbook sync path still succeeds
 - the two markdown files stay in sync at the level of intent
+- interactive prompt behavior still matches the documented split between
+  reusable `UserForm` pickers for fixed choices, the shared Save As flow for
+  file outputs, and text prompts for the remaining free-form entry
 
 ## If The Repo Changes
 

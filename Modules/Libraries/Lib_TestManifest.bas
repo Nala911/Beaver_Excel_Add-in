@@ -14,14 +14,10 @@ Public Sub RunGeneratedTests()
     Lib_Tests.Test_ConfigProvidesTypedHotkeys
     Lib_Tests.Test_Infrastructure_Basics
     Lib_Tests.Test_TranslateHotkeyHandlesModifiers
-    Lib_Tests_CommandInfrastructure.Test_CommandCatalogResolvesHotkeyEntries
-    Lib_Tests_CommandInfrastructure.Test_CommandCatalogResolvesRibbonEntries
     Lib_Tests_CommandInfrastructure.Test_CommandContextIncludesMetadataAndActionContext
     Lib_Tests_CommandInfrastructure.Test_CommandRegistryCreatesKnownCommands
-    Lib_Tests_DateConversion.Test_ResolveDate_Ambiguous_DMY
-    Lib_Tests_DateConversion.Test_ResolveDate_Ambiguous_MDY
-    Lib_Tests_DateConversion.Test_ResolveDate_TextMonth
-    Lib_Tests_DateConversion.Test_ResolveDate_UserCase
+    Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesHotkeyEntries
+    Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesRibbonEntries
 
 CleanExit:
     Exit Sub

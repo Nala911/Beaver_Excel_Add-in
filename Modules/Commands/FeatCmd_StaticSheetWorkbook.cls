@@ -15,11 +15,6 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Converts formulas (including spills) to static values across active sheet or whole workbook.
 
-Private Enum StaticConversionScope
-    StaticConversionScopeActiveSheet = 1
-    StaticConversionScopeWorkbook = 2
-End Enum
-
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
 End Property
@@ -35,6 +30,9 @@ Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandV
         Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("There is no active workbook available for this command.")
     ElseIf ctx.WorkbookRef Is Nothing Or ctx.WorksheetRef Is Nothing Then
         Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("There is no active worksheet available for this command.")
+    ElseIf ctx.WorkbookRef Is ThisWorkbook Then
+        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure( _
+            "Make Static cannot run while the Beaver add-in workbook is active. Switch to the workbook you want to convert and try again.")
     Else
         Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
     End If
@@ -144,43 +142,8 @@ Private Function ConvertSheetToValues(ByVal ws As Worksheet) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("ConvertSheetToValues")
     On Error GoTo ErrHandler
 
-    Dim formulaCells As Range
-    Dim area As Range
-    Dim cell As Range
-    Dim hasSpillsInArea As Boolean
-
     If ws Is Nothing Then GoTo CleanExit
-    If ws.UsedRange.Cells.Count <= 1 And IsEmpty(ws.Range("A1")) Then GoTo CleanExit
-
-    If ws.FilterMode Then ws.ShowAllData
-
-    On Error Resume Next
-    Set formulaCells = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
-    On Error GoTo ErrHandler
-
-    If formulaCells Is Nothing Then GoTo CleanExit
-
-    For Each area In formulaCells.Areas
-        hasSpillsInArea = False
-
-        On Error Resume Next
-        If IsNull(area.HasSpill) Or area.HasSpill Then
-            hasSpillsInArea = True
-        End If
-        On Error GoTo ErrHandler
-
-        If Not hasSpillsInArea Then
-            area.Value = area.Value
-            ConvertSheetToValues = ConvertSheetToValues + area.Cells.Count
-        Else
-            For Each cell In area.Cells
-                If cell.HasFormula Then
-                    ConvertCellToStaticImpl cell
-                    ConvertSheetToValues = ConvertSheetToValues + 1
-                End If
-            Next cell
-        End If
-    Next area
+    ConvertSheetToValues = Infra_ValueConversion.ConvertWorksheetFormulasToValues(ws)
 
 CleanExit:
     Exit Function
@@ -188,33 +151,3 @@ ErrHandler:
     Infra_Error.HandleError "ConvertSheetToValues", Err
     Resume CleanExit
 End Function
-
-Private Sub ConvertCellToStaticImpl(ByVal cell As Range)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("ConvertCellToStaticImpl")
-    On Error GoTo ErrHandler
-    
-    Dim isSpill As Boolean
-
-    On Error Resume Next
-    isSpill = cell.HasSpill
-    If Err.Number <> 0 Then
-        ' HasSpill not supported - standard conversion
-        Err.Clear
-        On Error GoTo 0
-        cell.Value = cell.Value
-    Else
-        On Error GoTo 0
-        If isSpill Then
-            cell.SpillingToRange.Value = cell.SpillingToRange.Value
-        Else
-            cell.Value = cell.Value
-        End If
-    End If
-
-CleanExit:
-    Exit Sub
-
-ErrHandler:
-    Infra_Error.HandleError "ConvertCellToStaticImpl", Err
-    Resume CleanExit
-End Sub

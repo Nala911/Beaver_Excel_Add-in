@@ -19,3 +19,4 @@ Public Context As Infra_ActionContext
 Public SourceRange As Range
 Public ExportAsPng As Boolean
 Public ScaleFactor As Long
+Public OutputPath As String

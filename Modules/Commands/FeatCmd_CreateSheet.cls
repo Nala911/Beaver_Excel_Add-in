@@ -13,7 +13,7 @@ Implements ICommand
 
 ' @Module: FeatCmd_CreateSheet
 ' @Category: Feature
-' @Description: Creates a new worksheet with a user-supplied name and smart positioning.
+' @Description: Creates a new worksheet with a user-supplied name and explicit placement.
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
@@ -29,8 +29,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     Dim sheetName As String
     Dim newSheet As Worksheet
-    Dim nameLower As String
     Dim ctx As Infra_ActionContext
+    Dim insertPosition As SheetInsertPosition
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
@@ -38,9 +38,10 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     sheetName = Infra_UIFactory.PromptForSheetName(ctx)
     If sheetName = vbNullString Then GoTo CleanExit
 
-    nameLower = LCase$(sheetName)
+    insertPosition = Infra_UIFactory.PromptForSheetInsertPosition(ctx, sheetName)
+    If insertPosition = 0 Then GoTo CleanExit
 
-    If (Left(nameLower, 7) = "summary") Or (Left(nameLower, 5) = "recon") Then
+    If insertPosition = SheetInsertPositionBeforeCurrent Then
         Set newSheet = ctx.WorkbookRef.Worksheets.Add(Before:=ctx.WorksheetRef)
     Else
         Set newSheet = ctx.WorkbookRef.Worksheets.Add(After:=ctx.WorksheetRef)

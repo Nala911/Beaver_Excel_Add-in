@@ -38,8 +38,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Infra_Undo.SaveState rng, "Make Permanent"
     Infra_Progress.StartProgress "Converting Selection to Values", 1
 
-    ' Direct value assignment preserves existing formatting and avoids clipboard overhead.
-    rng.Value = rng.Value
+    ' Reuse the shared value-conversion helper so hotkey and ribbon flows stay aligned.
+    Infra_ValueConversion.ConvertRangeToValues rng
     Application.CutCopyMode = False
     Infra_Progress.UpdateProgress 1, True
 

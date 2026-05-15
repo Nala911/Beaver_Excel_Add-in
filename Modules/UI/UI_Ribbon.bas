@@ -3,9 +3,9 @@ Option Explicit
 
 ' @Module: UI_Ribbon
 ' @Category: UI
-' @Description: Centralized Ribbon callbacks for the Beaver Add-in.
+' @Description: Generated Ribbon callbacks for the Beaver Add-in.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: AppContainer, Infra_Config, Infra_Hotkeys, Infra_Error
+' @Dependencies: AppContainer, Infra_Config, Infra_Error
 
 ' --- Dynamic UI Callbacks ---
 
@@ -18,7 +18,6 @@ Public Sub Ribbon_GetIcon(ByVal control As Object, ByRef image As Variant)
     iconName = Infra_Config.GetIcon(control.Id)
     If iconName = "" Then iconName = "Help"
     
-    ' Get built-in imageMso
     Set image = Application.CommandBars.GetImageMso(iconName, 32, 32)
     
 CleanExit:
@@ -27,23 +26,6 @@ ErrHandler:
     Infra_Error.HandleError "Ribbon_GetIcon", Err
     Resume CleanExit
 End Sub
-
-' --- Help Group ---
-
-Public Sub Ribbon_OnShowHotkeysHelp(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnShowHotkeysHelp")
-    On Error GoTo ErrHandler
-    
-    AppContainer.ExecuteEntryPoint "Infra_Hotkeys.ShowHotkeysHelp", "Ribbon_OnShowHotkeysHelp", "Ribbon"
-
-CleanExit:
-    Exit Sub
-ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnShowHotkeysHelp", Err
-    Resume CleanExit
-End Sub
-
-' --- Formatting Group ---
 
 Public Sub Ribbon_OnWrap(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnWrap")
@@ -71,8 +53,6 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-' --- Cleanup Group ---
-
 Public Sub Ribbon_OnCleanData(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnCleanData")
     On Error GoTo ErrHandler
@@ -99,39 +79,12 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Public Sub Ribbon_OnConvertTextToProperDate(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnConvertTextToProperDate")
-    On Error GoTo ErrHandler
-
-    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnConvertTextToProperDate", "Ribbon_OnConvertTextToProperDate", "Ribbon"
-
-CleanExit:
-    Exit Sub
-ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnConvertTextToProperDate", Err
-    Resume CleanExit
-End Sub
-
-' --- Export Group ---
-
-Public Sub Ribbon_OnDashboard(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnDashboard")
-    On Error GoTo ErrHandler
-
-    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnDashboard", "Ribbon_OnDashboard", "Ribbon"
-
-CleanExit:
-    Exit Sub
-ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnDashboard", Err
-    Resume CleanExit
-End Sub
-
 Public Sub Ribbon_OnDuplicate(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnDuplicate")
     On Error GoTo ErrHandler
 
     AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnDuplicate", "Ribbon_OnDuplicate", "Ribbon"
+
 CleanExit:
     Exit Sub
 ErrHandler:
@@ -152,8 +105,6 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-' --- Structure Group ---
-
 Public Sub Ribbon_OnToggleFullScreen(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnToggleFullScreen")
     On Error GoTo ErrHandler
@@ -164,5 +115,18 @@ CleanExit:
     Exit Sub
 ErrHandler:
     Infra_Error.HandleError "Ribbon_OnToggleFullScreen", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnShowHotkeysHelp(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnShowHotkeysHelp")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnShowHotkeysHelp", "Ribbon_OnShowHotkeysHelp", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnShowHotkeysHelp", Err
     Resume CleanExit
 End Sub

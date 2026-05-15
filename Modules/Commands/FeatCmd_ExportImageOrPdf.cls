@@ -60,13 +60,17 @@ Private Sub ExecuteExport(ByVal request As Infra_ExportRequest)
     If request Is Nothing Then GoTo CleanExit
     If request.SourceRange Is Nothing Then GoTo CleanExit
     
+    If request.OutputPath = vbNullString Then GoTo CleanExit
+
     If request.ExportAsPng Then
         Application.StatusBar = "Beaver: Exporting image - please wait..."
-        ExportAsPngImpl request.SourceRange, request.ScaleFactor
+        If Not ExportAsPngImpl(request.SourceRange, request.ScaleFactor, request.OutputPath) Then GoTo CleanExit
     Else
         Application.StatusBar = "Beaver: Exporting PDF - please wait..."
-        ExportAsPdfImpl request.SourceRange
+        If Not ExportAsPdfImpl(request.SourceRange, request.OutputPath) Then GoTo CleanExit
     End If
+
+    Infra_Interaction.ShowInfo "Export saved:" & vbCrLf & request.OutputPath, Infra_Config.ADDIN_NAME & " - Export"
 
 CleanExit:
     Exit Sub
@@ -76,22 +80,18 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ExportAsPngImpl(ByVal selRng As Range, ByVal scaleFactor As Long)
+Private Function ExportAsPngImpl(ByVal selRng As Range, ByVal scaleFactor As Long, ByVal filePath As String) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExportAsPngImpl")
     On Error GoTo ErrHandler
     
     Dim srcWS As Worksheet
     Dim tmpWS As Worksheet
     Dim chtObj As ChartObject
-    Dim filePath As String
     Dim userWB As Workbook
 
     If selRng Is Nothing Then GoTo CleanExit
 
     Set srcWS = selRng.Worksheet
-    filePath = Infra_AppState.GetDesktopPath() & "\RangeImage_" & srcWS.Name & _
-               "_Scale" & scaleFactor & "x_" & Format(Now, "yyyymmdd_hhnnss") & ".png"
-
     ' Copy range as picture
     On Error Resume Next
     selRng.CopyPicture Appearance:=xlPrinter, Format:=xlPicture
@@ -138,7 +138,10 @@ Private Sub ExportAsPngImpl(ByVal selRng As Range, ByVal scaleFactor As Long)
     If Not chtObj.Chart.Export(filePath) Then
         Infra_Interaction.ShowCritical "Export failed. Try a lower scale factor or check Desktop permissions.", _
                                        Infra_Config.ADDIN_NAME & " - Export Error"
+        GoTo PngCleanup
     End If
+
+    ExportAsPngImpl = True
 
 PngCleanup:
 CleanExit:
@@ -151,19 +154,18 @@ CleanExit:
     End If
     Application.CutCopyMode = False
     On Error GoTo 0
-    Exit Sub
+    Exit Function
 
 ErrHandler:
     Infra_Error.HandleError "ExportAsPngImpl", Err
     Resume PngCleanup
-End Sub
+End Function
 
-Private Sub ExportAsPdfImpl(ByVal exportRng As Range)
+Private Function ExportAsPdfImpl(ByVal exportRng As Range, ByVal filePath As String) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExportAsPdfImpl")
     On Error GoTo ErrHandler
     
     Dim ws As Worksheet
-    Dim filePath As String
     Dim oldPrintArea As String
     Dim oldOrientation As XlPageOrientation
     Dim oldPaperSize As XlPaperSize
@@ -197,8 +199,6 @@ Private Sub ExportAsPdfImpl(ByVal exportRng As Range)
         oldCenterVertically = .CenterVertically
     End With
 
-    filePath = Infra_AppState.GetDesktopPath() & "\RangePDF_" & ws.Name & "_" & Format(Now, "yyyymmdd_hhnnss") & ".pdf"
-
     With ws.PageSetup
         .PrintArea = exportRng.Address
         .Orientation = xlLandscape
@@ -224,6 +224,8 @@ Private Sub ExportAsPdfImpl(ByVal exportRng As Range)
         IgnorePrintAreas:=False, _
         OpenAfterPublish:=False
 
+    ExportAsPdfImpl = True
+
 CleanExit:
     On Error Resume Next
     If Not ws Is Nothing Then
@@ -245,9 +247,9 @@ CleanExit:
         End With
     End If
     On Error GoTo 0
-    Exit Sub
+    Exit Function
 
 ErrHandler:
     Infra_Error.HandleError "ExportAsPdfImpl", Err
     Resume CleanExit
-End Sub
+End Function

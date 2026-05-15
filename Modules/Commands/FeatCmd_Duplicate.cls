@@ -13,7 +13,7 @@ Implements ICommand
 
 ' @Module: FeatCmd_Duplicate
 ' @Category: Feature
-' @Description: Duplicates the current workbook to the Desktop as a macro-free .xlsx file.
+' @Description: Duplicates the current workbook as a macro-free .xlsx file and lets the user choose where to save it.
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
@@ -27,7 +27,6 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Duplicate.Execute")
     On Error GoTo ErrHandler
 
-    Dim desktopPath As String
     Dim fullPath As String
     Dim sourceWB As Workbook
     Dim copyWB As Workbook
@@ -45,21 +44,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         baseName = Left(baseName, InStrRev(baseName, ".") - 1)
     End If
 
-    ' --- Prompt user for new name ---
-    Dim inputResult As Variant
-    inputResult = Infra_UIFactory.PromptForDuplicateName(ctx, baseName)
-    If VarType(inputResult) = vbBoolean And inputResult = False Then GoTo CleanExit
-
-    baseName = CStr(inputResult)
-
-    ' --- Build full path ---
-    desktopPath = Infra_AppState.GetDesktopPath()
-    If desktopPath = "" Then
-        Infra_Interaction.ShowCritical "Could not locate the Desktop path. Cannot save the file."
-        GoTo CleanExit
-    End If
-
-    fullPath = desktopPath & "\" & baseName & ".xlsx"
+    fullPath = Infra_UIFactory.PromptForDuplicateOutputPath(ctx, baseName)
+    If fullPath = vbNullString Then GoTo CleanExit
 
     ' --- Copy all sheets to a brand-new workbook ---
     sourceWB.Sheets.Copy
@@ -74,7 +60,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     ' --- Re-activate the original workbook ---
     sourceWB.Activate
 
-    Infra_Interaction.ShowInfo "Duplicate saved to Desktop:" & vbCrLf & baseName & ".xlsx"
+    Infra_Interaction.ShowInfo "Duplicate saved:" & vbCrLf & fullPath
 
 CleanExit:
     Exit Sub

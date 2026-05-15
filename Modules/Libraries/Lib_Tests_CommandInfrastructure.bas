@@ -5,36 +5,36 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Tests for manifest-driven command resolution and typed command context capture.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, Infra_CommandCatalog, Infra_CommandRegistry, AppContainer, Infra_Error
+' @Dependencies: Lib_Tests, Infra_CommandRegistry, AppContainer, Infra_Error
 
-Public Sub Test_CommandCatalogResolvesRibbonEntries()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandCatalogResolvesRibbonEntries")
+Public Sub Test_CommandRegistryResolvesRibbonEntries()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandRegistryResolvesRibbonEntries")
     On Error GoTo ErrHandler
 
-    AssertEqual Infra_CommandCatalog.ResolveCommandName("UI_Ribbon.Ribbon_OnExport"), "ExportImageOrPdf", "Ribbon export callback should resolve to ExportImageOrPdf"
-    AssertEqual Infra_CommandCatalog.ResolveCommandName("UI_Ribbon.Ribbon_OnToggleFullScreen"), "ToggleFullScreen", "Ribbon focus-mode callback should resolve to ToggleFullScreen"
-    AssertEqual Infra_CommandCatalog.ResolveCommandName("Infra_Hotkeys.ShowHotkeysHelp"), "ShowHotkeysHelp", "Hotkeys help callback should resolve to ShowHotkeysHelp"
+    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnExport"), "ExportImageOrPdf", "Ribbon export callback should resolve to ExportImageOrPdf"
+    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnToggleFullScreen"), "ToggleFullScreen", "Ribbon focus-mode callback should resolve to ToggleFullScreen"
+    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnShowHotkeysHelp"), "ShowHotkeysHelp", "Hotkeys help callback should resolve to ShowHotkeysHelp"
 
 CleanExit:
     Exit Sub
 
 ErrHandler:
-    Infra_Error.HandleError "Test_CommandCatalogResolvesRibbonEntries", Err
+    Infra_Error.HandleError "Test_CommandRegistryResolvesRibbonEntries", Err
     Resume CleanExit
 End Sub
 
-Public Sub Test_CommandCatalogResolvesHotkeyEntries()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandCatalogResolvesHotkeyEntries")
+Public Sub Test_CommandRegistryResolvesHotkeyEntries()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandRegistryResolvesHotkeyEntries")
     On Error GoTo ErrHandler
 
-    AssertEqual Infra_CommandCatalog.ResolveCommandName("UI_Hotkeys.Hotkey_FormatSelectedRange"), "FormatRange", "Format hotkey should resolve to FormatRange"
-    AssertEqual Infra_CommandCatalog.ResolveCommandName("UI_Hotkeys.Hotkey_Delete"), "Delete", "Delete hotkey should resolve to Delete"
+    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Hotkeys.Hotkey_FormatSelectedRange"), "FormatRange", "Format hotkey should resolve to FormatRange"
+    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Hotkeys.Hotkey_Delete"), "Delete", "Delete hotkey should resolve to Delete"
 
 CleanExit:
     Exit Sub
 
 ErrHandler:
-    Infra_Error.HandleError "Test_CommandCatalogResolvesHotkeyEntries", Err
+    Infra_Error.HandleError "Test_CommandRegistryResolvesHotkeyEntries", Err
     Resume CleanExit
 End Sub
 

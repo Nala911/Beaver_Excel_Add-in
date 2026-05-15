@@ -11,8 +11,6 @@
 [CmdletBinding()]
 param(
     [switch]$SkipRuntimeTests,
-    [switch]$IncludeDevFeatures,
-    [switch]$BumpVersion,
     [Alias("RefreshAgentsGuide")]
     [switch]$RefreshBlueprintGuide
 )
@@ -28,6 +26,8 @@ $blueprintMdPath = Join-Path $PSScriptRoot "BLUEPRINT.md"
 $featureManifestPath = Join-Path $PSScriptRoot "features.json"
 $testManifestPath = Join-Path $modulesDir "Libraries\Lib_TestManifest.bas"
 $commandRegistryPath = Join-Path $modulesDir "Infrastructure\Infra_CommandRegistry.bas"
+$uiRibbonPath = Join-Path $modulesDir "UI\UI_Ribbon.bas"
+$uiHotkeysPath = Join-Path $modulesDir "UI\UI_Hotkeys.bas"
 $structuredTestResultsPath = Join-Path $env:TEMP "BeaverAddin.TestResults.tsv"
 $script:StageResults = New-Object System.Collections.ArrayList
 
@@ -289,29 +289,13 @@ function Get-FeatureManifest {
     return Get-Content $ManifestPath -Raw | ConvertFrom-Json
 }
 
-function Test-ReleaseTierIncluded {
-    param(
-        [string]$ReleaseTier,
-        [bool]$IncludeDev
-    )
 
-    if ([string]::IsNullOrWhiteSpace($ReleaseTier)) {
-        return $true
-    }
-
-    if ($ReleaseTier -eq "dev" -and -not $IncludeDev) {
-        return $false
-    }
-
-    return $true
-}
 
 function Sync-FeatureManifest {
     param(
         [string]$ManifestPath,
         [string]$ConfigPath,
-        [string]$RibbonPath,
-        [bool]$IncludeDev
+        [string]$RibbonPath
     )
 
     Write-Host "Syncing feature manifest..." -ForegroundColor Cyan
@@ -322,13 +306,9 @@ function Sync-FeatureManifest {
         [pscustomobject]@{}
     }
 
-    $enabledFeatures = @($manifest.Features | Where-Object {
-        Test-ReleaseTierIncluded -ReleaseTier $_.ReleaseTier -IncludeDev $IncludeDev
-    })
+    $enabledFeatures = @($manifest.Features)
     $enabledFeatureIds = @($enabledFeatures | ForEach-Object { $_.ControlId })
-    $enabledHotkeys = @($manifest.Hotkeys | Where-Object {
-        Test-ReleaseTierIncluded -ReleaseTier $_.ReleaseTier -IncludeDev $IncludeDev
-    })
+    $enabledHotkeys = @($manifest.Hotkeys)
 
     $icons = [ordered]@{}
     foreach ($feature in $enabledFeatures) {
@@ -340,9 +320,10 @@ function Sync-FeatureManifest {
         if ($groupFeatures.Count -eq 0) { continue }
 
         $buttonXml = foreach ($feature in $groupFeatures) {
-            '          <button id="{0}" label="{1}" getImage="Ribbon_GetIcon" size="large" onAction="{2}" keytip="{3}" screentip="{4}" supertip="{5}" />' -f `
+            '          <button id="{0}" label="{1}" imageMso="{2}" size="large" onAction="{3}" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
                 $feature.ControlId,
                 [System.Security.SecurityElement]::Escape($feature.Label),
+                [System.Security.SecurityElement]::Escape($feature.Icon),
                 $feature.OnAction,
                 $feature.Keytip,
                 [System.Security.SecurityElement]::Escape($feature.Screentip),
@@ -382,8 +363,6 @@ $($groupXml -join "`r`n")
         $config | Add-Member -NotePropertyName FeatureFlags -NotePropertyValue ([pscustomobject]@{}) -Force
     }
     $config.FeatureFlags = [pscustomobject]@{
-        ReleaseTier = if ($IncludeDev) { "dev" } else { "stable" }
-        IncludeDevFeatures = $IncludeDev
         ManifestFile = [System.IO.Path]::GetFileName($ManifestPath)
         GeneratedFeatureCount = $enabledFeatureIds.Count
     }
@@ -496,10 +475,6 @@ function Sync-CommandRegistry {
         }
     }
 
-    if ($entryMap.Contains("INFRA_HOTKEYS.SHOWHOTKEYSHELP")) {
-        $entryMap["UI_RIBBON.RIBBON_ONSHOWHOTKEYSHELP"] = $entryMap["INFRA_HOTKEYS.SHOWHOTKEYSHELP"]
-    }
-
     $lines = @(
         'Attribute VB_Name = "Infra_CommandRegistry"',
         'Option Explicit',
@@ -557,6 +532,131 @@ function Sync-CommandRegistry {
     Write-Host "  Command registry generated with $($commandMap.Count) command(s) and $($entryMap.Count) entry point(s)." -ForegroundColor Green
 }
 
+function Get-VbaProcedureNameFromMacro {
+    param([string]$MacroName)
+
+    if ([string]::IsNullOrWhiteSpace($MacroName)) {
+        throw "Macro name is required."
+    }
+
+    $parts = $MacroName.Trim().Split('.')
+    return $parts[$parts.Length - 1]
+}
+
+function Sync-UiRibbonModule {
+    param(
+        [string]$ManifestPath,
+        [string]$OutputPath
+    )
+
+    Write-Host "Generating ribbon entry module..." -ForegroundColor Cyan
+    $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
+
+    $lines = @(
+        'Attribute VB_Name = "UI_Ribbon"',
+        'Option Explicit',
+        '',
+        ''' @Module: UI_Ribbon',
+        ''' @Category: UI',
+        ''' @Description: Generated Ribbon callbacks for the Beaver Add-in.',
+        ''' @ManagedBy: BeaverAddin Agent',
+        ''' @Dependencies: AppContainer, Infra_Config, Infra_Error',
+        '',
+        ''' --- Dynamic UI Callbacks ---',
+        '',
+        ''' Returns the image object for a control based on its ID in config.json',
+        'Public Sub Ribbon_GetIcon(ByVal control As Object, ByRef image As Variant)',
+        '    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_GetIcon")',
+        '    On Error GoTo ErrHandler',
+        '    ',
+        '    Dim iconName As String',
+        '    iconName = Infra_Config.GetIcon(control.Id)',
+        '    If iconName = "" Then iconName = "Help"',
+        '    ',
+        '    Set image = Application.CommandBars.GetImageMso(iconName, 32, 32)',
+        '    ',
+        'CleanExit:',
+        '    Exit Sub',
+        'ErrHandler:',
+        '    Infra_Error.HandleError "Ribbon_GetIcon", Err',
+        '    Resume CleanExit',
+        'End Sub'
+    )
+
+    foreach ($feature in @($manifest.Features)) {
+        if ([string]::IsNullOrWhiteSpace($feature.OnAction) -or [string]::IsNullOrWhiteSpace($feature.Macro)) {
+            continue
+        }
+
+        $procedureName = $feature.OnAction.Trim()
+        $entryMacro = $feature.Macro.Trim()
+
+        $lines += ''
+        $lines += ('Public Sub {0}(ByVal control As Object)' -f $procedureName)
+        $lines += ('    Dim tracker As Object: Set tracker = Infra_Error.Track("{0}")' -f $procedureName)
+        $lines += '    On Error GoTo ErrHandler'
+        $lines += ''
+        $lines += ('    AppContainer.ExecuteEntryPoint "{0}", "{1}", "Ribbon"' -f $entryMacro.Replace('"', '""'), $procedureName.Replace('"', '""'))
+        $lines += ''
+        $lines += 'CleanExit:'
+        $lines += '    Exit Sub'
+        $lines += 'ErrHandler:'
+        $lines += ('    Infra_Error.HandleError "{0}", Err' -f $procedureName)
+        $lines += '    Resume CleanExit'
+        $lines += 'End Sub'
+    }
+
+    [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
+    Write-Host "  Ribbon entry module generated." -ForegroundColor Green
+}
+
+function Sync-UiHotkeysModule {
+    param(
+        [string]$ManifestPath,
+        [string]$OutputPath
+    )
+
+    Write-Host "Generating hotkey entry module..." -ForegroundColor Cyan
+    $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
+
+    $lines = @(
+        'Attribute VB_Name = "UI_Hotkeys"',
+        'Option Explicit',
+        '',
+        ''' @Module: UI_Hotkeys',
+        ''' @Category: UI',
+        ''' @Description: Generated hotkey wrappers that route through the command pipeline.',
+        ''' @ManagedBy: BeaverAddin Agent',
+        ''' @Dependencies: AppContainer, Infra_Error'
+    )
+
+    foreach ($hotkey in @($manifest.Hotkeys)) {
+        if ([string]::IsNullOrWhiteSpace($hotkey.Macro)) {
+            continue
+        }
+
+        $macroName = $hotkey.Macro.Trim()
+        $procedureName = Get-VbaProcedureNameFromMacro -MacroName $macroName
+
+        $lines += ''
+        $lines += ('Public Sub {0}()' -f $procedureName)
+        $lines += ('    Dim tracker As Object: Set tracker = Infra_Error.Track("{0}")' -f $procedureName)
+        $lines += '    On Error GoTo ErrHandler'
+        $lines += ''
+        $lines += ('    AppContainer.ExecuteEntryPoint "{0}", "{1}", "Hotkey"' -f $macroName.Replace('"', '""'), $procedureName.Replace('"', '""'))
+        $lines += ''
+        $lines += 'CleanExit:'
+        $lines += '    Exit Sub'
+        $lines += 'ErrHandler:'
+        $lines += ('    Infra_Error.HandleError "{0}", Err' -f $procedureName)
+        $lines += '    Resume CleanExit'
+        $lines += 'End Sub'
+    }
+
+    [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
+    Write-Host "  Hotkey entry module generated." -ForegroundColor Green
+}
+
 function Read-StructuredTestResults {
     param([string]$Path)
 
@@ -595,13 +695,12 @@ function Read-StructuredTestResults {
 
 function Get-EnabledHeadlessCallbacks {
     param(
-        [string]$ManifestPath,
-        [bool]$IncludeDev
+        [string]$ManifestPath
     )
 
     $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
     return @($manifest.Features | Where-Object {
-        (Test-ReleaseTierIncluded -ReleaseTier $_.ReleaseTier -IncludeDev $IncludeDev) -and $_.RuntimeTestMode -eq "headless"
+        $_.RuntimeTestMode -eq "headless"
     })
 }
 
@@ -1066,31 +1165,7 @@ function Invoke-VbaSyntaxCheck {
     return $allPassed
 }
 
-# ==============================================================================
-# Function: Update-Version
-# Purpose:  Increments the patch/build version in config.json.
-# ==============================================================================
-function Update-Version {
-    param ([string]$ConfigPath)
-    if (-not (Test-Path $ConfigPath)) { return }
-    
-    Write-Host "Updating version in config.json..." -ForegroundColor Cyan
-    try {
-        $config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
-        $version = $config.AddinIdentity.Version
-        $parts = $version.Split('.')
-        if ($parts.Count -eq 3) {
-            $build = [int]$parts[2] + 1
-            $newVersion = "$($parts[0]).$($parts[1]).$build"
-            $config.AddinIdentity.Version = $newVersion
-            $json = $config | ConvertTo-Json -Depth 10
-            [System.IO.File]::WriteAllText($ConfigPath, $json)
-            Write-Host "  Version incremented: $version -> $newVersion" -ForegroundColor Green
-        }
-    } catch {
-        Write-Warning "  Failed to auto-increment version: $($_.Exception.Message)"
-    }
-}
+
 
 # ==============================================================================
 # Function: Update-BlueprintDate
@@ -1201,13 +1276,19 @@ $configPath = Join-Path $PSScriptRoot "config.json"
 
 try {
     Invoke-Stage -Stage "manifest_sync" -Action {
-        Sync-FeatureManifest -ManifestPath $featureManifestPath -ConfigPath $configPath -RibbonPath $ribbonXmlPath -IncludeDev:$IncludeDevFeatures
+        Sync-FeatureManifest -ManifestPath $featureManifestPath -ConfigPath $configPath -RibbonPath $ribbonXmlPath
         return "features synced from features.json"
     } | Out-Null
 
     Invoke-Stage -Stage "command_registry_generation" -Action {
         Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
         return "command registry refreshed"
+    } | Out-Null
+
+    Invoke-Stage -Stage "ui_entry_generation" -Action {
+        Sync-UiRibbonModule -ManifestPath $featureManifestPath -OutputPath $uiRibbonPath
+        Sync-UiHotkeysModule -ManifestPath $featureManifestPath -OutputPath $uiHotkeysPath
+        return "UI entry modules refreshed"
     } | Out-Null
 
     Invoke-Stage -Stage "test_manifest_generation" -Action {
@@ -1423,11 +1504,7 @@ try {
                 Write-Host "  VBE object NOT found." -ForegroundColor Yellow
             }
 
-            if ($BumpVersion) {
-                Update-Version -ConfigPath $configPath
-            } else {
-                Write-Host "Skipping version bump (pass -BumpVersion for release builds)." -ForegroundColor Gray
-            }
+
 
             if ($RefreshBlueprintGuide) {
                 Update-BlueprintDate -BlueprintMdPath $blueprintMdPath

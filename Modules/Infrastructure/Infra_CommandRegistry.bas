@@ -20,17 +20,13 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "CleanData"
         Case "UI_RIBBON.RIBBON_ONBREAKEXTERNALLINKS"
             ResolveCommandName = "BreakExternalLinks"
-        Case "UI_RIBBON.RIBBON_ONCONVERTTEXTTOPROPERDATE"
-            ResolveCommandName = "DateConversion"
         Case "UI_RIBBON.RIBBON_ONDUPLICATE"
             ResolveCommandName = "Duplicate"
         Case "UI_RIBBON.RIBBON_ONEXPORT"
             ResolveCommandName = "ExportImageOrPdf"
-        Case "UI_RIBBON.RIBBON_ONDASHBOARD"
-            ResolveCommandName = "Dashboard"
         Case "UI_RIBBON.RIBBON_ONTOGGLEFULLSCREEN"
             ResolveCommandName = "ToggleFullScreen"
-        Case "INFRA_HOTKEYS.SHOWHOTKEYSHELP"
+        Case "UI_RIBBON.RIBBON_ONSHOWHOTKEYSHELP"
             ResolveCommandName = "ShowHotkeysHelp"
         Case "UI_HOTKEYS.HOTKEY_APPLYCUSTOMNUMBERFORMAT"
             ResolveCommandName = "ApplyCustomNumberFormat"
@@ -50,8 +46,6 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "Backspace"
         Case "UI_HOTKEYS.HOTKEY_DELETE"
             ResolveCommandName = "Delete"
-        Case "UI_RIBBON.RIBBON_ONSHOWHOTKEYSHELP"
-            ResolveCommandName = "ShowHotkeysHelp"
     End Select
 
 CleanExit:
@@ -75,14 +69,10 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
             Set CreateCommand = New FeatCmd_CleanData
         Case "BREAKEXTERNALLINKS"
             Set CreateCommand = New FeatCmd_BreakExternalLinks
-        Case "DATECONVERSION"
-            Set CreateCommand = New FeatCmd_DateConversion
         Case "DUPLICATE"
             Set CreateCommand = New FeatCmd_Duplicate
         Case "EXPORTIMAGEORPDF"
             Set CreateCommand = New FeatCmd_ExportImageOrPdf
-        Case "DASHBOARD"
-            Set CreateCommand = New FeatCmd_Dashboard
         Case "TOGGLEFULLSCREEN"
             Set CreateCommand = New FeatCmd_ToggleFullScreen
         Case "SHOWHOTKEYSHELP"

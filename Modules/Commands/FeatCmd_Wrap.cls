@@ -20,8 +20,6 @@ Implements ICommand
 Private Const PLACEHOLDER As String = "[value]"
 Private Const COMMAND_NAME As String = "Wrap"
 Private Const MAX_CELLS_LIMIT As Long = 50000
-Private Const WRAP_MODE_CELL As Long = 1
-Private Const WRAP_MODE_TYPED As Long = 2
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
@@ -54,9 +52,9 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     If wrapMode = 0 Then GoTo CleanExit
 
     Select Case wrapMode
-        Case WRAP_MODE_CELL
+        Case WrapModeCell
             ExecuteWrapperCellMode rng
-        Case WRAP_MODE_TYPED
+        Case WrapModeTyped
             ExecuteTypedPatternMode ctx, rng
     End Select
 

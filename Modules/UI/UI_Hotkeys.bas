@@ -3,20 +3,9 @@ Option Explicit
 
 ' @Module: UI_Hotkeys
 ' @Category: UI
-' @Description: Hotkey wrappers that route through the CommandInvoker.
-
-Public Sub Hotkey_MakePermanent()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_MakePermanent")
-    On Error GoTo ErrHandler
-
-    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_MakePermanent", "Hotkey_MakePermanent", "Hotkey"
-
-CleanExit:
-    Exit Sub
-ErrHandler:
-    Infra_Error.HandleError "Hotkey_MakePermanent", Err
-    Resume CleanExit
-End Sub
+' @Description: Generated hotkey wrappers that route through the command pipeline.
+' @ManagedBy: BeaverAddin Agent
+' @Dependencies: AppContainer, Infra_Error
 
 Public Sub Hotkey_ApplyCustomNumberFormat()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_ApplyCustomNumberFormat")
@@ -28,6 +17,19 @@ CleanExit:
     Exit Sub
 ErrHandler:
     Infra_Error.HandleError "Hotkey_ApplyCustomNumberFormat", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Hotkey_MakePermanent()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_MakePermanent")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_MakePermanent", "Hotkey_MakePermanent", "Hotkey"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Hotkey_MakePermanent", Err
     Resume CleanExit
 End Sub
 

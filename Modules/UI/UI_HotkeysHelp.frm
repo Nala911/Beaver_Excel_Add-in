@@ -22,7 +22,16 @@ Option Explicit
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: Infra_Hotkeys
 
+
+
 Private Sub UserForm_Initialize()
+    LoadHotkeysList
+    ConfigureHotkeysLayout
+End Sub
+
+
+
+Private Sub LoadHotkeysList()
     Dim defs As Variant
     Dim i As Long
     
@@ -51,6 +60,58 @@ Private Sub UserForm_Initialize()
     End With
 End Sub
 
+
+
+Private Sub ConfigureHotkeysLayout()
+    Const HOTKEYS_FORM_WIDTH As Double = 420
+    Const HOTKEYS_MIN_LIST_HEIGHT As Double = 120
+    Const HOTKEYS_MAX_LIST_HEIGHT As Double = 210
+    Const HOTKEY_ROW_HEIGHT As Double = 18
+    Const FORM_BOTTOM_PADDING As Double = 20
+    Const BUTTON_GAP As Double = 10
+    Const SIDE_MARGIN As Double = 18
+
+    Dim listHeight As Double
+
+    Me.Caption = "Keyboard Shortcuts"
+    btnOK.Caption = "Close"
+
+    Me.Width = HOTKEYS_FORM_WIDTH
+
+    lstHotkeys.Left = SIDE_MARGIN
+    lstHotkeys.Top = 18
+    lstHotkeys.Width = Me.InsideWidth - (SIDE_MARGIN * 2)
+    lstHotkeys.ColumnWidths = "110 pt;250 pt"
+
+    listHeight = (lstHotkeys.ListCount * HOTKEY_ROW_HEIGHT) + 8
+    If listHeight < HOTKEYS_MIN_LIST_HEIGHT Then listHeight = HOTKEYS_MIN_LIST_HEIGHT
+    If listHeight > HOTKEYS_MAX_LIST_HEIGHT Then listHeight = HOTKEYS_MAX_LIST_HEIGHT
+    lstHotkeys.Height = listHeight
+
+    btnOK.Top = lstHotkeys.Top + lstHotkeys.Height + BUTTON_GAP
+    btnOK.Left = Me.InsideWidth - btnOK.Width - SIDE_MARGIN
+    SetFormInsideHeight btnOK.Top + btnOK.Height + FORM_BOTTOM_PADDING
+End Sub
+
+
+
+Private Sub SetFormInsideHeight(ByVal desiredInsideHeight As Double, Optional ByVal minimumOverallHeight As Double = 0)
+    Dim frameHeight As Double
+    Dim targetHeight As Double
+
+    frameHeight = Me.Height - Me.InsideHeight
+    If frameHeight < 0 Then frameHeight = 0
+
+    targetHeight = desiredInsideHeight + frameHeight
+    If targetHeight < minimumOverallHeight Then targetHeight = minimumOverallHeight
+
+    Me.Height = targetHeight
+End Sub
+
+
+
 Private Sub btnOK_Click()
     Unload Me
 End Sub
+
+

@@ -7,6 +7,8 @@ Option Explicit
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: Infra_Config, Infra_Error
 
+Private Const OPTION_PICKER_FORM_NAME As String = "UI_OptionPicker"
+
 Public Function ShowMessage(ByVal message As String, Optional ByVal style As VbMsgBoxStyle = vbInformation, Optional ByVal title As String = vbNullString) As VbMsgBoxResult
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowMessage")
     On Error GoTo ErrHandler
@@ -120,6 +122,78 @@ CleanExit:
 
 ErrHandler:
     Infra_Error.HandleError "PromptRange", Err
+    Resume CleanExit
+End Function
+
+Public Function PromptOption(ByVal promptMsg As String, ByVal title As String, ByVal defaultChoice As String, ByVal options As Variant, ByRef outResult As String) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptOption")
+    On Error GoTo ErrHandler
+
+    Dim frm As Object
+    Dim wasConfirmed As Boolean
+    Dim selectedValue As String
+
+    On Error Resume Next
+    Set frm = VBA.UserForms.Add(OPTION_PICKER_FORM_NAME)
+    On Error GoTo ErrHandler
+
+    If frm Is Nothing Then
+        Infra_Interaction.ShowCritical "Could not load the option picker form.", ResolveTitle(title)
+        GoTo CleanExit
+    End If
+
+    frm.ConfigureOptionPicker ResolveTitle(title), promptMsg, defaultChoice, options
+    frm.Show
+
+    On Error Resume Next
+    wasConfirmed = frm.WasConfirmed
+    If Err.Number <> 0 Then
+        Err.Clear
+        wasConfirmed = False
+    ElseIf wasConfirmed Then
+        selectedValue = frm.SelectedValue
+        If Err.Number <> 0 Then
+            Err.Clear
+            wasConfirmed = False
+        End If
+    End If
+    On Error GoTo ErrHandler
+
+    If wasConfirmed Then
+        outResult = selectedValue
+        PromptOption = True
+    End If
+
+CleanExit:
+    On Error Resume Next
+    If Not frm Is Nothing Then Unload frm
+    On Error GoTo 0
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "PromptOption", Err
+    Resume CleanExit
+End Function
+
+Public Function PromptSaveAsPath(ByVal dialogTitle As String, ByVal initialPath As String, ByVal fileFilter As String, ByRef outPath As String) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptSaveAsPath")
+    On Error GoTo ErrHandler
+
+    Dim selectedPath As Variant
+
+    selectedPath = Application.GetSaveAsFilename(InitialFileName:=initialPath, FileFilter:=fileFilter, Title:=ResolveTitle(dialogTitle))
+    If VarType(selectedPath) = vbBoolean Then
+        If selectedPath = False Then GoTo CleanExit
+    End If
+
+    outPath = CStr(selectedPath)
+    PromptSaveAsPath = (Len(Trim$(outPath)) > 0)
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "PromptSaveAsPath", Err
     Resume CleanExit
 End Function
 

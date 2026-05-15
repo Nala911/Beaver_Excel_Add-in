@@ -1,247 +1,202 @@
 {
-  "Tab": {
-    "Id": "BeaverTab",
-    "Label": "BEAVER",
-    "Keytip": "B"
-  },
-  "Groups": [
-    {
-      "Id": "GrpFormatting",
-      "Label": "Formatting",
-      "Features": [
-        "BtnWrap",
-        "BtnStaticSheetWorkbook"
-      ]
-    },
-    {
-      "Id": "GrpCleanup",
-      "Label": "Data Tools",
-      "Features": [
-        "BtnCleanData",
-        "BtnBreakLinks",
-        "BtnDateConv"
-      ]
-    },
-    {
-      "Id": "GrpExport",
-      "Label": "File Actions",
-      "Features": [
-        "BtnDuplicate",
-        "BtnExport",
-        "BtnDashboard"
-      ]
-    },
-    {
-      "Id": "GrpStructure",
-      "Label": "Workspace",
-      "Features": [
-        "BtnFullScreen"
-      ]
-    },
-    {
-      "Id": "BeaverHelpGroup",
-      "Label": "Support",
-      "Features": [
-        "BtnHotkeys"
-      ]
-    }
-  ],
-  "Features": [
-    {
-      "ControlId": "BtnWrap",
-      "Label": "Wrap",
-      "OnAction": "Ribbon_OnWrap",
-      "Macro": "UI_Ribbon.Ribbon_OnWrap",
-      "CommandName": "Wrap",
-      "Icon": "FunctionWizard",
-      "Keytip": "W",
-      "Screentip": "Wrap Selection",
-      "Supertip": "Choose whether to wrap the selection by reusing a wrapper formula from another cell or by typing a formula pattern with [value].",
-      "CommandClass": "FeatCmd_Wrap",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
-    },
-    {
-      "ControlId": "BtnStaticSheetWorkbook",
-      "Label": "Static Sheet/WB",
-      "OnAction": "Ribbon_OnStaticSheetWorkbook",
-      "Macro": "UI_Ribbon.Ribbon_OnStaticSheetWorkbook",
-      "CommandName": "StaticSheetWorkbook",
-      "Icon": "CalculateNow",
-      "Keytip": "SW",
-      "Screentip": "Convert Formulas to Static Values",
-      "Supertip": "Permanently replaces all formulas with their current values across the active sheet or the entire workbook. Handles spill ranges correctly.",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
-    },
-    {
-      "ControlId": "BtnCleanData",
-      "Label": "Clean Data",
-      "OnAction": "Ribbon_OnCleanData",
-      "Macro": "UI_Ribbon.Ribbon_OnCleanData",
-      "CommandName": "CleanData",
-      "Icon": "Clear",
-      "Keytip": "CD",
-      "Screentip": "Clean Data",
-      "Supertip": "Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook).",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
-    },
-    {
-      "ControlId": "BtnBreakLinks",
-      "Label": "Break Links",
-      "OnAction": "Ribbon_OnBreakExternalLinks",
-      "Macro": "UI_Ribbon.Ribbon_OnBreakExternalLinks",
-      "CommandName": "BreakExternalLinks",
-      "Icon": "WorkbookLinks",
-      "Keytip": "BL",
-      "Screentip": "Break External Links",
-      "Supertip": "Removes all external workbook references and keeps current values.",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
-    },
-    {
-      "ControlId": "BtnDateConv",
-      "Label": "Convert to Dates",
-      "OnAction": "Ribbon_OnConvertTextToProperDate",
-      "Macro": "UI_Ribbon.Ribbon_OnConvertTextToProperDate",
-      "CommandName": "DateConversion",
-      "Icon": "DateAndTimeInsert",
-      "Keytip": "FX",
-      "Screentip": "Fix Text Dates",
-      "Supertip": "Converts text-based date strings in the selected column into proper Excel date values.",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
-    },
-    {
-      "ControlId": "BtnDuplicate",
-      "Label": "Duplicate Workbook",
-      "OnAction": "Ribbon_OnDuplicate",
-      "Macro": "UI_Ribbon.Ribbon_OnDuplicate",
-      "CommandName": "Duplicate",
-      "Icon": "FileSaveAs",
-      "Keytip": "DP",
-      "Screentip": "Copy to Desktop",
-      "Supertip": "Creates a copy of this workbook on your desktop for quick sharing.",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
-    },
-    {
-      "ControlId": "BtnExport",
-      "Label": "Export Range",
-      "OnAction": "Ribbon_OnExport",
-      "Macro": "UI_Ribbon.Ribbon_OnExport",
-      "CommandName": "ExportImageOrPdf",
-      "Icon": "Export",
-      "Keytip": "EX",
-      "Screentip": "Export as Image or PDF",
-      "Supertip": "Exports the selected range (or the full used range if nothing is selected) to your Desktop as a PNG image or a fit-to-page PDF.",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
-    },
-    {
-      "ControlId": "BtnDashboard",
-      "Label": "Dashboard",
-      "OnAction": "Ribbon_OnDashboard",
-      "Macro": "UI_Ribbon.Ribbon_OnDashboard",
-      "CommandName": "Dashboard",
-      "Icon": "ChartInsert",
-      "Keytip": "DB",
-      "Screentip": "Financial Dashboard",
-      "Supertip": "Creates a minimal financial dashboard.",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "headless"
-    },
-    {
-      "ControlId": "BtnFullScreen",
-      "Label": "Focus Mode",
-      "OnAction": "Ribbon_OnToggleFullScreen",
-      "Macro": "UI_Ribbon.Ribbon_OnToggleFullScreen",
-      "CommandName": "ToggleFullScreen",
-      "Icon": "ViewFullScreenView",
-      "Keytip": "FM",
-      "Screentip": "Toggle Focus Mode",
-      "Supertip": "Hides or restores worksheet chrome to maximise working area.",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "headless"
-    },
-    {
-      "ControlId": "BtnHotkeys",
-      "Label": "Hotkeys",
-      "OnAction": "Ribbon_OnShowHotkeysHelp",
-      "Macro": "Infra_Hotkeys.ShowHotkeysHelp",
-      "CommandName": "ShowHotkeysHelp",
-      "Icon": "Help",
-      "Keytip": "H",
-      "Screentip": "Show Keyboard Shortcuts",
-      "Supertip": "Opens the Beaver keyboard shortcut reference, listing all registered hotkeys and their descriptions.",
-      "ReleaseTier": "stable",
-      "RuntimeTestMode": "interactive"
-    }
-  ],
-  "Hotkeys": [
-    {
-      "Key": "^+4",
-      "Macro": "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat",
-      "CommandName": "ApplyCustomNumberFormat",
-      "Description": "Apply custom number format",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^+p",
-      "Macro": "UI_Hotkeys.Hotkey_MakePermanent",
-      "CommandName": "MakePermanent",
-      "Description": "Make selection permanent (values)",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "+{F11}",
-      "Macro": "UI_Hotkeys.Hotkey_CreateNamedSheet",
-      "CommandName": "CreateSheet",
-      "Description": "Create named sheet",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^%{DOWN}",
-      "Macro": "UI_Hotkeys.Hotkey_FillDown",
-      "CommandName": "FillDown",
-      "Description": "Fill formula/format down",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^+f",
-      "Macro": "UI_Hotkeys.Hotkey_FilterBySelectedCell",
-      "CommandName": "FilterByCell",
-      "Description": "Filter by selected cell",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^+m",
-      "Macro": "UI_Hotkeys.Hotkey_PasteFormat",
-      "CommandName": "PasteFormat",
-      "Description": "Paste formats only",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "^+q",
-      "Macro": "UI_Hotkeys.Hotkey_FormatSelectedRange",
-      "CommandName": "FormatRange",
-      "Description": "Format selected range",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "{BACKSPACE}",
-      "Macro": "UI_Hotkeys.Hotkey_Backspace",
-      "CommandName": "Backspace",
-      "Description": "Clear cell contents",
-      "ReleaseTier": "stable"
-    },
-    {
-      "Key": "{DELETE}",
-      "Macro": "UI_Hotkeys.Hotkey_Delete",
-      "CommandName": "Delete",
-      "Description": "Clear or delete selection",
-      "ReleaseTier": "stable"
-    }
-  ]
+    "Tab":  {
+                "Id":  "BeaverTab",
+                "Label":  "BEAVER",
+                "Keytip":  "B"
+            },
+    "Groups":  [
+                   {
+                       "Id":  "GrpFormatting",
+                       "Label":  "Formatting",
+                       "Features":  [
+                                        "BtnWrap",
+                                        "BtnStaticSheetWorkbook"
+                                    ]
+                   },
+                   {
+                       "Id":  "GrpCleanup",
+                       "Label":  "Data Tools",
+                       "Features":  [
+                                        "BtnCleanData",
+                                        "BtnBreakLinks"
+                                    ]
+                   },
+                   {
+                       "Id":  "GrpExport",
+                       "Label":  "File Actions",
+                       "Features":  [
+                                        "BtnDuplicate",
+                                        "BtnExport"
+                                    ]
+                   },
+                   {
+                       "Id":  "GrpStructure",
+                       "Label":  "Workspace",
+                       "Features":  [
+                                        "BtnFullScreen"
+                                    ]
+                   },
+                   {
+                       "Id":  "BeaverHelpGroup",
+                       "Label":  "Support",
+                       "Features":  [
+                                        "BtnHotkeys"
+                                    ]
+                   }
+               ],
+    "Features":  [
+                     {
+                         "ControlId":  "BtnWrap",
+                         "Label":  "Wrap",
+                         "OnAction":  "Ribbon_OnWrap",
+                         "Macro":  "UI_Ribbon.Ribbon_OnWrap",
+                         "CommandName":  "Wrap",
+                         "Icon":  "FunctionWizard",
+                         "Keytip":  "W",
+                         "Screentip":  "Wrap Selection",
+                         "Supertip":  "Choose whether to wrap the selection by reusing a wrapper formula from another cell or by typing a formula pattern with [value].",
+                         "CommandClass":  "FeatCmd_Wrap",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnStaticSheetWorkbook",
+                         "Label":  "Static Sheet/WB",
+                         "OnAction":  "Ribbon_OnStaticSheetWorkbook",
+                         "Macro":  "UI_Ribbon.Ribbon_OnStaticSheetWorkbook",
+                         "CommandName":  "StaticSheetWorkbook",
+                         "Icon":  "CalculateNow",
+                         "Keytip":  "SW",
+                         "Screentip":  "Convert Formulas to Static Values",
+                         "Supertip":  "Permanently replaces all formulas with their current values across the active sheet or the entire workbook. Handles spill ranges correctly.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnCleanData",
+                         "Label":  "Clean Data",
+                         "OnAction":  "Ribbon_OnCleanData",
+                         "Macro":  "UI_Ribbon.Ribbon_OnCleanData",
+                         "CommandName":  "CleanData",
+                         "Icon":  "Clear",
+                         "Keytip":  "CD",
+                         "Screentip":  "Clean Data",
+                         "Supertip":  "Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook).",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnBreakLinks",
+                         "Label":  "Break Links",
+                         "OnAction":  "Ribbon_OnBreakExternalLinks",
+                         "Macro":  "UI_Ribbon.Ribbon_OnBreakExternalLinks",
+                         "CommandName":  "BreakExternalLinks",
+                         "Icon":  "WorkbookLinks",
+                         "Keytip":  "BL",
+                         "Screentip":  "Break External Links",
+                         "Supertip":  "Removes all external workbook references and keeps current values.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnDuplicate",
+                         "Label":  "Duplicate Workbook",
+                         "OnAction":  "Ribbon_OnDuplicate",
+                         "Macro":  "UI_Ribbon.Ribbon_OnDuplicate",
+                         "CommandName":  "Duplicate",
+                         "Icon":  "FileSaveAs",
+                         "Keytip":  "DP",
+                         "Screentip":  "Save a Macro-Free Copy",
+                         "Supertip":  "Creates a macro-free copy of the current workbook and lets you choose where to save it.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnExport",
+                         "Label":  "Export Range",
+                         "OnAction":  "Ribbon_OnExport",
+                         "Macro":  "UI_Ribbon.Ribbon_OnExport",
+                         "CommandName":  "ExportImageOrPdf",
+                         "Icon":  "Export",
+                         "Keytip":  "EX",
+                         "Screentip":  "Export as Image or PDF",
+                         "Supertip":  "Exports the selected range (or the full used range if nothing is selected) and lets you choose where to save it as PNG or PDF.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnFullScreen",
+                         "Label":  "Focus Mode",
+                         "OnAction":  "Ribbon_OnToggleFullScreen",
+                         "Macro":  "UI_Ribbon.Ribbon_OnToggleFullScreen",
+                         "CommandName":  "ToggleFullScreen",
+                         "Icon":  "ViewFullScreenView",
+                         "Keytip":  "FM",
+                         "Screentip":  "Toggle Full Screen Focus Mode",
+                         "Supertip":  "Toggles a full-screen workspace by hiding or restoring the Ribbon, formula bar, status bar, headings, tabs, and scrollbars.",
+                         "RuntimeTestMode":  "headless"
+                     },
+                     {
+                         "ControlId":  "BtnHotkeys",
+                         "Label":  "Hotkeys",
+                         "OnAction":  "Ribbon_OnShowHotkeysHelp",
+                         "Macro":  "UI_Ribbon.Ribbon_OnShowHotkeysHelp",
+                         "CommandName":  "ShowHotkeysHelp",
+                         "Icon":  "Help",
+                         "Keytip":  "H",
+                         "Screentip":  "Show Keyboard Shortcuts",
+                         "Supertip":  "Opens the Beaver keyboard shortcut reference, listing all registered hotkeys and their descriptions.",
+                         "RuntimeTestMode":  "interactive"
+                     }
+                 ],
+    "Hotkeys":  [
+                    {
+                        "Key":  "^+4",
+                        "Macro":  "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat",
+                        "CommandName":  "ApplyCustomNumberFormat",
+                        "Description":  "Apply custom number format"
+                    },
+                    {
+                        "Key":  "^+p",
+                        "Macro":  "UI_Hotkeys.Hotkey_MakePermanent",
+                        "CommandName":  "MakePermanent",
+                        "Description":  "Make selection permanent (values)"
+                    },
+                    {
+                        "Key":  "+{F11}",
+                        "Macro":  "UI_Hotkeys.Hotkey_CreateNamedSheet",
+                        "CommandName":  "CreateSheet",
+                        "Description":  "Create named sheet"
+                    },
+                    {
+                        "Key":  "^%{DOWN}",
+                        "Macro":  "UI_Hotkeys.Hotkey_FillDown",
+                        "CommandName":  "FillDown",
+                        "Description":  "Fill formula/format down"
+                    },
+                    {
+                        "Key":  "^+f",
+                        "Macro":  "UI_Hotkeys.Hotkey_FilterBySelectedCell",
+                        "CommandName":  "FilterByCell",
+                        "Description":  "Filter by selected cell"
+                    },
+                    {
+                        "Key":  "^+m",
+                        "Macro":  "UI_Hotkeys.Hotkey_PasteFormat",
+                        "CommandName":  "PasteFormat",
+                        "Description":  "Paste formats only"
+                    },
+                    {
+                        "Key":  "^+q",
+                        "Macro":  "UI_Hotkeys.Hotkey_FormatSelectedRange",
+                        "CommandName":  "FormatRange",
+                        "Description":  "Format selected range"
+                    },
+                    {
+                        "Key":  "{BACKSPACE}",
+                        "Macro":  "UI_Hotkeys.Hotkey_Backspace",
+                        "CommandName":  "Backspace",
+                        "Description":  "Clear cell contents"
+                    },
+                    {
+                        "Key":  "{DELETE}",
+                        "Macro":  "UI_Hotkeys.Hotkey_Delete",
+                        "CommandName":  "Delete",
+                        "Description":  "Clear or delete selection"
+                    }
+                ]
 }

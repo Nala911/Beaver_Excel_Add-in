@@ -15,18 +15,12 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Advanced data cleaning tools (Trim, Clean).
 
-Private Enum CleanDataScope
-    CleanDataScopeSelection = 1
-    CleanDataScopeActiveSheet = 2
-    CleanDataScopeWorkbook = 3
-End Enum
-
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
 End Property
 
 Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
-    Set ICommand_Validate = Infra_CommandSupport.ValidateHasRangeSelection(context)
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasWorksheet(context)
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
@@ -41,12 +35,13 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
-    If Not ctx.HasRangeSelection Then GoTo CleanExit
-    If ctx.SelectionRange Is Nothing Or ctx.WorksheetRef Is Nothing Or ctx.WorkbookRef Is Nothing Then GoTo CleanExit
+    If ctx.WorksheetRef Is Nothing Or ctx.WorkbookRef Is Nothing Then GoTo CleanExit
     
     Infra_Error.AddState stateInfo, "Workbook", ctx.WorkbookRef.Name
     Infra_Error.AddState stateInfo, "Worksheet", ctx.WorksheetRef.Name
-    Infra_Error.AddState stateInfo, "Selection", ctx.SelectionRange.Address(False, False)
+    If ctx.HasRangeSelection And Not ctx.SelectionRange Is Nothing Then
+        Infra_Error.AddState stateInfo, "Selection", ctx.SelectionRange.Address(False, False)
+    End If
 
     Set request = Infra_UIFactory.ShowCleanDataDialog(ctx)
     If request Is Nothing Then GoTo CleanExit
@@ -68,6 +63,8 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Dim ws As Worksheet
     Dim targetRange As Range
     Dim stateInfo As Collection
+    Dim cleanedCount As Long
+    Dim scopeLabel As String
 
     Set stateInfo = Infra_Error.NewStateInfo()
     
@@ -79,37 +76,52 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Select Case request.Scope
         Case CleanDataScopeSelection
             Set targetRange = request.Context.SelectionRange
+            scopeLabel = "selection"
         Case CleanDataScopeActiveSheet
             Set targetRange = request.Context.WorksheetRef.UsedRange
+            scopeLabel = "active sheet"
         Case CleanDataScopeWorkbook
-            ' Capture the active sheet as the primary target for undo
-            Set targetRange = request.Context.WorksheetRef.UsedRange
+            Set targetRange = Nothing
+            scopeLabel = "workbook"
     End Select
     
-    Infra_Undo.SaveState targetRange, "Clean Data"
+    If Not targetRange Is Nothing Then
+        Infra_Undo.SaveState targetRange, "Clean Data"
+    End If
     
     ' --- 2. Initialize Progress ---
-    Infra_Progress.StartProgress "Cleaning Data", 100
+    If request.Scope = CleanDataScopeWorkbook Then
+        Infra_Progress.StartProgress "Cleaning Data", request.Context.WorkbookRef.Worksheets.Count
+    Else
+        Infra_Progress.StartProgress "Cleaning Data", 1
+    End If
     
     Select Case request.Scope
         Case CleanDataScopeSelection
-            ProcessRangeForClean request.Context.SelectionRange, 100
+            cleanedCount = ProcessRangeForClean(request.Context.SelectionRange)
+            Infra_Progress.UpdateProgress 1, True
         Case CleanDataScopeActiveSheet
-            ProcessRangeForClean request.Context.WorksheetRef.UsedRange, 100
+            cleanedCount = ProcessRangeForClean(request.Context.WorksheetRef.UsedRange)
+            Infra_Progress.UpdateProgress 1, True
         Case CleanDataScopeWorkbook
-            Dim i As Integer, count As Integer
+            Dim i As Long, count As Long
             count = request.Context.WorkbookRef.Worksheets.Count
             For i = 1 To count
                 Set ws = request.Context.WorkbookRef.Worksheets(i)
-                Infra_Progress.UpdateProgress (i / count) * 100
-                ProcessRangeForClean ws.UsedRange, 0 ' Don't sub-track within sheet to avoid overhead
+                cleanedCount = cleanedCount + ProcessRangeForClean(ws.UsedRange)
+                Infra_Progress.UpdateProgress i, True
                 If Infra_Progress.UserCancelled Then Exit For
             Next i
     End Select
     
-    Infra_Progress.EndProgress
+    If cleanedCount > 0 Then
+        Infra_Interaction.ShowInfo "Done! Optimized " & Format$(cleanedCount, "#,##0") & " text cell(s) in the " & scopeLabel & "."
+    Else
+        Infra_Interaction.ShowInfo "No cleaning was required for the text in the " & scopeLabel & "."
+    End If
 
 CleanExit:
+    Infra_Progress.EndProgress
     Exit Sub
 
 ErrHandler:
@@ -117,85 +129,81 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ProcessRangeForClean(ByRef targetRange As Range, Optional ByVal ProgressWeight As Double = 0)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("ProcessRangeForClean")
-    On Error GoTo ErrHandler
-    
-    If targetRange Is Nothing Then GoTo CleanExit
+Private Function ProcessRangeForClean(ByRef targetRange As Range) As Long
+    ' Note: No tracker here for performance; this is a core processing loop.
+    If targetRange Is Nothing Then Exit Function
 
     Dim textCells As Range
     Dim area As Range
     Dim dataArr As Variant
     Dim i As Long, totalAreas As Long
+    Dim changeCount As Long
 
     On Error Resume Next
     Set textCells = targetRange.SpecialCells(xlCellTypeConstants, xlTextValues)
-    On Error GoTo ErrHandler
+    On Error GoTo 0
 
-    If textCells Is Nothing Then GoTo CleanExit
+    If textCells Is Nothing Then Exit Function
 
     totalAreas = textCells.Areas.Count
     For i = 1 To totalAreas
         Set area = textCells.Areas(i)
         
-        If ProgressWeight > 0 Then
-            Infra_Progress.UpdateProgress (i / totalAreas) * ProgressWeight
-        End If
-        
         If area.Cells.CountLarge = 1 Then
-            area.Value = CleanTextValue(area.Value)
+            Dim oldVal As Variant, newVal As String
+            oldVal = area.Value
+            newVal = CleanTextValue(oldVal)
+            If newVal <> CStr(oldVal) Then
+                area.Value = newVal
+                changeCount = changeCount + 1
+            End If
         Else
             dataArr = area.Value
-            CleanTextArray dataArr
+            changeCount = changeCount + CleanTextArray(dataArr)
             area.Value = dataArr
         End If
         
-        If i Mod 10 = 0 Then DoEvents ' Ensure responsiveness for many small areas
+        If i Mod 20 = 0 Then DoEvents
     Next i
-
-CleanExit:
-    Exit Sub
-
-ErrHandler:
-    Infra_Error.HandleError "ProcessRangeForClean", Err
-    Resume CleanExit
-End Sub
-
-Private Sub CleanTextArray(ByRef dataArr As Variant)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("CleanTextArray")
-    On Error GoTo ErrHandler
     
+    ProcessRangeForClean = changeCount
+End Function
+
+Private Function CleanTextArray(ByRef dataArr As Variant) As Long
+    ' Note: No tracker here for performance.
     Dim rowIndex As Long
     Dim columnIndex As Long
+    Dim oldVal As Variant
+    Dim newVal As String
+    Dim changeCount As Long
 
     For rowIndex = LBound(dataArr, 1) To UBound(dataArr, 1)
         For columnIndex = LBound(dataArr, 2) To UBound(dataArr, 2)
-            dataArr(rowIndex, columnIndex) = CleanTextValue(dataArr(rowIndex, columnIndex))
+            oldVal = dataArr(rowIndex, columnIndex)
+            newVal = CleanTextValue(oldVal)
+            If newVal <> CStr(oldVal) Then
+                dataArr(rowIndex, columnIndex) = newVal
+                changeCount = changeCount + 1
+            End If
         Next columnIndex
     Next rowIndex
-
-CleanExit:
-    Exit Sub
-
-ErrHandler:
-    Infra_Error.HandleError "CleanTextArray", Err
-    Resume CleanExit
-End Sub
+    
+    CleanTextArray = changeCount
+End Function
 
 Private Function CleanTextValue(ByVal rawValue As Variant) As String
-    Dim tracker As Object: Set tracker = Infra_Error.Track("CleanTextValue")
-    On Error GoTo ErrHandler
-    
+    ' Note: No tracker here. This is called in tight loops.
     Dim textValue As String
-    
     textValue = CStr(rawValue)
-    textValue = Replace(textValue, Chr(160), " ")
-    CleanTextValue = Application.WorksheetFunction.Trim(Application.WorksheetFunction.Clean(textValue))
-
-CleanExit:
-    Exit Function
-
-ErrHandler:
-    Infra_Error.HandleError "CleanTextValue", Err
-    Resume CleanExit
+    
+    ' Quick check for common cleaning targets to potentially skip overhead
+    If textValue = vbNullString Then Exit Function
+    
+    ' Replace non-breaking space (Chr 160)
+    If InStr(1, textValue, ChrW$(160)) > 0 Then
+        textValue = Replace(textValue, ChrW$(160), " ")
+    End If
+    
+    ' Application.Trim handles internal double spaces; Application.Clean handles non-printables.
+    CleanTextValue = Application.Trim(Application.Clean(textValue))
 End Function

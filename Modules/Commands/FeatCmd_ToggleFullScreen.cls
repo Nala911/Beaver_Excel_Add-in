@@ -13,7 +13,7 @@ Implements ICommand
 
 ' @Module: FeatCmd_ToggleFullScreen
 ' @Category: Feature
-' @Description: Toggles Excel's full screen (Ribbon and status bar) visibility.
+' @Description: Toggles a focused full-screen workspace by hiding or restoring available Excel chrome.
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy()
@@ -33,26 +33,63 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WindowRef Is Nothing Then GoTo CleanExit
 
-    Dim targetState As Boolean
-    
-    ' Determine target state based on current heading visibility.
-    ' If headings are visible, we are entering Focus Mode (targetState = False).
-    ' If headings are hidden, we are leaving Focus Mode (targetState = True).
-    targetState = Not ctx.WindowRef.DisplayHeadings
+    Dim enterFocusMode As Boolean
 
-    With ctx.WindowRef
-        .DisplayHeadings = targetState
-        .DisplayWorkbookTabs = targetState
-        .DisplayHorizontalScrollBar = targetState
-        .DisplayVerticalScrollBar = targetState
-    End With
-    
-    Application.DisplayFormulaBar = targetState
+    enterFocusMode = (ctx.WindowRef.DisplayHeadings Or _
+                      ctx.WindowRef.DisplayWorkbookTabs Or _
+                      ctx.WindowRef.DisplayHorizontalScrollBar Or _
+                      ctx.WindowRef.DisplayVerticalScrollBar Or _
+                      Application.DisplayFormulaBar Or _
+                      Application.DisplayStatusBar Or _
+                      Not Application.DisplayFullScreen)
+
+    ApplyFocusMode ctx.WindowRef, enterFocusMode
     
 CleanExit:
     Exit Sub
 
 ErrHandler:
     Infra_Error.HandleError "ToggleFullScreen.Execute", Err
+    Resume CleanExit
+End Sub
+
+Private Sub ApplyFocusMode(ByVal targetWindow As Window, ByVal enableFocusMode As Boolean)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ApplyFocusMode")
+    On Error GoTo ErrHandler
+
+    If targetWindow Is Nothing Then GoTo CleanExit
+
+    With targetWindow
+        .DisplayHeadings = Not enableFocusMode
+        .DisplayWorkbookTabs = Not enableFocusMode
+        .DisplayHorizontalScrollBar = Not enableFocusMode
+        .DisplayVerticalScrollBar = Not enableFocusMode
+    End With
+
+    Application.DisplayFormulaBar = Not enableFocusMode
+    Application.DisplayStatusBar = Not enableFocusMode
+    Application.DisplayFullScreen = enableFocusMode
+    SetRibbonVisible Not enableFocusMode
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "ApplyFocusMode", Err
+    Resume CleanExit
+End Sub
+
+Private Sub SetRibbonVisible(ByVal isVisible As Boolean)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("SetRibbonVisible")
+    On Error GoTo ErrHandler
+
+    Application.ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon""," & IIf(isVisible, "True", "False") & ")"
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    ' Some Excel environments do not allow Ribbon toggling through Excel4 macros.
+    Err.Clear
     Resume CleanExit
 End Sub
