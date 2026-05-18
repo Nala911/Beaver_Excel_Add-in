@@ -18,7 +18,7 @@ Core capabilities:
 - formula manipulation and formula-to-value conversion
 - text cleanup and date normalization
 - workbook duplication and range export
-- link breaking and worksheet workspace toggles
+- link breaking
 - a manifest-driven Ribbon and hotkey system
 - worksheet UDFs: `XFilter` and `XUnpivot`
 - a lightweight VBA test harness
@@ -160,8 +160,7 @@ wiring.
 - `BreakExternalLinks` -> `FeatCmd_BreakExternalLinks`
 - `Duplicate` -> `FeatCmd_Duplicate`
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf`
-- `ToggleFullScreen` -> `FeatCmd_ToggleFullScreen` (Focus Mode)
-- `ShowHotkeysHelp` -> `FeatCmd_ShowHotkeysHelp`
+- `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter`
 
 ### Hotkey-driven commands
 
@@ -195,8 +194,7 @@ wiring.
 - `Formatting`: wrap (mode picked in a `UserForm`), static sheet/workbook
 - `Data Tools`: clean data, break links
 - `File Actions`: duplicate workbook, export range
-- `Workspace`: Focus Mode
-- `Support`: hotkeys help
+- `Support`: help center
 
 Interactive command notes:
 
@@ -215,8 +213,7 @@ Interactive command notes:
 - `BtnBreakLinks`
 - `BtnDuplicate`
 - `BtnExport`
-- `BtnFullScreen`
-- `BtnHotkeys`
+- `BtnHelpCenter`
 
 ### Hotkeys currently in `config.json`
 

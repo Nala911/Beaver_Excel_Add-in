@@ -10,7 +10,7 @@ Option Explicit
 ' Returns a 2D array of all hotkey definitions from JSON.
 '   Column 1 = OnKey pattern  (e.g. "^+p")
 '   Column 2 = Macro name     (e.g. "Feat_MakeItStatic.MakePermanent")
-'   Column 3 = Human-readable description for ShowHotkeysHelp
+'   Column 3 = Human-readable description for ShowHelpCenter
 Public Function HotkeyDefinitions() As Variant
     Dim tracker As Object: Set tracker = Infra_Error.Track("HotkeyDefinitions")
     On Error GoTo ErrHandler
@@ -107,14 +107,14 @@ ErrHandler:
 End Sub
 
 ' Shows a human-readable list of all shortcuts from HotkeyDefinitions in a UserForm.
-Public Sub ShowHotkeysHelp()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("ShowHotkeysHelp")
+Public Sub ShowHelpCenter()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ShowHelpCenter")
     On Error GoTo ErrHandler
     
     Dim frm As Object
     
     On Error Resume Next
-    Set frm = VBA.UserForms.Add("UI_HotkeysHelp")
+    Set frm = VBA.UserForms.Add("UI_HelpCenter")
     On Error GoTo ErrHandler
     
     If Not frm Is Nothing Then
@@ -126,7 +126,7 @@ Public Sub ShowHotkeysHelp()
 CleanExit:
     Exit Sub
 ErrHandler:
-    Infra_Error.HandleError "ShowHotkeysHelp", Err
+    Infra_Error.HandleError "ShowHelpCenter", Err
     Resume CleanExit
 End Sub
 

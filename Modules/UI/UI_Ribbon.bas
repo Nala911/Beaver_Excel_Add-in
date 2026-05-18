@@ -105,28 +105,15 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Public Sub Ribbon_OnToggleFullScreen(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnToggleFullScreen")
+Public Sub Ribbon_OnShowHelpCenter(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnShowHelpCenter")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnToggleFullScreen", "Ribbon_OnToggleFullScreen", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnShowHelpCenter", "Ribbon_OnShowHelpCenter", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnToggleFullScreen", Err
-    Resume CleanExit
-End Sub
-
-Public Sub Ribbon_OnShowHotkeysHelp(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnShowHotkeysHelp")
-    On Error GoTo ErrHandler
-
-    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnShowHotkeysHelp", "Ribbon_OnShowHotkeysHelp", "Ribbon"
-
-CleanExit:
-    Exit Sub
-ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnShowHotkeysHelp", Err
+    Infra_Error.HandleError "Ribbon_OnShowHelpCenter", Err
     Resume CleanExit
 End Sub

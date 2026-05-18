@@ -18,7 +18,7 @@
                       },
     "FeatureFlags":  {
                          "ManifestFile":  "features.json",
-                         "GeneratedFeatureCount":  8
+                         "GeneratedFeatureCount":  7
                      },
     "Hotkeys":  [
                     {
@@ -83,7 +83,6 @@
                   "BtnBreakLinks":  "WorkbookLinks",
                   "BtnDuplicate":  "FileSaveAs",
                   "BtnExport":  "Export",
-                  "BtnFullScreen":  "ViewFullScreenView",
-                  "BtnHotkeys":  "Help"
+                  "BtnHelpCenter":  "Help"
               }
 }

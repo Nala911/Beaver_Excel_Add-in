@@ -21,11 +21,8 @@
           <button id="BtnDuplicate" label="Duplicate Workbook" imageMso="FileSaveAs" size="large" onAction="Ribbon_OnDuplicate" keytip="DP" screentip="Save a Macro-Free Copy" supertip="Creates a macro-free copy of the current workbook and lets you choose where to save it." />
           <button id="BtnExport" label="Export Range" imageMso="Export" size="large" onAction="Ribbon_OnExport" keytip="EX" screentip="Export as Image or PDF" supertip="Exports the selected range (or the full used range if nothing is selected) and lets you choose where to save it as PNG or PDF." />
         </group>
-        <group id="GrpStructure" label="Workspace">
-          <button id="BtnFullScreen" label="Focus Mode" imageMso="ViewFullScreenView" size="large" onAction="Ribbon_OnToggleFullScreen" keytip="FM" screentip="Toggle Full Screen Focus Mode" supertip="Toggles a full-screen workspace by hiding or restoring the Ribbon, formula bar, status bar, headings, tabs, and scrollbars." />
-        </group>
         <group id="BeaverHelpGroup" label="Support">
-          <button id="BtnHotkeys" label="Hotkeys" imageMso="Help" size="large" onAction="Ribbon_OnShowHotkeysHelp" keytip="H" screentip="Show Keyboard Shortcuts" supertip="Opens the Beaver keyboard shortcut reference, listing all registered hotkeys and their descriptions." />
+          <button id="BtnHelpCenter" label="Help Center" imageMso="Help" size="large" onAction="Ribbon_OnShowHelpCenter" keytip="H" screentip="Show Help Center" supertip="Opens the Beaver Help Center, listing all registered hotkeys, user-defined functions, and their descriptions." />
         </group>
       </tab>
     </tabs>

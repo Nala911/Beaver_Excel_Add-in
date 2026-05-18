@@ -30,17 +30,10 @@
                                     ]
                    },
                    {
-                       "Id":  "GrpStructure",
-                       "Label":  "Workspace",
-                       "Features":  [
-                                        "BtnFullScreen"
-                                    ]
-                   },
-                   {
                        "Id":  "BeaverHelpGroup",
                        "Label":  "Support",
                        "Features":  [
-                                        "BtnHotkeys"
+                                        "BtnHelpCenter"
                                     ]
                    }
                ],
@@ -119,27 +112,15 @@
                          "RuntimeTestMode":  "interactive"
                      },
                      {
-                         "ControlId":  "BtnFullScreen",
-                         "Label":  "Focus Mode",
-                         "OnAction":  "Ribbon_OnToggleFullScreen",
-                         "Macro":  "UI_Ribbon.Ribbon_OnToggleFullScreen",
-                         "CommandName":  "ToggleFullScreen",
-                         "Icon":  "ViewFullScreenView",
-                         "Keytip":  "FM",
-                         "Screentip":  "Toggle Full Screen Focus Mode",
-                         "Supertip":  "Toggles a full-screen workspace by hiding or restoring the Ribbon, formula bar, status bar, headings, tabs, and scrollbars.",
-                         "RuntimeTestMode":  "headless"
-                     },
-                     {
-                         "ControlId":  "BtnHotkeys",
-                         "Label":  "Hotkeys",
-                         "OnAction":  "Ribbon_OnShowHotkeysHelp",
-                         "Macro":  "UI_Ribbon.Ribbon_OnShowHotkeysHelp",
-                         "CommandName":  "ShowHotkeysHelp",
+                         "ControlId":  "BtnHelpCenter",
+                         "Label":  "Help Center",
+                         "OnAction":  "Ribbon_OnShowHelpCenter",
+                         "Macro":  "UI_Ribbon.Ribbon_OnShowHelpCenter",
+                         "CommandName":  "ShowHelpCenter",
                          "Icon":  "Help",
                          "Keytip":  "H",
-                         "Screentip":  "Show Keyboard Shortcuts",
-                         "Supertip":  "Opens the Beaver keyboard shortcut reference, listing all registered hotkeys and their descriptions.",
+                         "Screentip":  "Show Help Center",
+                         "Supertip":  "Opens the Beaver Help Center, listing all registered hotkeys, user-defined functions, and their descriptions.",
                          "RuntimeTestMode":  "interactive"
                      }
                  ],
@@ -200,3 +181,5 @@
                     }
                 ]
 }
+
+

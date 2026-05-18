@@ -1,14 +1,14 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UI_HotkeysHelp 
-   Caption         =   "Keyboard Shortcuts"
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UI_HelpCenter 
+   Caption         =   "Help Center"
    ClientHeight    =   5480
    ClientLeft      =   100
    ClientTop       =   420
    ClientWidth     =   6800
-   OleObjectBlob   =   "UI_HotkeysHelp.frx":0000
+   OleObjectBlob   =   "UI_HelpCenter.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
-Attribute VB_Name = "UI_HotkeysHelp"
+Attribute VB_Name = "UI_HelpCenter"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -16,9 +16,9 @@ Attribute VB_Exposed = False
 
 Option Explicit
 
-' @Module: UI_HotkeysHelp
+' @Module: UI_HelpCenter
 ' @Category: UI
-' @Description: Displays the configured hotkeys in a standard UserForm.
+' @Description: Displays hotkeys and UDFs in the Beaver Help Center dialog.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: Infra_Hotkeys
 
@@ -42,21 +42,45 @@ Private Sub LoadHotkeysList()
         .Clear
         .ColumnCount = 2
         
-        If IsEmpty(defs) Then
-            .AddItem "No hotkeys defined."
-            .List(0, 1) = ""
-            Exit Sub
-        End If
-        
         Dim r As Long
         r = 0
-        For i = LBound(defs, 1) To UBound(defs, 1)
-            If defs(i, 1) <> "" And defs(i, 3) <> "" Then
-                .AddItem Infra_Hotkeys.TranslateHotkey(CStr(defs(i, 1)))
-                .List(r, 1) = defs(i, 3)
-                r = r + 1
-            End If
-        Next i
+        
+        ' --- 1. Keyboard Shortcuts ---
+        .AddItem " Keyboard Shortcuts "
+        .List(r, 1) = ""
+        r = r + 1
+        
+        If Not IsEmpty(defs) Then
+            For i = LBound(defs, 1) To UBound(defs, 1)
+                If defs(i, 1) <> "" And defs(i, 3) <> "" Then
+                    .AddItem "  " & Infra_Hotkeys.TranslateHotkey(CStr(defs(i, 1)))
+                    .List(r, 1) = defs(i, 3)
+                    r = r + 1
+                End If
+            Next i
+        Else
+            .AddItem "  No hotkeys defined."
+            .List(r, 1) = ""
+            r = r + 1
+        End If
+        
+        .AddItem ""
+        .List(r, 1) = ""
+        r = r + 1
+        
+        ' --- 2. User Defined Functions ---
+        .AddItem " User Defined Functions "
+        .List(r, 1) = ""
+        r = r + 1
+        
+        .AddItem "  XFilter(Range_A, Range_B, code)"
+        .List(r, 1) = "Advanced set operations (1=Intersect, 2=Diff)"
+        r = r + 1
+        
+        .AddItem "  XUnpivot(Range, FixedCols, ...)"
+        .List(r, 1) = "Transforms a wide range into long normal form"
+        r = r + 1
+        
     End With
 End Sub
 
@@ -65,7 +89,7 @@ End Sub
 Private Sub ConfigureHotkeysLayout()
     Const HOTKEYS_FORM_WIDTH As Double = 420
     Const HOTKEYS_MIN_LIST_HEIGHT As Double = 120
-    Const HOTKEYS_MAX_LIST_HEIGHT As Double = 210
+    Const HOTKEYS_MAX_LIST_HEIGHT As Double = 350
     Const HOTKEY_ROW_HEIGHT As Double = 18
     Const FORM_BOTTOM_PADDING As Double = 20
     Const BUTTON_GAP As Double = 10
@@ -73,7 +97,7 @@ Private Sub ConfigureHotkeysLayout()
 
     Dim listHeight As Double
 
-    Me.Caption = "Keyboard Shortcuts"
+    Me.Caption = "Help Center"
     btnOK.Caption = "Close"
 
     Me.Width = HOTKEYS_FORM_WIDTH
@@ -81,7 +105,7 @@ Private Sub ConfigureHotkeysLayout()
     lstHotkeys.Left = SIDE_MARGIN
     lstHotkeys.Top = 18
     lstHotkeys.Width = Me.InsideWidth - (SIDE_MARGIN * 2)
-    lstHotkeys.ColumnWidths = "110 pt;250 pt"
+    lstHotkeys.ColumnWidths = "150 pt;250 pt"
 
     listHeight = (lstHotkeys.ListCount * HOTKEY_ROW_HEIGHT) + 8
     If listHeight < HOTKEYS_MIN_LIST_HEIGHT Then listHeight = HOTKEYS_MIN_LIST_HEIGHT

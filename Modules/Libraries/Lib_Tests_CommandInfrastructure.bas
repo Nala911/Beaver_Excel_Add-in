@@ -12,8 +12,7 @@ Public Sub Test_CommandRegistryResolvesRibbonEntries()
     On Error GoTo ErrHandler
 
     AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnExport"), "ExportImageOrPdf", "Ribbon export callback should resolve to ExportImageOrPdf"
-    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnToggleFullScreen"), "ToggleFullScreen", "Ribbon focus-mode callback should resolve to ToggleFullScreen"
-    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnShowHotkeysHelp"), "ShowHotkeysHelp", "Hotkeys help callback should resolve to ShowHotkeysHelp"
+    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnShowHelpCenter"), "ShowHelpCenter", "Hotkeys help callback should resolve to ShowHelpCenter"
 
 CleanExit:
     Exit Sub
@@ -67,7 +66,7 @@ Public Sub Test_CommandRegistryCreatesKnownCommands()
     On Error GoTo ErrHandler
 
     AssertTrue Not Infra_CommandRegistry.CreateCommand("FormatRange") Is Nothing, "Command registry should create FormatRange command instances"
-    AssertTrue Not Infra_CommandRegistry.CreateCommand("ShowHotkeysHelp") Is Nothing, "Command registry should create ShowHotkeysHelp command instances"
+    AssertTrue Not Infra_CommandRegistry.CreateCommand("ShowHelpCenter") Is Nothing, "Command registry should create ShowHelpCenter command instances"
 
 CleanExit:
     Exit Sub

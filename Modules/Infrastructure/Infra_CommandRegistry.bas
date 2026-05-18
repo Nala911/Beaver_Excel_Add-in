@@ -24,10 +24,8 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "Duplicate"
         Case "UI_RIBBON.RIBBON_ONEXPORT"
             ResolveCommandName = "ExportImageOrPdf"
-        Case "UI_RIBBON.RIBBON_ONTOGGLEFULLSCREEN"
-            ResolveCommandName = "ToggleFullScreen"
-        Case "UI_RIBBON.RIBBON_ONSHOWHOTKEYSHELP"
-            ResolveCommandName = "ShowHotkeysHelp"
+        Case "UI_RIBBON.RIBBON_ONSHOWHELPCENTER"
+            ResolveCommandName = "ShowHelpCenter"
         Case "UI_HOTKEYS.HOTKEY_APPLYCUSTOMNUMBERFORMAT"
             ResolveCommandName = "ApplyCustomNumberFormat"
         Case "UI_HOTKEYS.HOTKEY_MAKEPERMANENT"
@@ -73,10 +71,8 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
             Set CreateCommand = New FeatCmd_Duplicate
         Case "EXPORTIMAGEORPDF"
             Set CreateCommand = New FeatCmd_ExportImageOrPdf
-        Case "TOGGLEFULLSCREEN"
-            Set CreateCommand = New FeatCmd_ToggleFullScreen
-        Case "SHOWHOTKEYSHELP"
-            Set CreateCommand = New FeatCmd_ShowHotkeysHelp
+        Case "SHOWHELPCENTER"
+            Set CreateCommand = New FeatCmd_ShowHelpCenter
         Case "APPLYCUSTOMNUMBERFORMAT"
             Set CreateCommand = New FeatCmd_ApplyCustomNumberFormat
         Case "MAKEPERMANENT"
