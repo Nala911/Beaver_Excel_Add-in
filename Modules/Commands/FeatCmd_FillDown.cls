@@ -16,7 +16,7 @@ Implements ICommand
 ' @Description: Intelligent fill-down functionality that respects tables and filtered data.
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
-    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy()
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyBulkWrite()
 End Property
 
 Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult

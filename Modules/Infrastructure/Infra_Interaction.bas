@@ -197,10 +197,49 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Private Function ResolveTitle(ByVal explicitTitle As String) As String
-    If Len(Trim$(explicitTitle)) > 0 Then
-        ResolveTitle = explicitTitle
+' Formats a dialog or message box title consistently with the Add-in brand name.
+' If dialogName is provided, returns "Add-in Name - dialogName"
+' Otherwise returns "Add-in Name"
+Public Function FormatTitle(Optional ByVal dialogName As String = vbNullString) As String
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FormatTitle")
+    On Error GoTo ErrHandler
+
+    Dim nameTrimmed As String
+    nameTrimmed = Trim$(dialogName)
+    If Len(nameTrimmed) > 0 Then
+        FormatTitle = Infra_Config.ADDIN_NAME & " - " & nameTrimmed
     Else
-        ResolveTitle = Infra_Config.ADDIN_NAME
+        FormatTitle = Infra_Config.ADDIN_NAME
     End If
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "FormatTitle", Err
+    Resume CleanExit
+End Function
+
+Private Function ResolveTitle(ByVal explicitTitle As String) As String
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ResolveTitle")
+    On Error GoTo ErrHandler
+
+    Dim titleTrimmed As String
+    titleTrimmed = Trim$(explicitTitle)
+    If Len(titleTrimmed) > 0 Then
+        If InStr(1, titleTrimmed, Infra_Config.ADDIN_NAME, vbTextCompare) = 1 Then
+            ResolveTitle = titleTrimmed
+        Else
+            ResolveTitle = FormatTitle(titleTrimmed)
+        End If
+    Else
+        ResolveTitle = FormatTitle()
+    End If
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "ResolveTitle", Err
+    Resume CleanExit
 End Function

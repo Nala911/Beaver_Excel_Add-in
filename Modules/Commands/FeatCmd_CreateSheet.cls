@@ -16,7 +16,7 @@ Implements ICommand
 ' @Description: Creates a new worksheet with a user-supplied name and explicit placement.
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
-    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
 End Property
 
 Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult

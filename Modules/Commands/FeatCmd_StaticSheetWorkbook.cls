@@ -16,7 +16,7 @@ Implements ICommand
 ' @Description: Converts formulas (including spills) to static values across active sheet or whole workbook.
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
-    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
 End Property
 
 Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult

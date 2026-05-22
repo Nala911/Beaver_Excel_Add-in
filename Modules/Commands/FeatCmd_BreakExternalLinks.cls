@@ -16,7 +16,7 @@ Implements ICommand
 ' @Description: Detects and breaks external Excel links, connections, and external named ranges.
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
-    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy(True, False, True)
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
 End Property
 
 Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult

@@ -16,7 +16,7 @@ Implements ICommand
 ' @Description: Quick-filter a range based on the value of the active cell.
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
-    Set ICommand_ExecutionPolicy = Infra_CommandSupport.CreateExecutionPolicy()
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyBulkWrite()
 End Property
 
 Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult

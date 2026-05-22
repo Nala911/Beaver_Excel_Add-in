@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: Infra_ActionContext
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Typed snapshot of the active Excel workbook, sheet, and selection state for a macro invocation.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: None

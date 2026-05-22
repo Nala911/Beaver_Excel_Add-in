@@ -427,7 +427,7 @@ ErrHandler:
 End Function
 
 Private Function BuildDialogTitle(ByVal dialogName As String) As String
-    BuildDialogTitle = Infra_Config.ADDIN_NAME & " - " & dialogName
+    BuildDialogTitle = Infra_Interaction.FormatTitle(dialogName)
 End Function
 
 Private Function BuildContextSummary(ByVal ctx As Infra_ActionContext, Optional ByVal includeSelection As Boolean = True) As String
@@ -478,7 +478,7 @@ Private Function BuildSuggestedExportBaseName(ByVal sourceRange As Range, ByVal 
         fileStem = "BeaverExport"
     Else
         fileStem = IIf(exportAsPng, "RangeImage", "RangePDF") & "_" & _
-                   SanitizeFileNameStem(sourceRange.Worksheet.Name) & "_" & _
+                   Infra_AppState.SanitizeFileNameStem(sourceRange.Worksheet.Name) & "_" & _
                    BuildRangeFileLabel(sourceRange)
     End If
 
@@ -509,14 +509,14 @@ Private Function PromptForOutputPath(ByVal ctx As Infra_ActionContext, ByVal tas
         GoTo CleanExit
     End If
 
-    normalizedBaseName = SanitizeFileNameStem(suggestedBaseName)
+    normalizedBaseName = Infra_AppState.SanitizeFileNameStem(suggestedBaseName)
     If normalizedBaseName = vbNullString Then normalizedBaseName = "BeaverOutput"
 
-    initialPath = CombinePath(desktopPath, normalizedBaseName & "." & LCase$(extensionWithoutDot))
+    initialPath = Infra_AppState.CombinePath(desktopPath, normalizedBaseName & "." & LCase$(extensionWithoutDot))
     If Not Infra_Interaction.PromptSaveAsPath(BuildDialogTitle(taskName), initialPath, fileFilter, selectedPath) Then GoTo CleanExit
 
-    selectedPath = EnsureExtension(selectedPath, extensionWithoutDot)
-    If FileExists(selectedPath) Then
+    selectedPath = Infra_AppState.EnsureExtension(selectedPath, extensionWithoutDot)
+    If Infra_AppState.FileExists(selectedPath) Then
         If Not Infra_Interaction.Confirm( _
             "A file with this name already exists:" & vbCrLf & selectedPath & vbCrLf & vbCrLf & _
             "Do you want to replace it?", _
@@ -640,70 +640,6 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Private Function IsValidWindowsFileName(ByVal fileName As String) As Boolean
-    Dim invalidChars As Variant
-    Dim item As Variant
-
-    fileName = Trim$(fileName)
-    If fileName = vbNullString Then Exit Function
-    If Right$(fileName, 1) = "." Then Exit Function
-
-    invalidChars = Array("\", "/", ":", "*", "?", """", "<", ">", "|")
-    For Each item In invalidChars
-        If InStr(1, fileName, CStr(item), vbBinaryCompare) > 0 Then Exit Function
-    Next item
-
-    IsValidWindowsFileName = True
-End Function
-
-Private Function SanitizeFileNameStem(ByVal fileName As String) As String
-    Dim invalidChars As Variant
-    Dim item As Variant
-
-    fileName = Trim$(fileName)
-    invalidChars = Array("\", "/", ":", "*", "?", """", "<", ">", "|")
-
-    For Each item In invalidChars
-        fileName = Replace(fileName, CStr(item), "_")
-    Next item
-
-    Do While InStr(fileName, "__") > 0
-        fileName = Replace(fileName, "__", "_")
-    Loop
-
-    fileName = Trim$(fileName)
-    If Right$(fileName, 1) = "." Then fileName = Left$(fileName, Len(fileName) - 1)
-    SanitizeFileNameStem = fileName
-End Function
-
-Private Function EnsureExtension(ByVal selectedPath As String, ByVal extensionWithoutDot As String) As String
-    Dim expectedExtension As String
-
-    expectedExtension = "." & LCase$(extensionWithoutDot)
-    If LCase$(Right$(selectedPath, Len(expectedExtension))) <> expectedExtension Then
-        EnsureExtension = selectedPath & expectedExtension
-    Else
-        EnsureExtension = selectedPath
-    End If
-End Function
-
-Private Function CombinePath(ByVal folderPath As String, ByVal fileName As String) As String
-    If Right$(folderPath, 1) = "\" Then
-        CombinePath = folderPath & fileName
-    Else
-        CombinePath = folderPath & "\" & fileName
-    End If
-End Function
-
-Private Function FileExists(ByVal filePath As String) As Boolean
-    Dim fso As Object
-
-    On Error Resume Next
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    FileExists = fso.FileExists(filePath)
-    Set fso = Nothing
-    On Error GoTo 0
-End Function
 
 Private Function LooksLikeFrontLoadedSheet(ByVal sheetName As String) As Boolean
     Dim nameLower As String

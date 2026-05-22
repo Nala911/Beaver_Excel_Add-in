@@ -62,6 +62,34 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+' Standard execution policy preset for commands that show user forms, progress dialogs, or require screen updates.
+Public Function PolicyInteractiveUI() As CommandExecutionPolicy
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PolicyInteractiveUI")
+    On Error GoTo ErrHandler
+
+    Set PolicyInteractiveUI = CreateExecutionPolicy(True, False, True)
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "PolicyInteractiveUI", Err
+    Resume CleanExit
+End Function
+
+' Standard execution policy preset for background range modifications and silent operations that require max performance.
+Public Function PolicyBulkWrite() As CommandExecutionPolicy
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PolicyBulkWrite")
+    On Error GoTo ErrHandler
+
+    Set PolicyBulkWrite = CreateExecutionPolicy(False, False, True)
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "PolicyBulkWrite", Err
+    Resume CleanExit
+End Function
+
 Public Function ValidationSuccess() As CommandValidationResult
     Dim tracker As Object: Set tracker = Infra_Error.Track("ValidationSuccess")
     On Error GoTo ErrHandler
