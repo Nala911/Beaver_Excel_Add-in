@@ -101,7 +101,7 @@
                      },
                      {
                          "ControlId":  "BtnExport",
-                         "Label":  "Export Range",
+                         "Label":  "Export",
                          "OnAction":  "Ribbon_OnExport",
                          "Macro":  "UI_Ribbon.Ribbon_OnExport",
                          "CommandName":  "ExportImageOrPdf",

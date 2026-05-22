@@ -99,26 +99,27 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Select Case request.Scope
         Case CleanDataScopeSelection
             cleanedCount = ProcessRangeForClean(request.Context.SelectionRange)
+            HighlightInconsistentFormulas request.Context.SelectionRange
             Infra_Progress.UpdateProgress 1, True
         Case CleanDataScopeActiveSheet
             cleanedCount = ProcessRangeForClean(request.Context.WorksheetRef.UsedRange)
+            CleanNamedRanges request.Context.WorkbookRef, request.Context.WorksheetRef
+            HighlightInconsistentFormulas request.Context.WorksheetRef.UsedRange
             Infra_Progress.UpdateProgress 1, True
         Case CleanDataScopeWorkbook
+            CleanNamedRanges request.Context.WorkbookRef, Nothing
             Dim i As Long, count As Long
             count = request.Context.WorkbookRef.Worksheets.Count
             For i = 1 To count
                 Set ws = request.Context.WorkbookRef.Worksheets(i)
                 cleanedCount = cleanedCount + ProcessRangeForClean(ws.UsedRange)
+                HighlightInconsistentFormulas ws.UsedRange
                 Infra_Progress.UpdateProgress i, True
                 If Infra_Progress.UserCancelled Then Exit For
             Next i
     End Select
     
-    If cleanedCount > 0 Then
-        Infra_Interaction.ShowInfo "Done! Optimized " & Format$(cleanedCount, "#,##0") & " text cell(s) in the " & scopeLabel & "."
-    Else
-        Infra_Interaction.ShowInfo "No cleaning was required for the text in the " & scopeLabel & "."
-    End If
+    Infra_Interaction.ShowInfo "Done! Cleaned text, fixed text-numbers, removed broken names, and highlighted inconsistent formulas in the " & scopeLabel & "."
 
 CleanExit:
     Infra_Progress.EndProgress
@@ -145,15 +146,22 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range) As Long
 
     If textCells Is Nothing Then Exit Function
 
+    ' Convert Text format to General so text-numbers can become real numbers
+    On Error Resume Next
+    For Each area In textCells.Areas
+        If area.NumberFormat = "@" Then area.NumberFormat = "General"
+    Next area
+    On Error GoTo 0
+
     totalAreas = textCells.Areas.Count
     For i = 1 To totalAreas
         Set area = textCells.Areas(i)
         
         If area.Cells.CountLarge = 1 Then
-            Dim oldVal As Variant, newVal As String
+            Dim oldVal As Variant, newVal As Variant
             oldVal = area.Value
             newVal = CleanTextValue(oldVal)
-            If newVal <> CStr(oldVal) Then
+            If CStr(newVal) <> CStr(oldVal) Or TypeName(newVal) <> TypeName(oldVal) Then
                 area.Value = newVal
                 changeCount = changeCount + 1
             End If
@@ -174,14 +182,14 @@ Private Function CleanTextArray(ByRef dataArr As Variant) As Long
     Dim rowIndex As Long
     Dim columnIndex As Long
     Dim oldVal As Variant
-    Dim newVal As String
+    Dim newVal As Variant
     Dim changeCount As Long
 
     For rowIndex = LBound(dataArr, 1) To UBound(dataArr, 1)
         For columnIndex = LBound(dataArr, 2) To UBound(dataArr, 2)
             oldVal = dataArr(rowIndex, columnIndex)
             newVal = CleanTextValue(oldVal)
-            If newVal <> CStr(oldVal) Then
+            If CStr(newVal) <> CStr(oldVal) Or TypeName(newVal) <> TypeName(oldVal) Then
                 dataArr(rowIndex, columnIndex) = newVal
                 changeCount = changeCount + 1
             End If
@@ -191,13 +199,16 @@ Private Function CleanTextArray(ByRef dataArr As Variant) As Long
     CleanTextArray = changeCount
 End Function
 
-Private Function CleanTextValue(ByVal rawValue As Variant) As String
+Private Function CleanTextValue(ByVal rawValue As Variant) As Variant
     ' Note: No tracker here. This is called in tight loops.
     Dim textValue As String
     textValue = CStr(rawValue)
     
     ' Quick check for common cleaning targets to potentially skip overhead
-    If textValue = vbNullString Then Exit Function
+    If textValue = vbNullString Then
+        CleanTextValue = textValue
+        Exit Function
+    End If
     
     ' Replace non-breaking space (Chr 160)
     If InStr(1, textValue, ChrW$(160)) > 0 Then
@@ -205,5 +216,63 @@ Private Function CleanTextValue(ByVal rawValue As Variant) As String
     End If
     
     ' Application.Trim handles internal double spaces; Application.Clean handles non-printables.
-    CleanTextValue = Application.Trim(Application.Clean(textValue))
+    textValue = Application.Trim(Application.Clean(textValue))
+    
+    ' Fix numbers stored as text
+    If IsNumeric(textValue) Then
+        On Error Resume Next
+        Dim dblVal As Double
+        dblVal = CDbl(textValue)
+        If Err.Number = 0 Then
+            CleanTextValue = dblVal
+            Exit Function
+        End If
+        On Error GoTo 0
+    End If
+    
+    CleanTextValue = textValue
 End Function
+
+Private Sub CleanNamedRanges(ByVal wb As Workbook, ByVal ws As Worksheet)
+    Dim nm As Name
+    Dim i As Long
+    
+    On Error Resume Next
+    If Not ws Is Nothing Then
+        For i = ws.Names.Count To 1 Step -1
+            Set nm = ws.Names(i)
+            If InStr(1, nm.RefersTo, "#REF!", vbTextCompare) > 0 Then
+                nm.Delete
+            End If
+        Next i
+    ElseIf Not wb Is Nothing Then
+        For i = wb.Names.Count To 1 Step -1
+            Set nm = wb.Names(i)
+            If InStr(1, nm.RefersTo, "#REF!", vbTextCompare) > 0 Then
+                nm.Delete
+            End If
+        Next i
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Sub HighlightInconsistentFormulas(ByVal targetRange As Range)
+    If targetRange Is Nothing Then Exit Sub
+    
+    Dim formulaCells As Range
+    Dim cell As Range
+    
+    On Error Resume Next
+    Set formulaCells = targetRange.SpecialCells(xlCellTypeFormulas)
+    On Error GoTo 0
+    
+    If formulaCells Is Nothing Then Exit Sub
+    
+    On Error Resume Next
+    For Each cell In formulaCells
+        If cell.Errors(xlInconsistentFormula).Value = True Then
+            cell.Interior.Color = vbYellow
+        End If
+    Next cell
+    On Error GoTo 0
+End Sub

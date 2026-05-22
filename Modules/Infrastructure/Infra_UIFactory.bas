@@ -371,63 +371,10 @@ Private Function ResolveExportRange(ByVal ctx As Infra_ActionContext) As Range
     If Not ctx.HasRangeSelection Or ctx.SelectionRange Is Nothing Then
         Set ResolveExportRange = ctx.WorksheetRef.UsedRange
     ElseIf ctx.SelectionRange.Cells.CountLarge = 1 Then
-        Set ResolveExportRange = ResolveSingleCellExportRange(ctx)
+        Set ResolveExportRange = ctx.WorksheetRef.UsedRange
     Else
         Set ResolveExportRange = ctx.SelectionRange
     End If
-End Function
-
-Private Function ResolveSingleCellExportRange(ByVal ctx As Infra_ActionContext) As Range
-    Dim sourceCell As Range
-    Dim userChoice As String
-    Dim normalizedChoice As String
-
-    If ctx Is Nothing Then Exit Function
-    If ctx.SelectionRange Is Nothing Then Exit Function
-    Set sourceCell = ctx.SelectionRange.Cells(1, 1)
-
-    Do
-        If Not ShowOptionPicker( _
-            "You selected a single cell." & vbCrLf & vbCrLf & _
-            BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
-            "Choose what to export:" & vbCrLf & _
-            "Cell          - Export only the selected cell" & vbCrLf & _
-            "CurrentRegion - Export the surrounding data block" & vbCrLf & _
-            "UsedRange     - Export the used range of the active sheet", _
-            BuildDialogTitle("Export Range"), "CurrentRegion", BuildChoiceArray("Cell", "CurrentRegion", "UsedRange"), userChoice) Then GoTo CleanExit
-
-        normalizedChoice = NormalizeChoiceText(userChoice)
-        If normalizedChoice = "" Then normalizedChoice = "CURRENTREGION"
-
-        Select Case normalizedChoice
-            Case "CELL", "SELECTED CELL", "SELECTEDCELL"
-                Set ResolveSingleCellExportRange = sourceCell
-                Exit Do
-            Case "CURRENTREGION", "CURRENT REGION", "REGION"
-                Set ResolveSingleCellExportRange = ResolveCurrentRegionOrCell(sourceCell)
-                Exit Do
-            Case "USEDRANGE", "USED RANGE", "SHEET"
-                Set ResolveSingleCellExportRange = ctx.WorksheetRef.UsedRange
-                Exit Do
-            Case Else
-                Infra_Interaction.ShowWarning "Please choose Cell, CurrentRegion, or UsedRange.", BuildDialogTitle("Export Range")
-        End Select
-    Loop
-
-CleanExit:
-    Exit Function
-End Function
-
-Private Function ResolveCurrentRegionOrCell(ByVal sourceCell As Range) As Range
-    On Error Resume Next
-    If sourceCell Is Nothing Then Exit Function
-    Set ResolveCurrentRegionOrCell = sourceCell.CurrentRegion
-    If ResolveCurrentRegionOrCell Is Nothing Then
-        Set ResolveCurrentRegionOrCell = sourceCell
-    ElseIf ResolveCurrentRegionOrCell.Cells.CountLarge = 1 And IsEmpty(ResolveCurrentRegionOrCell.Value) Then
-        Set ResolveCurrentRegionOrCell = sourceCell
-    End If
-    On Error GoTo 0
 End Function
 
 Private Function NormalizeExportScale(ByVal scaleInput As String) As Long
