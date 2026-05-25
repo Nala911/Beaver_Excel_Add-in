@@ -53,10 +53,6 @@ Public Property Get ADDIN_VERSION() As String
     ADDIN_VERSION = Model.Version
 End Property
 
-Public Property Get DEFAULT_DATE_FORMAT() As String
-    DEFAULT_DATE_FORMAT = Model.DefaultDateFormat
-End Property
-
 Public Property Get DISPLAY_DATE_FORMAT() As String
     DISPLAY_DATE_FORMAT = Model.DisplayDateFormat
 End Property
@@ -166,7 +162,6 @@ Private Sub LoadConfig()
         .DefaultFontSize = GetValidatedValue("UIConstants", "DefaultFontSize", .DefaultFontSize, "Long", 6, 72)
         .HeaderFontSize = GetValidatedValue("UIConstants", "HeaderFontSize", .HeaderFontSize, "Long", 6, 72)
         .DefaultNumberFormat = GetValidatedValue("UIConstants", "DefaultNumberFormat", .DefaultNumberFormat, "String")
-        .DefaultDateFormat = GetValidatedValue("UIConstants", "DefaultDateFormat", .DefaultDateFormat, "String")
         .DisplayDateFormat = GetValidatedValue("UIConstants", "DisplayDateFormat", .DisplayDateFormat, "String")
         .ColumnWidthThreshold = GetValidatedValue("UIConstants", "ColumnWidthThreshold", .ColumnWidthThreshold, "Long", 5, 255)
         .MaxColumnWidth = GetValidatedValue("UIConstants", "MaxColumnWidth", .MaxColumnWidth, "Long", 5, 255)
@@ -207,7 +202,6 @@ Private Sub ApplyDefaultConfigModel(ByVal model As Infra_ConfigModel)
     model.DefaultFontSize = 10
     model.HeaderFontSize = 11
     model.DefaultNumberFormat = "#,##0"
-    model.DefaultDateFormat = "dd-mmm-yyyy"
     model.DisplayDateFormat = "dd/mm/yyyy"
     model.ColumnWidthThreshold = 40
     model.MaxColumnWidth = 25

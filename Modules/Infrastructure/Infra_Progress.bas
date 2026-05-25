@@ -46,7 +46,7 @@ Public Sub UpdateProgress(ByVal CurrentStep As Double, Optional ByVal ForceRefre
 
     state.CurrentStep = CurrentStep
 
-    If ForceRefresh Or TimerElapsedSeconds(state.LastUpdateTime) > UPDATE_INTERVAL Then
+    If ForceRefresh Or Infra_Diagnostics.TimerElapsedSeconds(state.LastUpdateTime) > UPDATE_INTERVAL Then
         UpdateUI state, False
         state.LastUpdateTime = Timer
         DoEvents ' Keep Excel responsive
@@ -153,9 +153,18 @@ Private Function GetStateStack() As Collection
     Set GetStateStack = pStateStack
 End Function
 
-Private Function TimerElapsedSeconds(ByVal startedAt As Double) As Double
-    TimerElapsedSeconds = Timer - startedAt
-    If TimerElapsedSeconds < 0 Then
-        TimerElapsedSeconds = TimerElapsedSeconds + 86400#
-    End If
-End Function
+Public Sub ClearProgress()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ClearProgress")
+    On Error GoTo ErrHandler
+
+    Set pStateStack = Nothing
+    Application.StatusBar = False
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "ClearProgress", Err
+    Resume CleanExit
+End Sub
+

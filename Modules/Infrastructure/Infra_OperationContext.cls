@@ -33,15 +33,8 @@ End Property
 Private Sub Class_Terminate()
     On Error Resume Next
     If mProcedureName <> "" Then
-        Infra_Diagnostics.LogOperationFinish mOperationId, mProcedureName, TimerElapsedSeconds(mStartedAt)
+        Infra_Diagnostics.LogOperationFinish mOperationId, mProcedureName, Infra_Diagnostics.TimerElapsedSeconds(mStartedAt)
         Infra_Error.PopContext
     End If
     On Error GoTo 0
 End Sub
-
-Private Function TimerElapsedSeconds(ByVal startedAt As Double) As Double
-    TimerElapsedSeconds = Timer - startedAt
-    If TimerElapsedSeconds < 0 Then
-        TimerElapsedSeconds = TimerElapsedSeconds + 86400#
-    End If
-End Function

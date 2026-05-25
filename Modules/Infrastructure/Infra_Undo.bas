@@ -29,8 +29,15 @@ Public Sub SaveState(ByVal Target As Range, ByVal ActionName As String)
         GoTo CleanExit
     End If
     
+    Dim targetWb As Workbook
+    Set targetWb = Target.Worksheet.Parent
+    
     Dim undoSh As Worksheet
-    Set undoSh = GetUndoSheet()
+    Set undoSh = GetUndoSheet(targetWb)
+    If undoSh Is Nothing Then
+        Debug.Print "BEAVER [UNDO]: Target workbook is structure protected or sheet creation failed. Skipping undo registration."
+        GoTo CleanExit
+    End If
     
     ' Clear previous undo data
     undoSh.Cells.Clear
@@ -93,9 +100,6 @@ Public Sub PerformUndo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("PerformUndo")
     On Error GoTo ErrHandler
     
-    Dim undoSh As Worksheet
-    Set undoSh = GetUndoSheet()
-    
     Dim wbName As String: wbName = GetUndoMetadataValue(UNDO_META_WORKBOOK_NAME)
     Dim wsName As String: wsName = GetUndoMetadataValue(UNDO_META_WORKSHEET_NAME)
     Dim addr As String: addr = GetUndoMetadataValue(UNDO_META_ADDRESS_NAME)
@@ -114,6 +118,10 @@ Public Sub PerformUndo()
     Set targetWs = targetWb.Worksheets(wsName)
     If targetWs Is Nothing Then GoTo CleanExit
     On Error GoTo ErrHandler
+    
+    Dim undoSh As Worksheet
+    Set undoSh = GetUndoSheet(targetWb)
+    If undoSh Is Nothing Then GoTo CleanExit
     
     Dim targetRange As Range
     Set targetRange = targetWs.Range(addr)
@@ -142,13 +150,16 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-' Returns (and creates if necessary) the hidden undo sheet.
-Private Function GetUndoSheet() As Worksheet
+' Returns (and creates if necessary) the hidden undo sheet in the specified workbook.
+Private Function GetUndoSheet(ByVal targetWb As Workbook) As Worksheet
     ' Internal helper
     On Error Resume Next
-    Set GetUndoSheet = ThisWorkbook.Worksheets(UNDO_SHEET_NAME)
+    Set GetUndoSheet = targetWb.Worksheets(UNDO_SHEET_NAME)
     If GetUndoSheet Is Nothing Then
-        Set GetUndoSheet = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        If targetWb.ProtectStructure Then
+            Exit Function
+        End If
+        Set GetUndoSheet = targetWb.Worksheets.Add(After:=targetWb.Worksheets(targetWb.Worksheets.Count))
         GetUndoSheet.Name = UNDO_SHEET_NAME
         GetUndoSheet.Visible = xlSheetVeryHidden
     End If

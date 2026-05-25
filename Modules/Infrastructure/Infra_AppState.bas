@@ -1,6 +1,8 @@
 Attribute VB_Name = "Infra_AppState"
 Option Explicit
 
+Public ActiveGuard As Infra_AppStateGuard
+
 ' @Module: Infra_AppState
 ' @Category: Infrastructure
 ' @Description: Shared helpers: consistent error dialogs, selection guards, Desktop path retrieval, and file system utilities.

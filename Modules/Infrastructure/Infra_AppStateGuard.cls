@@ -9,8 +9,6 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Implements IAppGuard
-
 ' @Module: Infra_AppStateGuard
 ' @Category: Infrastructure
 ' @Description: RAII-style wrapper for Excel's global application state.
@@ -43,6 +41,9 @@ Private Sub Class_Initialize()
     m_DisplayAlerts = False
     m_Calculation = xlCalculationManual
     
+    ' Register as active guard
+    Set Infra_AppState.ActiveGuard = Me
+    
     ' Apply Default Silent State
     UpdateState
 
@@ -55,25 +56,28 @@ ErrHandler:
 End Sub
 
 Private Sub Class_Terminate()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("AppStateGuard.Class_Terminate")
-    On Error GoTo ErrHandler
+    On Error Resume Next
+    
+    ' Clear active guard registration
+    If Infra_AppState.ActiveGuard Is Me Then
+        Set Infra_AppState.ActiveGuard = Nothing
+    End If
 
+    ' Restore original application state in a failsafe manner
     With Application
-        .ScreenUpdating = m_OriginalScreenUpdating
-        .EnableEvents = m_OriginalEnableEvents
-        .DisplayAlerts = m_OriginalDisplayAlerts
-        .Calculation = m_OriginalCalculation
+        If .ScreenUpdating <> m_OriginalScreenUpdating Then .ScreenUpdating = m_OriginalScreenUpdating
+        If .EnableEvents <> m_OriginalEnableEvents Then .EnableEvents = m_OriginalEnableEvents
+        If .DisplayAlerts <> m_OriginalDisplayAlerts Then .DisplayAlerts = m_OriginalDisplayAlerts
+        If .Calculation <> m_OriginalCalculation Then .Calculation = m_OriginalCalculation
     End With
-
-CleanExit:
-    Exit Sub
-
-ErrHandler:
-    Infra_Error.HandleError "AppStateGuard.Class_Terminate", Err
-    Resume CleanExit
+    On Error GoTo 0
 End Sub
 
 ' --- Public properties (for direct access without interface if needed) ---
+Public Property Get OriginalCalculation() As XlCalculation
+    OriginalCalculation = m_OriginalCalculation
+End Property
+
 Public Property Get ScreenUpdating() As Boolean
     ScreenUpdating = m_ScreenUpdating
 End Property
@@ -127,42 +131,4 @@ CleanExit:
 ErrHandler:
     Infra_Error.HandleError "AppStateGuard.UpdateState", Err
     Resume CleanExit
-End Sub
-
-' --- IAppGuard Implementation ---
-
-Private Property Let IAppGuard_ScreenUpdating(ByVal val As Boolean)
-    Me.ScreenUpdating = val
-End Property
-Private Property Get IAppGuard_ScreenUpdating() As Boolean
-    IAppGuard_ScreenUpdating = Me.ScreenUpdating
-End Property
-
-Private Property Let IAppGuard_EnableEvents(ByVal val As Boolean)
-    Me.EnableEvents = val
-End Property
-Private Property Get IAppGuard_EnableEvents() As Boolean
-    IAppGuard_EnableEvents = Me.EnableEvents
-End Property
-
-Private Property Let IAppGuard_DisplayAlerts(ByVal val As Boolean)
-    Me.DisplayAlerts = val
-End Property
-Private Property Get IAppGuard_DisplayAlerts() As Boolean
-    IAppGuard_DisplayAlerts = Me.DisplayAlerts
-End Property
-
-Private Property Let IAppGuard_Calculation(ByVal val As XlCalculation)
-    Me.Calculation = val
-End Property
-Private Property Get IAppGuard_Calculation() As XlCalculation
-    IAppGuard_Calculation = Me.Calculation
-End Property
-
-Private Property Let IAppGuard_Silent(ByVal val As Boolean)
-    Me.Silent = val
-End Property
-
-Private Sub IAppGuard_UpdateState()
-    Me.UpdateState
 End Sub

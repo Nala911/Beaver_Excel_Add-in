@@ -1,6 +1,12 @@
 Attribute VB_Name = "Infra_Diagnostics"
 Option Explicit
 
+#If VBA7 Then
+    Private Declare PtrSafe Function GetCurrentProcessId Lib "kernel32" () As Long
+#Else
+    Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
+#End If
+
 ' @Module: Infra_Diagnostics
 ' @Category: Infrastructure
 ' @Description: Structured diagnostics logging for operations, warnings, and failures.
@@ -60,7 +66,7 @@ Private Sub AppendLineToLog(ByVal lineText As String)
     Dim stream As Object
 
     Set fso = CreateObject("Scripting.FileSystemObject")
-    logPath = Environ$("TEMP") & "\" & LOG_FILE_NAME
+    logPath = Environ$("TEMP") & "\BeaverAddin_" & GetCurrentProcessId() & ".log"
     Set stream = fso.OpenTextFile(logPath, 8, True)
     stream.WriteLine lineText
     stream.Close
@@ -69,3 +75,10 @@ Private Sub AppendLineToLog(ByVal lineText As String)
     Set fso = Nothing
     On Error GoTo 0
 End Sub
+
+Public Function TimerElapsedSeconds(ByVal startedAt As Double) As Double
+    TimerElapsedSeconds = Timer - startedAt
+    If TimerElapsedSeconds < 0 Then
+        TimerElapsedSeconds = TimerElapsedSeconds + 86400#
+    End If
+End Function

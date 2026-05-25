@@ -4,7 +4,6 @@
                         "DefaultFontSize":  10,
                         "HeaderFontSize":  11,
                         "DefaultNumberFormat":  "#,##0",
-                        "DefaultDateFormat":  "dd-mmm-yyyy",
                         "DisplayDateFormat":  "dd/mm/yyyy",
                         "ColumnWidthThreshold":  40,
                         "MaxColumnWidth":  25,

@@ -8,7 +8,6 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-Implements IErrorTracker
 Option Explicit
 
 ' @Module: Infra_Error
@@ -321,11 +320,21 @@ End Sub
 
 Private Sub ResetApplicationState()
     On Error Resume Next
+    
+    ' Reset status bar and clear stacked progress operations
+    Infra_Progress.ClearProgress
+    
     With Application
         .ScreenUpdating = True
         .EnableEvents = True
         .DisplayAlerts = True
-        .Calculation = xlCalculationAutomatic
+        
+        ' Restore original calculation mode if captured by an active AppStateGuard
+        If Not Infra_AppState.ActiveGuard Is Nothing Then
+            .Calculation = Infra_AppState.ActiveGuard.OriginalCalculation
+        Else
+            .Calculation = xlCalculationAutomatic
+        End If
     End With
     On Error GoTo 0
 End Sub
@@ -375,13 +384,3 @@ Private Sub CopyToClipboard(ByVal text As String)
     
     On Error GoTo 0
 End Sub
-
-
-Private Function IErrorTracker_Track(ByVal SourceName As String) As Object
-    Set IErrorTracker_Track = Me.Track(SourceName)
-End Function
-
-Private Sub IErrorTracker_HandleError(ByVal SourceName As String, ByVal errObj As ErrObject)
-    Me.HandleError SourceName, errObj
-End Sub
-

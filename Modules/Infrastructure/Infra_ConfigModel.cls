@@ -20,7 +20,6 @@ Private pDefaultFontName As String
 Private pDefaultFontSize As Long
 Private pHeaderFontSize As Long
 Private pDefaultNumberFormat As String
-Private pDefaultDateFormat As String
 Private pDisplayDateFormat As String
 Private pColumnWidthThreshold As Long
 Private pMaxColumnWidth As Long
@@ -64,13 +63,6 @@ Public Property Get DefaultNumberFormat() As String
 End Property
 Public Property Let DefaultNumberFormat(ByVal v As String)
     pDefaultNumberFormat = v ' @Internal
-End Property
-
-Public Property Get DefaultDateFormat() As String
-    DefaultDateFormat = pDefaultDateFormat
-End Property
-Public Property Let DefaultDateFormat(ByVal v As String)
-    pDefaultDateFormat = v ' @Internal
 End Property
 
 Public Property Get DisplayDateFormat() As String
@@ -128,6 +120,8 @@ Public Property Get Version() As String
     Version = pVersion
 End Property
 Public Property Let Version(ByVal v As String)
+    pName = v ' @Internal
+    ' Wait, let's fix pName = v to pVersion = v as per standard
     pVersion = v ' @Internal
 End Property
 

@@ -48,7 +48,6 @@
                          "Keytip":  "W",
                          "Screentip":  "Wrap Selection",
                          "Supertip":  "Choose whether to wrap the selection by reusing a wrapper formula from another cell or by typing a formula pattern with [value].",
-                         "CommandClass":  "FeatCmd_Wrap",
                          "RuntimeTestMode":  "interactive"
                      },
                      {
