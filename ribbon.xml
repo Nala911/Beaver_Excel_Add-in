@@ -8,7 +8,7 @@
 <customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
   <ribbon>
     <tabs>
-      <tab id="BeaverTab" label="BEAVER" keytip="B">
+      <tab id="BeaverTab" label="Beaver" keytip="B">
         <group id="GrpFormatting" label="Formatting">
           <button id="BtnWrap" label="Wrap" imageMso="FunctionWizard" size="large" onAction="Ribbon_OnWrap" keytip="W" screentip="Wrap Selection" supertip="Choose whether to wrap the selection by reusing a wrapper formula from another cell or by typing a formula pattern with [value]." />
           <button id="BtnStaticSheetWorkbook" label="Static Sheet/WB" imageMso="CalculateNow" size="large" onAction="Ribbon_OnStaticSheetWorkbook" keytip="SW" screentip="Convert Formulas to Static Values" supertip="Permanently replaces all formulas with their current values across the active sheet or the entire workbook. Handles spill ranges correctly." />
@@ -23,6 +23,11 @@
         </group>
         <group id="BeaverHelpGroup" label="Support">
           <button id="BtnHelpCenter" label="Help Center" imageMso="Help" size="large" onAction="Ribbon_OnShowHelpCenter" keytip="H" screentip="Show Help Center" supertip="Opens the Beaver Help Center, listing all registered hotkeys, user-defined functions, and their descriptions." />
+        </group>
+      </tab>
+      <tab id="OfficeToolsTab" label="Office Tools" keytip="O">
+        <group id="GrpHelloWorld" label="Hello World Group">
+          <button id="BtnHelloWorld" label="Hello World" imageMso="HappyFace" size="large" onAction="Ribbon_OnHelloWorld" keytip="HW" screentip="Say Hello World" supertip="Puts &apos;Hello world&apos; into A1 cell." />
         </group>
       </tab>
     </tabs>

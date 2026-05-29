@@ -26,6 +26,8 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "ExportImageOrPdf"
         Case "UI_RIBBON.RIBBON_ONSHOWHELPCENTER"
             ResolveCommandName = "ShowHelpCenter"
+        Case "UI_RIBBON.RIBBON_ONHELLOWORLD"
+            ResolveCommandName = "HelloWorld"
         Case "UI_HOTKEYS.HOTKEY_APPLYCUSTOMNUMBERFORMAT"
             ResolveCommandName = "ApplyCustomNumberFormat"
         Case "UI_HOTKEYS.HOTKEY_MAKEPERMANENT"
@@ -73,6 +75,8 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
             Set CreateCommand = New FeatCmd_ExportImageOrPdf
         Case "SHOWHELPCENTER"
             Set CreateCommand = New FeatCmd_ShowHelpCenter
+        Case "HELLOWORLD"
+            Set CreateCommand = New FeatCmd_HelloWorld
         Case "APPLYCUSTOMNUMBERFORMAT"
             Set CreateCommand = New FeatCmd_ApplyCustomNumberFormat
         Case "MAKEPERMANENT"

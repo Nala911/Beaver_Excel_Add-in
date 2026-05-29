@@ -117,3 +117,16 @@ ErrHandler:
     Infra_Error.HandleError "Ribbon_OnShowHelpCenter", Err
     Resume CleanExit
 End Sub
+
+Public Sub Ribbon_OnHelloWorld(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnHelloWorld")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnHelloWorld", "Ribbon_OnHelloWorld", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnHelloWorld", Err
+    Resume CleanExit
+End Sub

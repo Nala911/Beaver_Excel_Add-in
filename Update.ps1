@@ -311,26 +311,55 @@ function Sync-FeatureManifest {
         $icons[$feature.ControlId] = $feature.Icon
     }
 
-    $groupXml = foreach ($group in $manifest.Groups) {
-        $groupFeatures = @($enabledFeatures | Where-Object { $group.Features -contains $_.ControlId })
-        if ($groupFeatures.Count -eq 0) { continue }
+    $tabs = if ($null -ne $manifest.PSObject.Properties['Tabs']) {
+        @($manifest.Tabs)
+    } else {
+        @($manifest.Tab)
+    }
 
-        $buttonXml = foreach ($feature in $groupFeatures) {
-            '          <button id="{0}" label="{1}" imageMso="{2}" size="large" onAction="{3}" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
-                $feature.ControlId,
-                [System.Security.SecurityElement]::Escape($feature.Label),
-                [System.Security.SecurityElement]::Escape($feature.Icon),
-                $feature.OnAction,
-                $feature.Keytip,
-                [System.Security.SecurityElement]::Escape($feature.Screentip),
-                [System.Security.SecurityElement]::Escape($feature.Supertip)
+    $tabXmls = [System.Collections.Generic.List[string]]::new()
+    foreach ($tab in $tabs) {
+        $tabGroups = @()
+        foreach ($group in $manifest.Groups) {
+            $belongs = $false
+            if ($null -ne $group.PSObject.Properties['TabId']) {
+                $belongs = ($group.TabId -eq $tab.Id)
+            } else {
+                $belongs = ($tab.Id -eq $tabs[0].Id)
+            }
+            if ($belongs) {
+                $tabGroups += $group
+            }
         }
 
-@"
+        $groupXmls = [System.Collections.Generic.List[string]]::new()
+        foreach ($group in $tabGroups) {
+            $groupFeatures = @($enabledFeatures | Where-Object { $group.Features -contains $_.ControlId })
+            if ($groupFeatures.Count -eq 0) { continue }
+
+            $buttonXml = foreach ($feature in $groupFeatures) {
+                '          <button id="{0}" label="{1}" imageMso="{2}" size="large" onAction="{3}" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
+                    $feature.ControlId,
+                    [System.Security.SecurityElement]::Escape($feature.Label),
+                    [System.Security.SecurityElement]::Escape($feature.Icon),
+                    $feature.OnAction,
+                    $feature.Keytip,
+                    [System.Security.SecurityElement]::Escape($feature.Screentip),
+                    [System.Security.SecurityElement]::Escape($feature.Supertip)
+            }
+
+            $groupXmls.Add(@"
         <group id="$($group.Id)" label="$([System.Security.SecurityElement]::Escape($group.Label))">
 $($buttonXml -join "`r`n")
         </group>
-"@
+"@)
+        }
+
+        $tabXmls.Add(@"
+      <tab id="$($tab.Id)" label="$([System.Security.SecurityElement]::Escape($tab.Label))" keytip="$($tab.Keytip)">
+$($groupXmls -join "`r`n")
+      </tab>
+"@)
     }
 
     $ribbonContent = @"
@@ -344,9 +373,7 @@ $($buttonXml -join "`r`n")
 <customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
   <ribbon>
     <tabs>
-      <tab id="$($manifest.Tab.Id)" label="$([System.Security.SecurityElement]::Escape($manifest.Tab.Label))" keytip="$($manifest.Tab.Keytip)">
-$($groupXml -join "`r`n")
-      </tab>
+$($tabXmls -join "`r`n")
     </tabs>
   </ribbon>
 </customUI>

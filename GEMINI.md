@@ -94,7 +94,7 @@ Excel Add-in\
 ### Change Patterns
 
 #### Adding a New Ribbon Command
-- Add or update the feature entry in `features.json`.
+- Add or update the feature entry in `features.json`. If a new tab is needed, transition the single `"Tab"` block to a `"Tabs"` array and reference `TabId` inside your Ribbon groups.
 - Add the new command class (`FeatCmd_*`) implementing the `ICommand` interface.
 - Run `.\Update.ps1`. This will automatically:
   - Generate the `Ribbon_On*` callback in `UI_Ribbon.bas`.
@@ -226,6 +226,7 @@ graph TD
 - `Duplicate` -> `FeatCmd_Duplicate`
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf`
 - `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter`
+- `HelloWorld` -> `FeatCmd_HelloWorld`
 
 #### Hotkey-Driven Commands
 - `ApplyCustomNumberFormat` -> `FeatCmd_ApplyCustomNumberFormat`
@@ -259,7 +260,7 @@ graph TD
 - **Save destinations** (e.g. duplicate/export flows) must use a shared Save As picker with Desktop-based defaults and overwrite confirmation.
 
 #### Ribbon controls in `features.json`
-- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`.
+- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`.
 
 #### Hotkeys in `config.json`
 - `^+4` -> `UI_Hotkeys.Hotkey_ApplyCustomNumberFormat`

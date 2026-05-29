@@ -1,9 +1,16 @@
 {
-    "Tab":  {
-                "Id":  "BeaverTab",
-                "Label":  "BEAVER",
-                "Keytip":  "B"
-            },
+    "Tabs": [
+                {
+                    "Id":  "BeaverTab",
+                    "Label":  "Beaver",
+                    "Keytip":  "B"
+                },
+                {
+                    "Id":  "OfficeToolsTab",
+                    "Label":  "Office Tools",
+                    "Keytip":  "O"
+                }
+            ],
     "Groups":  [
                    {
                        "Id":  "GrpFormatting",
@@ -34,6 +41,14 @@
                        "Label":  "Support",
                        "Features":  [
                                         "BtnHelpCenter"
+                                    ]
+                   },
+                   {
+                       "Id":  "GrpHelloWorld",
+                       "Label":  "Hello World Group",
+                       "TabId":  "OfficeToolsTab",
+                       "Features":  [
+                                        "BtnHelloWorld"
                                     ]
                    }
                ],
@@ -120,6 +135,18 @@
                          "Keytip":  "H",
                          "Screentip":  "Show Help Center",
                          "Supertip":  "Opens the Beaver Help Center, listing all registered hotkeys, user-defined functions, and their descriptions.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnHelloWorld",
+                         "Label":  "Hello World",
+                         "OnAction":  "Ribbon_OnHelloWorld",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHelloWorld",
+                         "CommandName":  "HelloWorld",
+                         "Icon":  "HappyFace",
+                         "Keytip":  "HW",
+                         "Screentip":  "Say Hello World",
+                         "Supertip":  "Puts 'Hello world' into A1 cell.",
                          "RuntimeTestMode":  "interactive"
                      }
                  ],

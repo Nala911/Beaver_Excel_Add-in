@@ -17,7 +17,7 @@
                       },
     "FeatureFlags":  {
                          "ManifestFile":  "features.json",
-                         "GeneratedFeatureCount":  7
+                         "GeneratedFeatureCount":  8
                      },
     "Hotkeys":  [
                     {
@@ -82,6 +82,7 @@
                   "BtnBreakLinks":  "WorkbookLinks",
                   "BtnDuplicate":  "FileSaveAs",
                   "BtnExport":  "Export",
-                  "BtnHelpCenter":  "Help"
+                  "BtnHelpCenter":  "Help",
+                  "BtnHelloWorld":  "HappyFace"
               }
 }
