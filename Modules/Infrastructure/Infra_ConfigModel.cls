@@ -120,8 +120,6 @@ Public Property Get Version() As String
     Version = pVersion
 End Property
 Public Property Let Version(ByVal v As String)
-    pName = v ' @Internal
-    ' Wait, let's fix pName = v to pVersion = v as per standard
     pVersion = v ' @Internal
 End Property
 

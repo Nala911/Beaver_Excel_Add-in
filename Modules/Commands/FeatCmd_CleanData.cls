@@ -65,6 +65,7 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Dim stateInfo As Collection
     Dim cleanedCount As Long
     Dim scopeLabel As String
+    Dim highlightedAny As Boolean
 
     Set stateInfo = Infra_Error.NewStateInfo()
     
@@ -99,12 +100,12 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Select Case request.Scope
         Case CleanDataScopeSelection
             cleanedCount = ProcessRangeForClean(request.Context.SelectionRange)
-            HighlightInconsistentFormulas request.Context.SelectionRange
+            highlightedAny = HighlightInconsistentFormulas(request.Context.SelectionRange)
             Infra_Progress.UpdateProgress 1, True
         Case CleanDataScopeActiveSheet
             cleanedCount = ProcessRangeForClean(request.Context.WorksheetRef.UsedRange)
             CleanNamedRanges request.Context.WorkbookRef, request.Context.WorksheetRef
-            HighlightInconsistentFormulas request.Context.WorksheetRef.UsedRange
+            highlightedAny = HighlightInconsistentFormulas(request.Context.WorksheetRef.UsedRange)
             Infra_Progress.UpdateProgress 1, True
         Case CleanDataScopeWorkbook
             CleanNamedRanges request.Context.WorkbookRef, Nothing
@@ -113,13 +114,19 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
             For i = 1 To count
                 Set ws = request.Context.WorkbookRef.Worksheets(i)
                 cleanedCount = cleanedCount + ProcessRangeForClean(ws.UsedRange)
-                HighlightInconsistentFormulas ws.UsedRange
+                If HighlightInconsistentFormulas(ws.UsedRange) Then highlightedAny = True
                 Infra_Progress.UpdateProgress i, True
                 If Infra_Progress.UserCancelled Then Exit For
             Next i
     End Select
     
-    Infra_Interaction.ShowInfo "Done! Cleaned text, fixed text-numbers, removed broken names, and highlighted inconsistent formulas in the " & scopeLabel & "."
+    Dim msg As String
+    msg = "Done! Cleaned text, fixed text-numbers, and removed broken names in the " & scopeLabel & "."
+    If highlightedAny Then
+        msg = msg & " Inconsistent formulas were highlighted in yellow."
+    End If
+    
+    Infra_Interaction.ShowInfo msg
 
 CleanExit:
     Infra_Progress.EndProgress
@@ -256,8 +263,8 @@ Private Sub CleanNamedRanges(ByVal wb As Workbook, ByVal ws As Worksheet)
     On Error GoTo 0
 End Sub
 
-Private Sub HighlightInconsistentFormulas(ByVal targetRange As Range)
-    If targetRange Is Nothing Then Exit Sub
+Private Function HighlightInconsistentFormulas(ByVal targetRange As Range) As Boolean
+    If targetRange Is Nothing Then Exit Function
     
     Dim formulaCells As Range
     Dim cell As Range
@@ -266,7 +273,13 @@ Private Sub HighlightInconsistentFormulas(ByVal targetRange As Range)
     Set formulaCells = targetRange.SpecialCells(xlCellTypeFormulas)
     On Error GoTo 0
     
-    If formulaCells Is Nothing Then Exit Sub
+    If formulaCells Is Nothing Then Exit Function
+    
+    ' Safety limit to prevent freezing on large worksheets
+    If formulaCells.Cells.CountLarge > 5000 Then
+        Debug.Print "BEAVER [CLEAN]: Too many formula cells (" & formulaCells.Cells.CountLarge & "). Skipping inconsistent formula highlighting."
+        Exit Function
+    End If
     
     On Error Resume Next
     For Each cell In formulaCells
@@ -275,4 +288,6 @@ Private Sub HighlightInconsistentFormulas(ByVal targetRange As Range)
         End If
     Next cell
     On Error GoTo 0
-End Sub
+    
+    HighlightInconsistentFormulas = True
+End Function

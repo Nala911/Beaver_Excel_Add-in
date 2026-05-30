@@ -34,7 +34,7 @@ End Function
 ' Returns the path to the current user's Desktop folder.
 ' Detects OneDrive-synced Desktops for improved reliability.
 Public Function GetDesktopPath() As String
-    Infra_Error.PushContext "GetDesktopPath"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetDesktopPath")
     On Error GoTo ErrHandler
     
     Dim shell As Object
@@ -68,16 +68,16 @@ Public Function GetDesktopPath() As String
     GetDesktopPath = path
 
 CleanExit:
-    Infra_Error.PopContext
     Exit Function
 
 ErrHandler:
     Infra_Error.HandleError "GetDesktopPath", Err
+    Resume CleanExit
 End Function
 
 ' Returns True if the specified file exists.
 Public Function FileExists(ByVal filePath As String) As Boolean
-    Infra_Error.PushContext "FileExists"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FileExists")
     On Error GoTo ErrHandler
 
     Dim fso As Object
@@ -86,7 +86,6 @@ Public Function FileExists(ByVal filePath As String) As Boolean
     Set fso = Nothing
 
 CleanExit:
-    Infra_Error.PopContext
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "FileExists", Err
@@ -95,7 +94,7 @@ End Function
 
 ' Combines a folder path and a file name with a backslash if necessary.
 Public Function CombinePath(ByVal folderPath As String, ByVal fileName As String) As String
-    Infra_Error.PushContext "CombinePath"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CombinePath")
     On Error GoTo ErrHandler
 
     If Right$(folderPath, 1) = "\" Then
@@ -105,7 +104,6 @@ Public Function CombinePath(ByVal folderPath As String, ByVal fileName As String
     End If
 
 CleanExit:
-    Infra_Error.PopContext
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "CombinePath", Err
@@ -114,7 +112,7 @@ End Function
 
 ' Sanitizes a file name stem by replacing invalid Windows characters with underscores.
 Public Function SanitizeFileNameStem(ByVal fileName As String) As String
-    Infra_Error.PushContext "SanitizeFileNameStem"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("SanitizeFileNameStem")
     On Error GoTo ErrHandler
 
     Dim invalidChars As Variant
@@ -136,7 +134,6 @@ Public Function SanitizeFileNameStem(ByVal fileName As String) As String
     SanitizeFileNameStem = fileName
 
 CleanExit:
-    Infra_Error.PopContext
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "SanitizeFileNameStem", Err
@@ -145,7 +142,7 @@ End Function
 
 ' Ensures the file path ends with the specified extension (without dot).
 Public Function EnsureExtension(ByVal selectedPath As String, ByVal extensionWithoutDot As String) As String
-    Infra_Error.PushContext "EnsureExtension"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("EnsureExtension")
     On Error GoTo ErrHandler
 
     Dim expectedExtension As String
@@ -158,7 +155,6 @@ Public Function EnsureExtension(ByVal selectedPath As String, ByVal extensionWit
     End If
 
 CleanExit:
-    Infra_Error.PopContext
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "EnsureExtension", Err
@@ -167,7 +163,7 @@ End Function
 
 ' Checks if a file name is valid under Windows naming conventions.
 Public Function IsValidWindowsFileName(ByVal fileName As String) As Boolean
-    Infra_Error.PushContext "IsValidWindowsFileName"
+    Dim tracker As Object: Set tracker = Infra_Error.Track("IsValidWindowsFileName")
     On Error GoTo ErrHandler
 
     Dim invalidChars As Variant
@@ -185,7 +181,6 @@ Public Function IsValidWindowsFileName(ByVal fileName As String) As Boolean
     IsValidWindowsFileName = True
 
 CleanExit:
-    Infra_Error.PopContext
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "IsValidWindowsFileName", Err

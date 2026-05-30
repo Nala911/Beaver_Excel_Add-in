@@ -17,7 +17,7 @@ Core capabilities:
 - Workbook duplication and range export
 - Link breaking
 - A manifest-driven Ribbon and hotkey system
-- Worksheet UDFs: `XFilter` and `XUnpivot`
+- Worksheet UDFs: `XFilter`
 - A lightweight VBA test harness
 - A command-oriented execution pipeline built around `ICommand`
 
@@ -207,7 +207,7 @@ graph TD
 - `Infra_Interaction`: Centralizes message boxes, text prompts, range prompts, and reusable `UserForm`-based option pickers.
 - `Infra_UIFactory`: Implements standardized picker dialogs using `UI_OptionPicker` and creates typed request objects.
 - `Infra_ValueConversion`: Provides shared data and formula conversion utilities.
-- `Infra_Undo`: Provides custom undo support for range mutations.
+- `Infra_Undo`: Provides custom undo support for range mutations, securely buffered inside `ThisWorkbook`'s private sheet to protect user data from being saved or leaked inside external target workbooks.
 - `Infra_Progress`: Provides status-bar progress reporting for slow-running tasks.
 - `Infra_Diagnostics` & `Infra_ErrorContext`: Support environment capture and troubleshooting.
 - `StateStore` & `AppContainer`: Provide shared process-level state and dependency access.
@@ -241,7 +241,6 @@ graph TD
 
 #### User Defined Functions (UDFs)
 - `Lib_XFilterFunction.XFilter`
-- `Lib_XUnpivotFunction.XUnpivot`
 
 #### Testing Entry Point
 - `Lib_Tests.RunAllTests` (Uses the generated test manifest in `Lib_TestManifest.bas` which collects all `Public Sub Test_*` procedures).
@@ -346,6 +345,9 @@ graph TD
 - Use array-based range processing over cell-by-cell loops for bulk performance.
 - Use `.Formula2` for modern, spill-safe formulas. Never use `.Formula`.
 - Preserve user-facing constants in `config.json`.
+- Iterate backwards using an index countdown (`For i = Collection.Count To 1 Step -1`) when mutating or deleting elements inside collections (such as `PivotTables`, `ListObjects`, or `Names`) to avoid dynamic re-indexing skip bugs.
+- Safely intercept and translate literal Excel cell error variants (type `Error`) using `Select Case` with `CVErr()` constants (e.g., `Case CVErr(xlErrNA)`) before executing standard string or conversion operations (like `CStr()` or `CInt()`), preventing `Type mismatch (Error 13)` crashes.
+- Limit expensive cell-by-cell COM operations on large ranges (e.g., formula checks) to a safety cell count limit (e.g., 5,000 cells) to avoid freezing Excel.
 - Do not manually edit generated files (`UI_Ribbon.bas`, `UI_Hotkeys.bas`, `Infra_CommandRegistry.bas`, `Lib_TestManifest.bas`).
 
 ### Error Handling Pattern

@@ -33,9 +33,9 @@ Public Sub SaveState(ByVal Target As Range, ByVal ActionName As String)
     Set targetWb = Target.Worksheet.Parent
     
     Dim undoSh As Worksheet
-    Set undoSh = GetUndoSheet(targetWb)
+    Set undoSh = GetUndoSheet()
     If undoSh Is Nothing Then
-        Debug.Print "BEAVER [UNDO]: Target workbook is structure protected or sheet creation failed. Skipping undo registration."
+        Debug.Print "BEAVER [UNDO]: Could not access or create undo sheet in add-in. Skipping undo registration."
         GoTo CleanExit
     End If
     
@@ -120,7 +120,7 @@ Public Sub PerformUndo()
     On Error GoTo ErrHandler
     
     Dim undoSh As Worksheet
-    Set undoSh = GetUndoSheet(targetWb)
+    Set undoSh = GetUndoSheet()
     If undoSh Is Nothing Then GoTo CleanExit
     
     Dim targetRange As Range
@@ -151,15 +151,12 @@ ErrHandler:
 End Sub
 
 ' Returns (and creates if necessary) the hidden undo sheet in the specified workbook.
-Private Function GetUndoSheet(ByVal targetWb As Workbook) As Worksheet
-    ' Internal helper
+Private Function GetUndoSheet() As Worksheet
+    ' Internal helper - always use ThisWorkbook to avoid modifying user's workbook structure
     On Error Resume Next
-    Set GetUndoSheet = targetWb.Worksheets(UNDO_SHEET_NAME)
+    Set GetUndoSheet = ThisWorkbook.Worksheets(UNDO_SHEET_NAME)
     If GetUndoSheet Is Nothing Then
-        If targetWb.ProtectStructure Then
-            Exit Function
-        End If
-        Set GetUndoSheet = targetWb.Worksheets.Add(After:=targetWb.Worksheets(targetWb.Worksheets.Count))
+        Set GetUndoSheet = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
         GetUndoSheet.Name = UNDO_SHEET_NAME
         GetUndoSheet.Visible = xlSheetVeryHidden
     End If

@@ -394,6 +394,20 @@ Private Function GetWrappedContent(ByVal content As Variant, ByVal isStringValue
     Dim tracker As Object: Set tracker = Infra_Error.Track("GetWrappedContent")
     On Error GoTo ErrHandler
 
+    If IsError(content) Then
+        Select Case content
+            Case CVErr(xlErrDiv0): GetWrappedContent = "#DIV/0!"
+            Case CVErr(xlErrNull): GetWrappedContent = "#NULL!"
+            Case CVErr(xlErrNA): GetWrappedContent = "#N/A"
+            Case CVErr(xlErrName): GetWrappedContent = "#NAME?"
+            Case CVErr(xlErrNum): GetWrappedContent = "#NUM!"
+            Case CVErr(xlErrRef): GetWrappedContent = "#REF!"
+            Case CVErr(xlErrValue): GetWrappedContent = "#VALUE!"
+            Case Else: GetWrappedContent = "#ERROR!"
+        End Select
+        Exit Function
+    End If
+
     Dim result As String
     result = CStr(content)
 

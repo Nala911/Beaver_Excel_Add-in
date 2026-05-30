@@ -332,8 +332,6 @@ Private Sub ResetApplicationState()
         ' Restore original calculation mode if captured by an active AppStateGuard
         If Not Infra_AppState.ActiveGuard Is Nothing Then
             .Calculation = Infra_AppState.ActiveGuard.OriginalCalculation
-        Else
-            .Calculation = xlCalculationAutomatic
         End If
     End With
     On Error GoTo 0

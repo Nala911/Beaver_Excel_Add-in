@@ -278,6 +278,8 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
     Dim formulaArr As Variant, valueArr As Variant
     Dim r As Long, c As Long
     Dim changed As Boolean
+    Dim pvtIndex As Long
+    Dim loIndex As Long
     
     On Error Resume Next
     Set fCells = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
@@ -310,21 +312,23 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
     End If
 
     If ws.PivotTables.Count > 0 Then
-        For Each pvt In ws.PivotTables
+        For pvtIndex = ws.PivotTables.Count To 1 Step -1
+            Set pvt = ws.PivotTables(pvtIndex)
             pvt.TableRange2.Copy
             pvt.TableRange2.PasteSpecial xlPasteValues
             pCount = pCount + 1
-        Next pvt
+        Next pvtIndex
     End If
 
     If ws.ListObjects.Count > 0 Then
-        For Each lo In ws.ListObjects
+        For loIndex = ws.ListObjects.Count To 1 Step -1
+            Set lo = ws.ListObjects(loIndex)
             If lo.SourceType <> xlSrcRange Then
                 lo.Range.Copy
                 lo.Range.PasteSpecial xlPasteValues
                 tCount = tCount + 1
             End If
-        Next lo
+        Next loIndex
     End If
     
     Application.CutCopyMode = False

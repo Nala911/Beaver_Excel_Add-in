@@ -77,9 +77,7 @@ Private Sub LoadHotkeysList()
         .List(r, 1) = "Advanced set operations (1=Intersect, 2=Diff)"
         r = r + 1
         
-        .AddItem "  XUnpivot(Range, FixedCols, ...)"
-        .List(r, 1) = "Transforms a wide range into long normal form"
-        r = r + 1
+
         
     End With
 End Sub
