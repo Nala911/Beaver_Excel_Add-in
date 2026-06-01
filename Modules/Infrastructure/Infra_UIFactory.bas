@@ -13,12 +13,12 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
     On Error GoTo ErrHandler
     
     Dim promptMsg As String
-    Dim userChoice As String
     Dim normalizedChoice As String
     Dim request As Infra_CleanDataRequest
     Dim options As Variant
     Dim defaultChoice As String
     Dim hasSelection As Boolean
+    Dim confirmMsg As String
 
     hasSelection = HasUsableSelection(ctx)
     If hasSelection Then
@@ -29,55 +29,43 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
         defaultChoice = "Sheet"
     End If
 
-    Do
-        promptMsg = "Clean text with TRIM and CLEAN." & vbCrLf & vbCrLf & _
-                    BuildCompactContextSummary(ctx, hasSelection) & vbCrLf & vbCrLf & _
-                    "Scope:" & vbCrLf & _
-                    "Sheet - Active sheet" & vbCrLf & _
-                    "Workbook - All sheets"
-        If hasSelection Then
-            promptMsg = promptMsg & vbCrLf & "Range - Current selection"
-        Else
-            promptMsg = promptMsg & vbCrLf & vbCrLf & "No selection is required for Sheet or Workbook scope."
-        End If
+    promptMsg = "Clean text with TRIM and CLEAN." & vbCrLf & vbCrLf & _
+                BuildCompactContextSummary(ctx, hasSelection) & vbCrLf & vbCrLf & _
+                "Scope:" & vbCrLf & _
+                "Sheet - Active sheet" & vbCrLf & _
+                "Workbook - All sheets"
+    If hasSelection Then
+        promptMsg = promptMsg & vbCrLf & "Range - Current selection"
+    Else
+        promptMsg = promptMsg & vbCrLf & vbCrLf & "No selection is required for Sheet or Workbook scope."
+    End If
 
-        If Not ShowOptionPicker(promptMsg, BuildDialogTitle("Clean Data"), defaultChoice, options, userChoice) Then GoTo CleanExit
+    confirmMsg = "Workbook-wide Clean Data updates every sheet and cannot be restored as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
+                 "Continue with workbook-wide cleaning?"
 
-        normalizedChoice = NormalizeChoiceText(userChoice)
-        Select Case normalizedChoice
-            Case "", "R", "RANGE", "SELECTED", "SELECTION"
-                If Not hasSelection Then
-                    Infra_Interaction.ShowWarning "Select a range first if you want to clean only the current selection.", BuildDialogTitle("Clean Data")
-                    GoTo ContinueLoop
-                End If
-                Set request = New Infra_CleanDataRequest
-                Set request.Context = ctx
-                request.Scope = CleanDataScopeSelection
-                Set ShowCleanDataDialog = request
-                Exit Do
-            Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-                Set request = New Infra_CleanDataRequest
-                Set request.Context = ctx
-                request.Scope = CleanDataScopeActiveSheet
-                Set ShowCleanDataDialog = request
-                Exit Do
-            Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-                If Not Infra_Interaction.Confirm( _
-                    "Workbook-wide Clean Data updates every sheet and cannot be restored as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
-                    "Continue with workbook-wide cleaning?", _
-                    BuildDialogTitle("Confirm Workbook Scope"), vbDefaultButton2) Then
-                    GoTo CleanExit
-                End If
-                Set request = New Infra_CleanDataRequest
-                Set request.Context = ctx
-                request.Scope = CleanDataScopeWorkbook
-                Set ShowCleanDataDialog = request
-                Exit Do
-            Case Else
-                Infra_Interaction.ShowWarning "Please choose Range, Sheet, or Workbook.", BuildDialogTitle("Clean Data")
-        End Select
-ContinueLoop:
-    Loop
+    If Not PromptForScopeSelection(ctx, "Clean Data", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
+
+    Select Case normalizedChoice
+        Case "R", "RANGE", "SELECTED", "SELECTION"
+            If Not hasSelection Then
+                Infra_Interaction.ShowWarning "Select a range first if you want to clean only the current selection.", BuildDialogTitle("Clean Data")
+                GoTo CleanExit
+            End If
+            Set request = New Infra_CleanDataRequest
+            Set request.Context = ctx
+            request.Scope = CleanDataScopeSelection
+            Set ShowCleanDataDialog = request
+        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
+            Set request = New Infra_CleanDataRequest
+            Set request.Context = ctx
+            request.Scope = CleanDataScopeActiveSheet
+            Set ShowCleanDataDialog = request
+        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
+            Set request = New Infra_CleanDataRequest
+            Set request.Context = ctx
+            request.Scope = CleanDataScopeWorkbook
+            Set ShowCleanDataDialog = request
+    End Select
 
 CleanExit:
     Exit Function
@@ -156,45 +144,34 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
     On Error GoTo ErrHandler
 
     Dim request As Infra_StaticRequest
-    Dim scopeChoice As String
+    Dim promptMsg As String
+    Dim confirmMsg As String
     Dim normalizedChoice As String
 
-    Do
-        If Not ShowOptionPicker( _
-            "Convert formulas to values." & vbCrLf & vbCrLf & _
-            BuildCompactContextSummary(ctx, False) & vbCrLf & vbCrLf & _
-            "Scope:" & vbCrLf & _
-            "Sheet - Active sheet" & vbCrLf & _
-            "Workbook - All sheets", _
-            BuildDialogTitle("Make Static"), "Sheet", Array("Sheet", "Workbook"), scopeChoice) Then GoTo CleanExit
+    promptMsg = "Convert formulas to values." & vbCrLf & vbCrLf & _
+                BuildCompactContextSummary(ctx, False) & vbCrLf & vbCrLf & _
+                "Scope:" & vbCrLf & _
+                "Sheet - Active sheet" & vbCrLf & _
+                "Workbook - All sheets"
 
-        normalizedChoice = NormalizeChoiceText(scopeChoice)
-        If normalizedChoice = "" Then normalizedChoice = "SHEET"
+    confirmMsg = "You are about to convert formulas on every worksheet in " & SafeWorkbookName(ctx) & "." & vbCrLf & vbCrLf & _
+                 "This is not reversible as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
+                 "Continue with workbook-wide conversion?"
 
-        Select Case normalizedChoice
-            Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-                Set request = New Infra_StaticRequest
-                Set request.Context = ctx
-                request.Scope = StaticConversionScopeActiveSheet
-                Set ShowStaticConversionDialog = request
-                Exit Do
-            Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-                If Not Infra_Interaction.Confirm( _
-                    "You are about to convert formulas on every worksheet in " & SafeWorkbookName(ctx) & "." & vbCrLf & vbCrLf & _
-                    "This is not reversible as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
-                    "Continue with workbook-wide conversion?", _
-                    BuildDialogTitle("Confirm Workbook Scope"), vbDefaultButton2) Then
-                    GoTo CleanExit
-                End If
-                Set request = New Infra_StaticRequest
-                Set request.Context = ctx
-                request.Scope = StaticConversionScopeWorkbook
-                Set ShowStaticConversionDialog = request
-                Exit Do
-            Case Else
-                Infra_Interaction.ShowWarning "Please choose Sheet or Workbook.", BuildDialogTitle("Make Static")
-        End Select
-    Loop
+    If Not PromptForScopeSelection(ctx, "Make Static", promptMsg, "Sheet", Array("Sheet", "Workbook"), confirmMsg, normalizedChoice) Then GoTo CleanExit
+
+    Select Case normalizedChoice
+        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
+            Set request = New Infra_StaticRequest
+            Set request.Context = ctx
+            request.Scope = StaticConversionScopeActiveSheet
+            Set ShowStaticConversionDialog = request
+        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
+            Set request = New Infra_StaticRequest
+            Set request.Context = ctx
+            request.Scope = StaticConversionScopeWorkbook
+            Set ShowStaticConversionDialog = request
+    End Select
 
 CleanExit:
     Exit Function
@@ -207,12 +184,13 @@ Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal lin
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowBreakLinksDialog")
     On Error GoTo ErrHandler
 
-    Dim userChoice As String
     Dim normalizedChoice As String
     Dim options As Variant
     Dim defaultChoice As String
     Dim allowSheetScope As Boolean
     Dim request As Infra_BreakLinksRequest
+    Dim promptMsg As String
+    Dim confirmMsg As String
 
     allowSheetScope = ActiveSheetHasBreakableItems(ctx)
     If allowSheetScope Then
@@ -223,48 +201,35 @@ Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal lin
         defaultChoice = "Workbook"
     End If
 
-    Do
-        If Not ShowOptionPicker( _
-            "External links were found and can be permanently converted to values." & vbCrLf & vbCrLf & _
-            BuildContextSummary(ctx, False) & vbCrLf & vbCrLf & _
-            "Detected items:" & vbCrLf & linkInfo & vbCrLf & vbCrLf & _
-            "Choose a scope:" & vbCrLf & _
-            "Sheet     - Converts linked formulas, pivot tables, and external tables only on the active sheet" & vbCrLf & _
-            "Workbook  - Also removes workbook-level links, connections, and external names" & vbCrLf & vbCrLf & _
-            IIf(allowSheetScope, "Choose Sheet or Workbook.", "Only Workbook scope can remove the detected workbook-level items from this context."), _
-            BuildDialogTitle("Break External Links"), defaultChoice, options, userChoice) Then GoTo CleanExit
+    promptMsg = "External links were found and can be permanently converted to values." & vbCrLf & vbCrLf & _
+                BuildContextSummary(ctx, False) & vbCrLf & vbCrLf & _
+                "Detected items:" & vbCrLf & linkInfo & vbCrLf & vbCrLf & _
+                "Choose a scope:" & vbCrLf & _
+                "Sheet     - Converts linked formulas, pivot tables, and external tables only on the active sheet" & vbCrLf & _
+                "Workbook  - Also removes workbook-level links, connections, and external names" & vbCrLf & vbCrLf & _
+                IIf(allowSheetScope, "Choose Sheet or Workbook.", "Only Workbook scope can remove the detected workbook-level items from this context.")
 
-        normalizedChoice = NormalizeChoiceText(userChoice)
-        If normalizedChoice = "" Then normalizedChoice = UCase$(defaultChoice)
+    confirmMsg = "This will remove workbook-level links and connections and flatten external content." & vbCrLf & vbCrLf & _
+                 "Continue with whole-workbook processing?"
 
-        Select Case normalizedChoice
-            Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-                If Not allowSheetScope Then
-                    Infra_Interaction.ShowWarning "The active sheet has no breakable linked formulas, pivots, or tables. Use Workbook scope to remove the remaining workbook-level items.", BuildDialogTitle("Break External Links")
-                    GoTo ContinueBreakLinksLoop
-                End If
-                Set request = New Infra_BreakLinksRequest
-                Set request.Context = ctx
-                request.Scope = BreakLinksScopeActiveSheet
-                Set ShowBreakLinksDialog = request
-                Exit Do
-            Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-                If Not Infra_Interaction.Confirm( _
-                    "This will remove workbook-level links and connections and flatten external content." & vbCrLf & vbCrLf & _
-                    "Continue with whole-workbook processing?", _
-                    BuildDialogTitle("Confirm Workbook Scope"), vbDefaultButton2) Then
-                    GoTo CleanExit
-                End If
-                Set request = New Infra_BreakLinksRequest
-                Set request.Context = ctx
-                request.Scope = BreakLinksScopeWorkbook
-                Set ShowBreakLinksDialog = request
-                Exit Do
-            Case Else
-                Infra_Interaction.ShowWarning "Please choose Sheet or Workbook.", BuildDialogTitle("Break External Links")
-        End Select
-ContinueBreakLinksLoop:
-    Loop
+    If Not PromptForScopeSelection(ctx, "Break External Links", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
+
+    Select Case normalizedChoice
+        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
+            If Not allowSheetScope Then
+                Infra_Interaction.ShowWarning "The active sheet has no breakable linked formulas, pivots, or tables. Use Workbook scope to remove the remaining workbook-level items.", BuildDialogTitle("Break External Links")
+                GoTo CleanExit
+            End If
+            Set request = New Infra_BreakLinksRequest
+            Set request.Context = ctx
+            request.Scope = BreakLinksScopeActiveSheet
+            Set ShowBreakLinksDialog = request
+        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
+            Set request = New Infra_BreakLinksRequest
+            Set request.Context = ctx
+            request.Scope = BreakLinksScopeWorkbook
+            Set ShowBreakLinksDialog = request
+    End Select
 
 CleanExit:
     Exit Function
@@ -714,4 +679,50 @@ Private Function ActiveSheetHasBreakableItems(ByVal ctx As Infra_ActionContext) 
 
 CleanExit:
     Exit Function
+End Function
+
+Private Function PromptForScopeSelection( _
+    ByVal ctx As Infra_ActionContext, _
+    ByVal dialogName As String, _
+    ByVal promptMsg As String, _
+    ByVal defaultChoice As String, _
+    ByVal options As Variant, _
+    ByVal confirmMessage As String, _
+    ByRef outChoice As String) As Boolean
+    
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForScopeSelection")
+    On Error GoTo ErrHandler
+
+    Dim userChoice As String
+    Dim normalizedChoice As String
+
+    Do
+        If Not ShowOptionPicker(promptMsg, BuildDialogTitle(dialogName), defaultChoice, options, userChoice) Then
+            PromptForScopeSelection = False
+            GoTo CleanExit
+        End If
+
+        normalizedChoice = NormalizeChoiceText(userChoice)
+        If normalizedChoice = "" Then normalizedChoice = UCase$(defaultChoice)
+
+        If (normalizedChoice = "W" Or normalizedChoice = "WB" Or normalizedChoice = "WORKBOOK" Or _
+            normalizedChoice = "WHOLE WORKBOOK" Or normalizedChoice = "WHOLEWORKBOOK") And confirmMessage <> "" Then
+            If Not Infra_Interaction.Confirm(confirmMessage, BuildDialogTitle("Confirm Workbook Scope"), vbDefaultButton2) Then
+                GoTo ContinueLoop
+            End If
+        End If
+
+        outChoice = normalizedChoice
+        PromptForScopeSelection = True
+        Exit Do
+
+ContinueLoop:
+    Loop
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "PromptForScopeSelection", Err
+    PromptForScopeSelection = False
+    Resume CleanExit
 End Function

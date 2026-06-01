@@ -346,9 +346,11 @@ End Sub
 Private Sub TryShowErrorDialog(ByVal errorMsg As String, ByVal ctx As Infra_ErrorContext)
     On Error Resume Next
     If ctx Is Nothing Then Exit Sub
+    If Not Application.Visible Or Not Application.UserControl Then Exit Sub
     ShowAIErrorDialog errorMsg, ctx.Severity
     On Error GoTo 0
 End Sub
+
 
 Private Sub ShowAIErrorDialog(ByVal errorMsg As String, Optional ByVal severity As String = "fatal")
     Dim displayMsg As String

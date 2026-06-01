@@ -57,3 +57,118 @@ ErrHandler:
     Infra_Error.HandleError "Test_HelloWorld_Execution_And_Undo", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_MakePermanent_SpillHandling_And_Undo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_MakePermanent_SpillHandling_And_Undo")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_MakePermanent"
+
+    ' Setup a dynamic array formula in A1 that spills down to A3
+    ws.Range("A1").Formula2 = "=SEQUENCE(3, 1)"
+    
+    ' Recalculate to ensure dynamic array is evaluated
+    ws.Calculate
+    Infra_ValueConversion.WaitForCalculation
+    
+    ' Asserts before execution
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 should be 1"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 should be 2"
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 should be 3"
+
+    ' Initialize AppContainer
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    
+    ' Create command context for MakePermanent
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("MakePermanent")
+    
+    ' Set the context refs directly to point to our cell A1
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1")
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("MakePermanent")
+    
+    ' Execute the command directly - it should expand to the full spill range (A1:A3)
+    cmd.Execute ctx
+    
+    ' Assert that formulas are gone and values are static
+    Lib_Tests.AssertEqual ws.Range("A1").HasFormula, False, "A1 formula should be removed"
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 static value should be 1"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 static value should be 2"
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 static value should be 3"
+
+    ' Now register and perform undo
+    Infra_Undo.RegisterPendingUndo
+    Infra_Undo.PerformUndo
+    
+    ' Assert that formula and dynamic array are restored
+    Lib_Tests.AssertEqual ws.Range("A1").HasFormula, True, "A1 formula should be restored"
+    Lib_Tests.AssertEqual ws.Range("A1").Formula2, "=SEQUENCE(3, 1)", "A1 formula content should be restored"
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 restored value should be 1"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 restored value should be 2"
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 restored value should be 3"
+
+    ' Cleanup the temporary worksheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_MakePermanent_SpillHandling_And_Undo", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ValueConversion_ResolveSpillExpandedRange()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ValueConversion_ResolveSpillExpandedRange")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_SpillResolve"
+
+    ' Setup a dynamic array formula in A1 that spills down to A3
+    ws.Range("A1").Formula2 = "=SEQUENCE(3, 1)"
+    ws.Calculate
+    Infra_ValueConversion.WaitForCalculation
+
+    ' Test 1: Resolve starting from the anchor cell (A1)
+    Dim expandedFromAnchor As Range
+    Set expandedFromAnchor = Infra_ValueConversion.ResolveSpillExpandedRange(ws.Range("A1"))
+    Lib_Tests.AssertEqual expandedFromAnchor.Address(False, False), "A1:A3", "Expanded range from anchor A1 should be A1:A3"
+
+    ' Test 2: Resolve starting from a spilled cell (A2)
+    Dim expandedFromSpilled As Range
+    Set expandedFromSpilled = Infra_ValueConversion.ResolveSpillExpandedRange(ws.Range("A2"))
+    Lib_Tests.AssertEqual expandedFromSpilled.Address(False, False), "A1:A3", "Expanded range from spilled cell A2 should be A1:A3"
+
+    ' Cleanup the temporary worksheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ValueConversion_ResolveSpillExpandedRange", Err
+    Resume CleanExit
+End Sub

@@ -208,6 +208,11 @@ End Function
 
 Private Function CleanTextValue(ByVal rawValue As Variant) As Variant
     ' Note: No tracker here. This is called in tight loops.
+    If IsError(rawValue) Then
+        CleanTextValue = rawValue
+        Exit Function
+    End If
+
     Dim textValue As String
     textValue = CStr(rawValue)
     

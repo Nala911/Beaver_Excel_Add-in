@@ -285,7 +285,6 @@ graph TD
     "DefaultFontSize": 10,
     "HeaderFontSize": 11,
     "DefaultNumberFormat": "#,##0",
-    "DefaultDateFormat": "dd-mmm-yyyy",
     "DisplayDateFormat": "dd/mm/yyyy",
     "ColumnWidthThreshold": 40,
     "MaxColumnWidth": 25,
@@ -299,7 +298,7 @@ graph TD
   },
   "FeatureFlags": {
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 7
+    "GeneratedFeatureCount": 8
   },
   "Hotkeys": [
     {
@@ -316,7 +315,8 @@ graph TD
     "BtnBreakLinks": "WorkbookLinks",
     "BtnDuplicate": "FileSaveAs",
     "BtnExport": "Export",
-    "BtnHelpCenter": "Help"
+    "BtnHelpCenter": "Help",
+    "BtnHelloWorld": "HappyFace"
   }
 }
 ```
@@ -348,6 +348,7 @@ graph TD
 - Iterate backwards using an index countdown (`For i = Collection.Count To 1 Step -1`) when mutating or deleting elements inside collections (such as `PivotTables`, `ListObjects`, or `Names`) to avoid dynamic re-indexing skip bugs.
 - Safely intercept and translate literal Excel cell error variants (type `Error`) using `Select Case` with `CVErr()` constants (e.g., `Case CVErr(xlErrNA)`) before executing standard string or conversion operations (like `CStr()` or `CInt()`), preventing `Type mismatch (Error 13)` crashes.
 - Limit expensive cell-by-cell COM operations on large ranges (e.g., formula checks) to a safety cell count limit (e.g., 5,000 cells) to avoid freezing Excel.
+- Flexible linter checks inside `Update.ps1` scan the entire procedure body to verify `Infra_Error.Track` is used, supporting descriptive comments at the top of public procedures.
 - Do not manually edit generated files (`UI_Ribbon.bas`, `UI_Hotkeys.bas`, `Infra_CommandRegistry.bas`, `Lib_TestManifest.bas`).
 
 ### Error Handling Pattern

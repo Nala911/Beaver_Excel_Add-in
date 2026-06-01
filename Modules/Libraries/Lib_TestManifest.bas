@@ -19,6 +19,8 @@ Public Sub RunGeneratedTests()
     Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesHotkeyEntries
     Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesRibbonEntries
     Lib_Tests_Features.Test_HelloWorld_Execution_And_Undo
+    Lib_Tests_Features.Test_MakePermanent_SpillHandling_And_Undo
+    Lib_Tests_Features.Test_ValueConversion_ResolveSpillExpandedRange
 
 CleanExit:
     Exit Sub

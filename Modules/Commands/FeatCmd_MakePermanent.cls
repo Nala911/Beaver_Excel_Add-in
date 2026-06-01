@@ -35,11 +35,14 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set rng = ctx.SelectionRange
     If rng Is Nothing Then GoTo CleanExit
 
-    Infra_Undo.SaveState rng, "Make Permanent"
+    Dim expandedRange As Range
+    Set expandedRange = Infra_ValueConversion.ResolveSpillExpandedRange(rng)
+
+    Infra_Undo.SaveState expandedRange, "Make Permanent"
     Infra_Progress.StartProgress "Converting Selection to Values", 1
 
     ' Reuse the shared value-conversion helper so hotkey and ribbon flows stay aligned.
-    Infra_ValueConversion.ConvertRangeToValues rng
+    Infra_ValueConversion.ConvertRangeToValues expandedRange
     Application.CutCopyMode = False
     Infra_Progress.UpdateProgress 1, True
 

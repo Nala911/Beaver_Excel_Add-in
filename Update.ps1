@@ -1244,8 +1244,8 @@ function Invoke-EnhancedLinting {
                 
                 while ($j -lt $lines.Count -and $lines[$j] -notmatch "^\s*End (?:Sub|Function)") {
                     $procBody += $lines[$j] + "`n"
-                    if ($lines[$j] -match "PushContext\s+""$procName""" -or $lines[$j] -match "Infra_Error\.Track\s*\(""$procName""\)") { $foundPush = $true }
-                    if ($lines[$j] -match "PopContext" -or $lines[$j] -match "Dim\s+\w+\s+As\s+Object:\s*Set\s+\w+\s*=\s*Infra_Error\.Track") { $foundPop = $true }
+                    if ($lines[$j] -match "PushContext\s+""$procName""" -or $lines[$j] -match "Infra_Error\.Track") { $foundPush = $true }
+                    if ($lines[$j] -match "PopContext" -or $lines[$j] -match "Infra_Error\.Track") { $foundPop = $true }
                     if ($lines[$j] -match "On Error GoTo\s+\w+") { $foundErrorGoto = $true }
                     if ($lines[$j] -match "HandleError\s+""$procName""") { $foundHandleError = $true }
                     $j++
@@ -1256,11 +1256,8 @@ function Invoke-EnhancedLinting {
                     $allPassed = $false
                 }
                 if (-not $foundPop) {
-                    # If we use RAII tracking, PopContext isn't needed manually
-                    if ($lines[$i+1] -notmatch "Infra_Error\.Track") {
-                        Write-Host "  [$fileName] Error: Procedure '$procName' missing 'PopContext'." -ForegroundColor Red
-                        $allPassed = $false
-                    }
+                    Write-Host "  [$fileName] Error: Procedure '$procName' missing 'PopContext' (or RAII Track tracker)." -ForegroundColor Red
+                    $allPassed = $false
                 }
                 if (-not $foundErrorGoto) {
                     Write-Host "  [$fileName] Error: Procedure '$procName' missing 'On Error GoTo'." -ForegroundColor Red
@@ -1619,11 +1616,30 @@ try {
                 Write-Host "  SUCCESS: Unit tests completed." -ForegroundColor Green
             } catch {
                 Write-Host "  FAILURE: Unit tests failed." -ForegroundColor Red
+                
+                # Retrieve and print detailed VBA diagnostic logs for the current process
+                $vbaLogPath = Join-Path $env:TEMP "BeaverAddin_$testExcelPid.log"
+                if (Test-Path $vbaLogPath) {
+                    Write-Host "`n  --- BEAVER VBA DIAGNOSTIC LOGS ---" -ForegroundColor Yellow
+                    Get-Content $vbaLogPath | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+                    Write-Host "  ----------------------------------`n" -ForegroundColor Yellow
+                }
                 throw "Unit tests failed: $($_.Exception.Message)"
             }
 
             $structuredResults = Read-StructuredTestResults -Path $structuredTestResultsPath
-            Assert-StructuredTestResults -StructuredResults $structuredResults -Path $structuredTestResultsPath | Out-Null
+            try {
+                Assert-StructuredTestResults -StructuredResults $structuredResults -Path $structuredTestResultsPath | Out-Null
+            } catch {
+                # Retrieve and print detailed VBA diagnostic logs for the current process
+                $vbaLogPath = Join-Path $env:TEMP "BeaverAddin_$testExcelPid.log"
+                if (Test-Path $vbaLogPath) {
+                    Write-Host "`n  --- BEAVER VBA DIAGNOSTIC LOGS ---" -ForegroundColor Yellow
+                    Get-Content $vbaLogPath | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+                    Write-Host "  ----------------------------------`n" -ForegroundColor Yellow
+                }
+                throw $_
+            }
 
             $headlessCallbacks = Get-EnabledHeadlessCallbacks -ManifestPath $featureManifestPath -IncludeDev:$false
             Invoke-HeadlessCallbackTests -ExcelApplication $testExcel -Callbacks $headlessCallbacks | Out-Null
