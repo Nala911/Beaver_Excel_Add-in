@@ -95,7 +95,12 @@ Private Function GetExternalElementsSummary(ByVal wb As Workbook, ByVal activeSh
     
     If wb.Names.Count > 0 Then
         For Each nm In wb.Names
-            If InStr(1, nm.RefersTo, "[", vbTextCompare) > 0 Then
+            Dim refersToVal As String
+            refersToVal = ""
+            On Error Resume Next
+            refersToVal = nm.RefersTo
+            On Error GoTo ErrHandler
+            If InStr(1, refersToVal, "[", vbTextCompare) > 0 Then
                 nameCount = nameCount + 1
             End If
         Next nm
@@ -197,12 +202,14 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
         End If
         
         If wb.Connections.Count > 0 Then
-            For Each conn In wb.Connections
+            Dim connIndex As Long
+            For connIndex = wb.Connections.Count To 1 Step -1
+                Set conn = wb.Connections(connIndex)
                 On Error Resume Next
                 conn.Delete
                 If Err.Number = 0 Then connectionsRemoved = connectionsRemoved + 1
                 On Error GoTo ErrHandler
-            Next conn
+            Next connIndex
         End If
 
         namesRemoved = RemoveExternalWorkbookNames(wb)
@@ -251,7 +258,12 @@ Private Function RemoveExternalWorkbookNames(ByVal wb As Workbook) As Long
     If wb Is Nothing Then GoTo CleanExit
 
     For Each nm In wb.Names
-        If InStr(1, nm.RefersTo, "[", vbTextCompare) > 0 Then
+        Dim extRefersToVal As String
+        extRefersToVal = ""
+        On Error Resume Next
+        extRefersToVal = nm.RefersTo
+        On Error GoTo ErrHandler
+        If InStr(1, extRefersToVal, "[", vbTextCompare) > 0 Then
             externalNames.Add nm.Name
         End If
     Next nm
@@ -333,3 +345,33 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
     
     Application.CutCopyMode = False
 End Sub
+
+' --- Testing Entry Points ---
+' Allows headless automated testing of the link breaking and name removal logic.
+Public Function ExecuteBreakLinksDirect(ByVal wb As Workbook, ByVal request As Infra_BreakLinksRequest, ByRef linkArr As Variant) As String
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteBreakLinksDirect")
+    On Error GoTo ErrHandler
+    
+    ExecuteBreakLinksDirect = ExecuteBreakLinks(wb, request, linkArr)
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "ExecuteBreakLinksDirect", Err
+    Resume CleanExit
+End Function
+
+Public Function RemoveExternalWorkbookNamesDirect(ByVal wb As Workbook) As Long
+    Dim tracker As Object: Set tracker = Infra_Error.Track("RemoveExternalWorkbookNamesDirect")
+    On Error GoTo ErrHandler
+    
+    RemoveExternalWorkbookNamesDirect = RemoveExternalWorkbookNames(wb)
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "RemoveExternalWorkbookNamesDirect", Err
+    Resume CleanExit
+End Function

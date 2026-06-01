@@ -296,3 +296,19 @@ Private Function HighlightInconsistentFormulas(ByVal targetRange As Range) As Bo
     
     HighlightInconsistentFormulas = True
 End Function
+
+' --- Testing Entry Point ---
+' Allows headless automated testing of the range cleaning logic.
+Public Function CleanRangeDirect(ByVal targetRange As Range) As Long
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CleanRangeDirect")
+    On Error GoTo ErrHandler
+    
+    CleanRangeDirect = ProcessRangeForClean(targetRange)
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "CleanRangeDirect", Err
+    Resume CleanExit
+End Function
