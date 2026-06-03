@@ -22,7 +22,9 @@ Public Sub RunGeneratedTests()
     Lib_Tests_Features.Test_CleanData_TrimmingAndNumericalFixing
     Lib_Tests_Features.Test_HelloWorld_Execution_And_Undo
     Lib_Tests_Features.Test_MakePermanent_SpillHandling_And_Undo
+    Lib_Tests_Features.Test_UdfRegistry_And_HelpCenter
     Lib_Tests_Features.Test_ValueConversion_ResolveSpillExpandedRange
+    Lib_Tests_Features.Test_XFilter_Features
 
 CleanExit:
     Exit Sub

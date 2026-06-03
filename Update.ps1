@@ -1228,9 +1228,10 @@ function Invoke-EnhancedLinting {
             $line = $lines[$i]
             if ($line -match "^\s*Public (?:Sub|Function)\s+([a-zA-Z0-9_]+)") {
                 $procName = $matches[1]
+                $procLineNum = $i + 1
                 
                 # Skip common Excel events or very short helper functions if they don't need context
-                if ($procName -match "^(?:Workbook_|Worksheet_|App_)" -or $file.Name -eq "Lib_JsonConverter.bas" -or $file.Name -match "^(?:Infra_Error\.(bas|cls)|Infra_ContextTracker\.cls|Infra_Diagnostics\.bas|Infra_OperationContext\.cls|AppContainer\.cls|Infra_Config\.(cls|bas)|Infra_ConfigModel\.cls|I[A-Z][a-zA-Z0-9_\-]*\.cls|Infra_AppStateGuard\.cls|Infra_AppState\.bas)$") {
+                if ($procName -match "^(?:Workbook_|Worksheet_|App_)" -or $file.Name -eq "Lib_JsonConverter.bas" -or $file.Name -match "^Lib_[a-zA-Z0-9_]+Function\.bas$" -or $file.Name -match "^(?:Infra_Error\.(bas|cls)|Infra_ContextTracker\.cls|Infra_Diagnostics\.bas|Infra_OperationContext\.cls|AppContainer\.cls|Infra_Config\.(cls|bas)|Infra_ConfigModel\.cls|I[A-Z][a-zA-Z0-9_\-]*\.cls|Infra_AppStateGuard\.cls|Infra_AppState\.bas)$") {
                     continue
                 }
 
@@ -1252,19 +1253,19 @@ function Invoke-EnhancedLinting {
                 }
 
                 if (-not $foundPush) {
-                    Write-Host "  [$fileName] Error: Procedure '$procName' missing context tracking (PushContext or Track)." -ForegroundColor Red
+                    Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing context tracking (PushContext or Track)." -ForegroundColor Red
                     $allPassed = $false
                 }
                 if (-not $foundPop) {
-                    Write-Host "  [$fileName] Error: Procedure '$procName' missing 'PopContext' (or RAII Track tracker)." -ForegroundColor Red
+                    Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'PopContext' (or RAII Track tracker)." -ForegroundColor Red
                     $allPassed = $false
                 }
                 if (-not $foundErrorGoto) {
-                    Write-Host "  [$fileName] Error: Procedure '$procName' missing 'On Error GoTo'." -ForegroundColor Red
+                    Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'On Error GoTo'." -ForegroundColor Red
                     $allPassed = $false
                 }
                 if (-not $foundHandleError) {
-                    Write-Host "  [$fileName] Error: Procedure '$procName' missing 'HandleError ""$procName""'." -ForegroundColor Red
+                    Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'HandleError ""$procName""'." -ForegroundColor Red
                     $allPassed = $false
                 }
             }
@@ -1474,10 +1475,48 @@ try {
 
                                     $errorLineText = $activePane.CodeModule.Lines($startLine, 1).Trim()
 
-                                    Write-Host "  [Diagnostics] Module: $modName" -ForegroundColor Yellow
-                                    Write-Host "  [Diagnostics] Line $($startLine): $errorLineText" -ForegroundColor Yellow
+                                    # Try to map the VBE line back to the actual disk file
+                                    $diskFile = $null
+                                    if ($modName -eq "ThisWorkbook") {
+                                        if (Test-Path $desktopThisWorkbookCls) {
+                                            $diskFile = Get-Item $desktopThisWorkbookCls
+                                        }
+                                    } else {
+                                        $diskFile = Get-ChildItem -Path $modulesDir -Recurse | Where-Object { $_.BaseName -eq $modName -and $_.Extension -match "\.(bas|cls|frm)$" } | Select-Object -First 1
+                                    }
 
-                                    throw "VBA Compilation failed in module '$modName' at line $($startLine): '$errorLineText'. Please fix the syntax or missing definitions."
+                                    if ($null -ne $diskFile) {
+                                        $diskLines = Get-Content $diskFile.FullName
+                                        $lastAttr = -1
+                                        for ($l = 0; $l -lt $diskLines.Count; $l++) {
+                                            if ($diskLines[$l] -match "^Attribute\s+") {
+                                                $lastAttr = $l
+                                            }
+                                        }
+                                        $offset = $lastAttr + 1
+                                        $diskErrorLine = $startLine + $offset
+
+                                        Write-Host "  [Diagnostics] Source File: $($diskFile.FullName)" -ForegroundColor Yellow
+                                        Write-Host "  [Diagnostics] Error at Disk Line $diskErrorLine" -ForegroundColor Yellow
+
+                                        # Print context
+                                        $contextStart = [Math]::Max(1, $diskErrorLine - 3)
+                                        $contextEnd = [Math]::Min($diskLines.Count, $diskErrorLine + 3)
+
+                                        Write-Host "  [Diagnostics] --- Code Context ---" -ForegroundColor Yellow
+                                        for ($l = $contextStart; $l -le $contextEnd; $l++) {
+                                            $prefix = if ($l -eq $diskErrorLine) { ">>> " } else { "    " }
+                                            $color = if ($l -eq $diskErrorLine) { "Red" } else { "DarkGray" }
+                                            Write-Host ("{0}{1:D3}: {2}" -f $prefix, $l, $diskLines[$l - 1]) -ForegroundColor $color
+                                        }
+                                        Write-Host "  [Diagnostics] --------------------" -ForegroundColor Yellow
+
+                                        throw "VBA Compilation failed in module '$modName' (Source: $($diskFile.FullName)) at line $($diskErrorLine): '$errorLineText'. Please fix the syntax or missing definitions."
+                                    } else {
+                                        Write-Host "  [Diagnostics] Module: $modName" -ForegroundColor Yellow
+                                        Write-Host "  [Diagnostics] Line $($startLine): $errorLineText" -ForegroundColor Yellow
+                                        throw "VBA Compilation failed in module '$modName' at line $($startLine): '$errorLineText'. Please fix the syntax or missing definitions."
+                                    }
                                 }
 
                                 Write-Host "  [Diagnostics] No ActiveCodePane found after failure." -ForegroundColor Yellow

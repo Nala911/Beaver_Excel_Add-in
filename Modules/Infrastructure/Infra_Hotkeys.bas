@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Central registry for all keyboard shortcuts, now loaded from config.json.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Config, Infra_Error
+' @Dependencies: Infra_Config, Infra_Error, Lib_UdfRegistry
 
 ' Returns a 2D array of all hotkey definitions from JSON.
 '   Column 1 = OnKey pattern  (e.g. "^+p")
@@ -106,22 +106,83 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-' Shows a human-readable list of all shortcuts from HotkeyDefinitions in a UserForm.
+' Shows a human-readable list of all shortcuts from HotkeyDefinitions in a new Workbook.
 Public Sub ShowHelpCenter()
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowHelpCenter")
+    Dim guard As New Infra_AppStateGuard
     On Error GoTo ErrHandler
     
-    Dim frm As Object
+    Dim defs As Variant
+    Dim i As Long, r As Long
+    Dim wb As Workbook
+    Dim ws As Worksheet
     
-    On Error Resume Next
-    Set frm = VBA.UserForms.Add("UI_HelpCenter")
-    On Error GoTo ErrHandler
+    defs = HotkeyDefinitions()
     
-    If Not frm Is Nothing Then
-        frm.Show
-    Else
-        Infra_Interaction.ShowCritical "Could not load Hotkeys Help form."
-    End If
+    Set wb = Workbooks.Add
+    Set ws = wb.Sheets(1)
+    
+    With ws
+        .Name = "Beaver Help Center"
+        
+        ' Header
+        .Cells(1, 1).Value = "Beaver Add-in Help Center"
+        .Cells(1, 1).Font.Size = 14
+        .Cells(1, 1).Font.Bold = True
+        
+        r = 3
+        
+        ' Hotkeys Section
+        .Cells(r, 1).Value = "Keyboard Shortcuts"
+        .Cells(r, 1).Font.Bold = True
+        .Cells(r, 1).Font.Size = 12
+        r = r + 1
+        
+        If Not IsEmpty(defs) Then
+            For i = LBound(defs, 1) To UBound(defs, 1)
+                If defs(i, 1) <> "" And defs(i, 3) <> "" Then
+                    .Cells(r, 1).Value = TranslateHotkey(CStr(defs(i, 1)))
+                    .Cells(r, 1).Font.Bold = True
+                    .Cells(r, 2).Value = defs(i, 3)
+                    r = r + 1
+                End If
+            Next i
+        Else
+            .Cells(r, 1).Value = "No hotkeys defined."
+            r = r + 1
+        End If
+        
+        r = r + 1
+        
+        ' UDFs Section
+        .Cells(r, 1).Value = "User Defined Functions"
+        .Cells(r, 1).Font.Bold = True
+        .Cells(r, 1).Font.Size = 12
+        r = r + 1
+        
+        Dim udfs As Collection
+        Dim udfMeta As Object
+        Set udfs = Lib_UdfRegistry.GetAllUdfs()
+        
+        For Each udfMeta In udfs
+            .Cells(r, 1).Value = udfMeta("Syntax")
+            .Cells(r, 1).Font.Bold = True
+            .Cells(r, 2).Value = udfMeta("Description")
+            r = r + 1
+        Next udfMeta
+        
+        ' Formatting
+        .Columns(1).AutoFit
+        .Columns(2).ColumnWidth = 60
+        .Columns(2).WrapText = True
+        .Rows("1:" & r).VerticalAlignment = xlVAlignTop
+        
+        ' Hide gridlines and protect
+        ActiveWindow.DisplayGridlines = False
+        .Protect DrawingObjects:=True, Contents:=True, Scenarios:=True
+    End With
+    
+    Application.Goto ws.Range("A1")
 
 CleanExit:
     Exit Sub

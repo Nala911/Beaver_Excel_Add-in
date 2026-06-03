@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Centralized startup and shutdown workflow for the add-in host.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: AppContainer, Infra_Config, Infra_Error, Infra_Hotkeys, ExcelContextProvider
+' @Dependencies: AppContainer, Infra_Config, Infra_Error, Infra_Hotkeys, ExcelContextProvider, Lib_UdfRegistry
 
 Public Sub Startup()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Startup")
@@ -13,6 +13,7 @@ Public Sub Startup()
 
     AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
     Infra_Hotkeys.RegisterHotkeys
+    RegisterUDFs
 
 CleanExit:
     Exit Sub
@@ -47,5 +48,30 @@ CleanExit:
 
 ErrHandler:
     Infra_Error.HandleError "EnsureStarted", Err
+    Resume CleanExit
+End Sub
+
+Private Sub RegisterUDFs()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("RegisterUDFs")
+    On Error GoTo ErrHandler
+
+    Dim udfs As Collection
+    Dim meta As Object
+
+    Set udfs = Lib_UdfRegistry.GetAllUdfs()
+    For Each meta In udfs
+        ' Register UDF with descriptions in the Function Wizard
+        Application.MacroOptions _
+            Macro:=meta("Name"), _
+            Description:=meta("Description"), _
+            Category:=meta("Category"), _
+            ArgumentDescriptions:=meta("ArgumentDescriptions")
+    Next meta
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "RegisterUDFs", Err
     Resume CleanExit
 End Sub

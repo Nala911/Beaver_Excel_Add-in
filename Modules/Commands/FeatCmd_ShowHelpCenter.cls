@@ -11,7 +11,7 @@ Option Explicit
 
 ' @Module: FeatCmd_ShowHelpCenter
 ' @Category: Feature
-' @Description: Displays the Beaver Help Center dialog.
+' @Description: Displays the Beaver Help Center dialog containing hotkey shortcuts and UDF details (e.g. XFilter).
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: ICommand, ICommandContext, Infra_Hotkeys, Infra_Error
 

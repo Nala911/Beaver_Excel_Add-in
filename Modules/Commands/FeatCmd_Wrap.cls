@@ -26,7 +26,7 @@ Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
 End Property
 
 Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
-    Set ICommand_Validate = Infra_CommandSupport.ValidateHasRangeSelection(context, "Please select a cell or range before running this command.")
+    Set ICommand_Validate = Infra_CommandSupport.ValidateCanModifySelection(context, "The current selection cannot be wrapped.")
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)

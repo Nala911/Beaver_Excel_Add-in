@@ -67,8 +67,7 @@ Excel Add-in\
    \- UI\
       |- UI_Ribbon.bas         Ribbon callbacks
       |- UI_Hotkeys.bas        hotkey callbacks
-      |- UI_OptionPicker.frm   reusable choice picker dialog (and .frx)
-      \- UI_HelpCenter.frm     help center dialog showing keys/UDFs (and .frx)
+      \- UI_OptionPicker.frm   reusable choice picker dialog (and .frx)
 ```
 
 ---
@@ -138,7 +137,7 @@ Use the following commands from PowerShell:
 - Gracefully closing Excel if it has the workbook locked.
 - Re-importing all managed VBA components from disk into `Beaver Add-in.xlsm`.
 - Replacing `ThisWorkbook` from `ThisWorkbook.cls`.
-- Compiling the VBA project.
+- Compiling the VBA project (with enhanced line mapping and source code context diagnostics on compilation failures).
 - Injecting `ribbon.xml` into the workbook archive as `customUI/customUI14.xml` and updating `_rels/.rels`.
 - Running runtime smoke tests.
 - Bumping the build version (if `-BumpVersion` is passed).
@@ -184,7 +183,7 @@ graph TD
    - Those bindings point to `UI_Hotkeys.bas`, which forwards to `AppContainer.ExecuteEntryPoint`.
 
 ### Bootstrap & Container
-- `Infra_Bootstrap.Startup` initializes `AppContainer` with `Infra_Config`, `Infra_Error`, and `StateStore`, then registers hotkeys.
+- `Infra_Bootstrap.Startup` initializes `AppContainer` with `Infra_Config`, `Infra_Error`, and `StateStore`, registers hotkeys, and registers worksheet UDFs (via `Lib_UdfRegistry`) in the Function Wizard.
 - `Infra_Bootstrap.Shutdown` unregisters hotkeys.
 - `Infra_Bootstrap.EnsureStarted` ensures container initialization for late-entry scenarios.
 - `AppContainer` is the central dependency container and command resolver.
@@ -209,7 +208,7 @@ graph TD
 - `Infra_ValueConversion`: Provides shared data and formula conversion utilities.
 - `Infra_Undo`: Provides custom undo support for range mutations, securely buffered inside `ThisWorkbook`'s private sheet to protect user data from being saved or leaked inside external target workbooks.
 - `Infra_Progress`: Provides status-bar progress reporting for slow-running tasks.
-- `Infra_Diagnostics` & `Infra_ErrorContext`: Support environment capture and troubleshooting.
+- `Infra_Diagnostics` & `Infra_ErrorContext`: Support environment capture and troubleshooting (contains a trace logging toggle to avoid log file bloating).
 - `StateStore` & `AppContainer`: Provide shared process-level state and dependency access.
 
 ---
@@ -225,7 +224,7 @@ graph TD
 - `BreakExternalLinks` -> `FeatCmd_BreakExternalLinks`
 - `Duplicate` -> `FeatCmd_Duplicate`
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf`
-- `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter`
+- `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter` (Generates the Help Center programmatically in a new workbook)
 - `HelloWorld` -> `FeatCmd_HelloWorld`
 
 #### Hotkey-Driven Commands
@@ -240,7 +239,8 @@ graph TD
 - `Delete` -> `FeatCmd_Delete`
 
 #### User Defined Functions (UDFs)
-- `Lib_XFilterFunction.XFilter`
+- `Lib_XFilterFunction.XFilter` (Filters lists based on intersection/difference, supports case-sensitivity, custom empty-value returns, and is dynamically registered in the Function Wizard)
+- `Lib_UdfRegistry` (Provides a centralized registry of User Defined Function metadata for bootstrap registration and Help Center display)
 
 #### Testing Entry Point
 - `Lib_Tests.RunAllTests` (Uses the generated test manifest in `Lib_TestManifest.bas` which collects all `Public Sub Test_*` procedures).

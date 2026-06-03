@@ -264,3 +264,108 @@ ErrHandler:
     Infra_Error.HandleError "Test_BreakExternalLinks_Execution", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_XFilter_Features()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_XFilter_Features")
+    On Error GoTo ErrHandler
+
+    ' Setup Test Inputs
+    ' Let's test with arrays (Variants)
+    Dim src(1 To 4, 1 To 2) As Variant
+    src(1, 1) = "Apple": src(1, 2) = 100
+    src(2, 1) = "Banana": src(2, 2) = 200
+    src(3, 1) = "cherry": src(3, 2) = 300
+    src(4, 1) = "DATE": src(4, 2) = 400
+
+    Dim ref(1 To 2, 1 To 1) As Variant
+    ref(1, 1) = "banana"
+    ref(2, 1) = "CHERRY"
+
+    ' 1. Test Case-Insensitive Intersection (Default: code_number omitted)
+    ' "Banana" matches "banana", "cherry" matches "CHERRY".
+    ' Output should be 2 rows (Banana and cherry)
+    Dim res1 As Variant
+    res1 = Lib_XFilterFunction.XFilter(src, ref)
+    
+    Lib_Tests.AssertEqual UBound(res1, 1), 2, "XFilter Intersection count should be 2"
+    Lib_Tests.AssertEqual res1(1, 1), "Banana", "XFilter Intersection first match should be Banana"
+    Lib_Tests.AssertEqual res1(2, 1), "cherry", "XFilter Intersection second match should be cherry"
+
+    ' 2. Test Case-Sensitive Intersection (case_sensitive = True)
+    ' Nothing should match because "Banana" <> "banana" and "cherry" <> "CHERRY".
+    ' By default, with if_empty omitted, it returns "Not found"
+    Dim res2 As Variant
+    res2 = Lib_XFilterFunction.XFilter(src, ref, 1, , True)
+    Lib_Tests.AssertEqual res2, "Not found", "Omitted empty should return 'Not found'"
+
+    ' 3. Test if_empty parameter
+    ' Using case-sensitive intersection which finds nothing, but passing "Empty Val" as 4th arg.
+    Dim res3 As Variant
+    res3 = Lib_XFilterFunction.XFilter(src, ref, 1, "Empty Val", True)
+    Lib_Tests.AssertEqual res3, "Empty Val", "Custom empty string should be returned"
+
+    ' 4. Test Difference (code_number = 2) case-insensitive
+    ' "Apple" and "DATE" should not match, so they should be returned.
+    Dim res4 As Variant
+    res4 = Lib_XFilterFunction.XFilter(src, ref, 2)
+    Lib_Tests.AssertEqual UBound(res4, 1), 2, "XFilter Difference count should be 2"
+    Lib_Tests.AssertEqual res4(1, 1), "Apple", "XFilter Difference first match should be Apple"
+    Lib_Tests.AssertEqual res4(2, 1), "DATE", "XFilter Difference second match should be DATE"
+
+    ' 5. Test 1D array conversion and scalar values
+    Dim scalarSrc As Variant
+    scalarSrc = "Apple"
+    Dim scalarRef As Variant
+    scalarRef = "Apple"
+    Dim res5 As Variant
+    res5 = Lib_XFilterFunction.XFilter(scalarSrc, scalarRef, 1)
+    Lib_Tests.AssertEqual res5(1, 1), "Apple", "Scalar inputs should be handled correctly"
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "Test_XFilter_Features", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_UdfRegistry_And_HelpCenter()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_UdfRegistry_And_HelpCenter")
+    On Error GoTo ErrHandler
+
+    ' 1. Test GetAllUdfs returns expected items
+    Dim udfs As Collection
+    Set udfs = Lib_UdfRegistry.GetAllUdfs()
+    Lib_Tests.AssertTrue Not udfs Is Nothing, "UDF registry collection should not be Nothing"
+    Lib_Tests.AssertTrue udfs.Count > 0, "UDF registry should contain at least one UDF"
+
+    Dim meta As Object
+    Set meta = udfs(1)
+    Lib_Tests.AssertEqual meta("Name"), "XFilter", "First UDF name should be XFilter"
+    Lib_Tests.AssertEqual meta("Category"), "User Defined", "XFilter category should be User Defined"
+    Lib_Tests.AssertTrue IsArray(meta("ArgumentDescriptions")), "XFilter argument descriptions should be an array"
+
+    ' 2. Test ShowHelpCenter execution (it will create a workbook)
+    Dim activeWbBefore As Workbook
+    Set activeWbBefore = ActiveWorkbook
+
+    ' Call ShowHelpCenter
+    Infra_Hotkeys.ShowHelpCenter
+
+    Dim activeWbAfter As Workbook
+    Set activeWbAfter = ActiveWorkbook
+
+    Lib_Tests.AssertTrue Not activeWbAfter Is activeWbBefore, "ShowHelpCenter should create a new active workbook"
+    Lib_Tests.AssertEqual activeWbAfter.Sheets(1).Name, "Beaver Help Center", "Created sheet name should be Beaver Help Center"
+
+    ' Clean up the created help center workbook
+    Application.DisplayAlerts = False
+    activeWbAfter.Close SaveChanges:=False
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Test_UdfRegistry_And_HelpCenter", Err
+    Resume CleanExit
+End Sub

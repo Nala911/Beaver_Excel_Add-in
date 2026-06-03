@@ -14,6 +14,7 @@ Option Explicit
 ' @Dependencies: None
 
 Private Const LOG_FILE_NAME As String = "BeaverAddin.log"
+Private Const ENABLE_TRACE_LOGGING As Boolean = False
 
 Public Function NextOperationId(ByVal procedureName As String) As String
     On Error Resume Next
@@ -54,7 +55,11 @@ Public Sub LogEvent(ByVal eventName As String, ByVal procedureName As String, By
     End If
 
     Debug.Print lineText
-    AppendLineToLog lineText
+    
+    ' Only log operation start/finish trace events to disk if trace logging is enabled
+    If ENABLE_TRACE_LOGGING Or (eventName <> "operation_start" And eventName <> "operation_finish") Then
+        AppendLineToLog lineText
+    End If
     On Error GoTo 0
 End Sub
 
