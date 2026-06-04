@@ -17,7 +17,7 @@ Core capabilities:
 - Workbook duplication and range export
 - Link breaking
 - A manifest-driven Ribbon and hotkey system
-- Worksheet UDFs: `XFilter`
+- Worksheet UDFs: `XFilter`, `XUnpivot`
 - A lightweight VBA test harness
 - A command-oriented execution pipeline built around `ICommand`
 
@@ -240,6 +240,7 @@ graph TD
 
 #### User Defined Functions (UDFs)
 - `Lib_XFilterFunction.XFilter` (Filters lists based on intersection/difference, supports case-sensitivity, custom empty-value returns, and is dynamically registered in the Function Wizard)
+- `Lib_XUnpivotFunction.XUnpivot` (Unpivots a range of data by transforming column/value arrays into structured rows, and is dynamically registered in the Function Wizard)
 - `Lib_UdfRegistry` (Provides a centralized registry of User Defined Function metadata for bootstrap registration and Help Center display)
 
 #### Testing Entry Point

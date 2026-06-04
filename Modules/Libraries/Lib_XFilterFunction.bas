@@ -203,25 +203,3 @@ Private Function GetArrayDims(ByVal arr As Variant) As Long
     GetArrayDims = 0
 End Function
 
-' Returns registry info for this UDF.
-' Structure:
-'   - Name: String
-'   - Description: String
-'   - Category: String
-'   - Syntax: String
-'   - ArgumentDescriptions: Variant Array of Strings
-Public Function GetUdfMetadata() As Object
-    Dim metadata As Object
-    Set metadata = CreateObject("Scripting.Dictionary")
-    metadata.Add "Name", "XFilter"
-    metadata.Add "Description", "Filters Range_A based on existence (or non-existence) in Range_B."
-    metadata.Add "Category", "User Defined"
-    metadata.Add "Syntax", "XFilter(Range_A, Range_B, [code_number], [if_empty], [case_sensitive])"
-    metadata.Add "ArgumentDescriptions", Array( _
-        "The source range or array to filter. Comparison is done using the first column.", _
-        "The reference range or array to check against.", _
-        "Optional Mode: 1 = Intersection (default, In A and B), 2 = Difference (In A but not in B).", _
-        "Optional value to return if no match is found (default is ""Not found"").", _
-        "Optional. Set to True for case-sensitive matching; defaults to False.")
-    Set GetUdfMetadata = metadata
-End Function

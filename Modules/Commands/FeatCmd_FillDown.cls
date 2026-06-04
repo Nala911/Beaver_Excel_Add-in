@@ -27,109 +27,161 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("FillDown.Execute")
     On Error GoTo ErrHandler
 
-    Dim sourceRng As Range
+    Dim selectionRng As Range
     Dim ws As Worksheet
-    Dim lo As ListObject
-    Dim startRow As Long, lastRow As Long
-    Dim targetCol As Long, maxSearchCol As Long
-    Dim dist As Long
-    Dim leftCol As Long, rightCol As Long
-    Dim foundRef As Boolean
-    Dim fillRange As Range, visibleRange As Range
-
+    Dim startRow As Long
+    Dim startCol As Long, endCol As Long
+    Dim colIdx As Long
+    Dim maxSearchCol As Long
+    
     Dim ctx As Infra_ActionContext
-
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
-    Set sourceRng = ctx.SelectionRange
+    Set selectionRng = ctx.SelectionRange
+    Set ws = selectionRng.Worksheet
 
-    Set ws = sourceRng.Worksheet
-
-    ' If multiple cells selected, grab the last row, first column of that selection
-    If sourceRng.Cells.Count > 1 Then
-        Set sourceRng = sourceRng.Cells(sourceRng.Rows.Count, 1)
+    ' Use Cells.CountLarge to prevent overflow when selecting huge ranges
+    If selectionRng.Cells.CountLarge > 1 Then
+        startRow = selectionRng.Row + selectionRng.Rows.Count - 1
+    Else
+        startRow = selectionRng.Row
     End If
 
-    startRow = sourceRng.Row
-    lastRow = 0
-    foundRef = False
+    startCol = selectionRng.Column
+    endCol = selectionRng.Column + selectionRng.Columns.Count - 1
+    maxSearchCol = ws.UsedRange.Column + ws.UsedRange.Columns.Count - 1
 
-    ' --- PRIORITY 1: EXCEL TABLE (ListObject) ---
-    On Error Resume Next
-    Set lo = sourceRng.ListObject
-    On Error GoTo ErrHandler
+    ' Collect target fill ranges and source cells to update
+    Dim colSourceCells As New Collection
+    Dim colVisibleRanges As New Collection
+    
+    Dim undoRange As Range
 
-    If Not lo Is Nothing Then
-        If Not Intersect(sourceRng, lo.DataBodyRange) Is Nothing Then
-            lastRow = lo.DataBodyRange.Row + lo.DataBodyRange.Rows.Count - 1
-            foundRef = True
+    For colIdx = startCol To endCol
+        Dim sourceCell As Range
+        Set sourceCell = ws.Cells(startRow, colIdx)
+        
+        Dim lastRow As Long
+        lastRow = 0
+        
+        Dim foundRef As Boolean
+        foundRef = False
+        
+        ' --- PRIORITY 1: EXCEL TABLE (ListObject) ---
+        Dim lo As ListObject
+        On Error Resume Next
+        Set lo = sourceCell.ListObject
+        On Error GoTo ErrHandler
+        
+        If Not lo Is Nothing Then
+            If Not Intersect(sourceCell, lo.DataBodyRange) Is Nothing Then
+                lastRow = lo.DataBodyRange.Row + lo.DataBodyRange.Rows.Count - 1
+                foundRef = True
+            End If
         End If
-    End If
-
-    ' --- PRIORITY 2: CURRENT REGION ---
-    If Not foundRef Then
-        Dim rRegion As Range
-        Set rRegion = sourceRng.CurrentRegion
-
-        If rRegion.Cells(rRegion.Cells.Count).Address <> sourceRng.Address Then
-            lastRow = rRegion.Row + rRegion.Rows.Count - 1
-            foundRef = True
+        
+        ' --- PRIORITY 2: CURRENT REGION ---
+        If Not foundRef Then
+            Dim rRegion As Range
+            Set rRegion = sourceCell.CurrentRegion
+            
+            If rRegion.Cells(rRegion.Cells.CountLarge).Address <> sourceCell.Address Then
+                lastRow = rRegion.Row + rRegion.Rows.Count - 1
+                foundRef = True
+            End If
         End If
-    End If
-
-    ' --- PRIORITY 3: PROXIMITY SEARCH (closest neighbour) ---
-    If Not foundRef Then
-        maxSearchCol = ws.UsedRange.Column + ws.UsedRange.Columns.Count - 1
-
-        For dist = 1 To maxSearchCol
-            leftCol = sourceRng.Column - dist
-            If leftCol >= 1 Then
-                If Not IsEmpty(ws.Cells(startRow, leftCol)) Then
-                    targetCol = leftCol
-                    foundRef = True
-                    Exit For
+        
+        ' --- PRIORITY 3: PROXIMITY SEARCH (closest neighbor) ---
+        ' Optimization: Limit proximity distance to 10 columns
+        If Not foundRef Then
+            Const MAX_PROXIMITY_DIST As Long = 10
+            Dim dist As Long
+            Dim leftCol As Long, rightCol As Long
+            Dim targetCol As Long
+            
+            For dist = 1 To MAX_PROXIMITY_DIST
+                leftCol = colIdx - dist
+                If leftCol >= 1 Then
+                    If Not IsEmpty(ws.Cells(startRow, leftCol)) Then
+                        targetCol = leftCol
+                        foundRef = True
+                        Exit For
+                    End If
+                End If
+                
+                rightCol = colIdx + dist
+                If rightCol <= maxSearchCol Then
+                    If Not IsEmpty(ws.Cells(startRow, rightCol)) Then
+                        targetCol = rightCol
+                        foundRef = True
+                        Exit For
+                    End If
+                End If
+            Next dist
+            
+            If foundRef Then
+                Dim nearRegion As Range
+                Set nearRegion = ws.Cells(startRow, targetCol).CurrentRegion
+                lastRow = nearRegion.Row + nearRegion.Rows.Count - 1
+            End If
+        End If
+        
+        ' If a valid reference was found and lastRow goes past startRow
+        If foundRef And lastRow > startRow Then
+            Dim fillRange As Range
+            Set fillRange = ws.Range(ws.Cells(startRow + 1, colIdx), ws.Cells(lastRow, colIdx))
+            
+            Dim visibleRange As Range
+            On Error Resume Next
+            Set visibleRange = fillRange.SpecialCells(xlCellTypeVisible)
+            On Error GoTo ErrHandler
+            
+            If Not visibleRange Is Nothing Then
+                colSourceCells.Add sourceCell
+                colVisibleRanges.Add visibleRange
+                
+                ' Accumulate the full modified area for a single consolidated undo action
+                Dim fullColRange As Range
+                Set fullColRange = ws.Range(sourceCell, ws.Cells(lastRow, colIdx))
+                If undoRange Is Nothing Then
+                    Set undoRange = fullColRange
+                Else
+                    Set undoRange = Union(undoRange, fullColRange)
                 End If
             End If
-
-            rightCol = sourceRng.Column + dist
-            If rightCol <= maxSearchCol Then
-                If Not IsEmpty(ws.Cells(startRow, rightCol)) Then
-                    targetCol = rightCol
-                    foundRef = True
-                    Exit For
-                End If
-            End If
-
-            If leftCol < 1 And rightCol > maxSearchCol Then Exit For
-        Next dist
-
-        If foundRef Then
-            If IsEmpty(ws.Cells(startRow + 1, targetCol)) Then
-                lastRow = startRow
-            Else
-                lastRow = ws.Cells(startRow, targetCol).End(xlDown).Row
-            End If
         End If
+    Next colIdx
+
+    ' --- EXECUTION ---
+    If colSourceCells.Count = 0 Then GoTo CleanExit
+
+    ' Safety Check: Sum up the areas of all columns' visible ranges to prevent fragmentation crashes
+    Dim totalAreas As Long
+    Dim i As Long
+    For i = 1 To colVisibleRanges.Count
+        totalAreas = totalAreas + colVisibleRanges(i).Areas.Count
+    Next i
+    
+    If totalAreas > 5000 Then
+        Err.Raise vbObjectError + 1001, "FillDown.Execute", _
+            "The target range is too fragmented (exceeds 5,000 non-contiguous areas). Action aborted to prevent Excel from freezing."
     End If
 
-    ' --- EXECUTION: Copy/Paste to visible cells ---
-    If Not foundRef Then GoTo CleanExit
-    If lastRow <= startRow Then GoTo CleanExit
+    ' Register Undo for the combined range
+    If Not undoRange Is Nothing Then
+        Infra_Undo.SaveState undoRange, "Fill Down"
+    End If
 
-    Set fillRange = ws.Range( _
-        ws.Cells(startRow + 1, sourceRng.Column), _
-        ws.Cells(lastRow, sourceRng.Column))
-
-    On Error Resume Next
-    Set visibleRange = fillRange.SpecialCells(xlCellTypeVisible)
-    On Error GoTo ErrHandler
-
-    If Not visibleRange Is Nothing Then
-        Infra_Undo.SaveState ws.Range(sourceRng, fillRange), "Fill Down"
-        sourceRng.Copy
+    ' Copy/Paste values for each column
+    For i = 1 To colSourceCells.Count
+        Set sourceCell = colSourceCells(i)
+        Set visibleRange = colVisibleRanges(i)
+        
+        sourceCell.Copy
         visibleRange.PasteSpecial Paste:=xlPasteAll
-        Application.CutCopyMode = False
-    End If
+    Next i
+    
+    Application.CutCopyMode = False
 
 CleanExit:
     Exit Sub

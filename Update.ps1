@@ -1327,15 +1327,48 @@ try {
             $activeExcel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
             try {
                 $activeExcel.DisplayAlerts = $false
+                $wbFound = $null
                 foreach ($wb in $activeExcel.Workbooks) {
                     if ($wb.FullName -eq $excelPath) {
-                        $wb.Close($true)
-                        Write-Host "  Closed $($wb.Name) successfully." -ForegroundColor Green
+                        $wbFound = $wb
                         break
                     }
                 }
+
+                if ($null -ne $wbFound) {
+                    # Count other visible workbooks to decide if we can quit the Excel instance
+                    $otherVisibleWorkbooks = 0
+                    foreach ($otherWb in $activeExcel.Workbooks) {
+                        if ($otherWb.FullName -ne $excelPath) {
+                            $hasVisibleWindow = $false
+                            try {
+                                foreach ($win in $otherWb.Windows) {
+                                    if ($win.Visible) {
+                                        $hasVisibleWindow = $true
+                                        break
+                                    }
+                                }
+                            } catch {
+                                $hasVisibleWindow = $true
+                            }
+                            if ($hasVisibleWindow) {
+                                $otherVisibleWorkbooks++
+                            }
+                        }
+                    }
+
+                    $wbFound.Close($true)
+                    Write-Host "  Closed $($wbFound.Name) successfully." -ForegroundColor Green
+
+                    if ($otherVisibleWorkbooks -eq 0) {
+                        Write-Host "  No other visible workbooks open. Closing Excel application..." -ForegroundColor Green
+                        $activeExcel.Quit()
+                    }
+                }
             } finally {
-                $activeExcel.DisplayAlerts = $true
+                try {
+                    $activeExcel.DisplayAlerts = $true
+                } catch { }
                 [System.Runtime.InteropServices.Marshal]::ReleaseComObject($activeExcel) | Out-Null
             }
         } catch {

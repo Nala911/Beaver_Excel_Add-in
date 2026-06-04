@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Library
 ' @Description: Automated integration and custom undo test suite for feature commands.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo
+' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, Lib_XUnpivotFunction
 
 Public Sub Test_HelloWorld_Execution_And_Undo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HelloWorld_Execution_And_Undo")
@@ -329,6 +329,97 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_XUnpivot_Features()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_XUnpivot_Features")
+    On Error GoTo ErrHandler
+
+    ' Setup standard wide data input
+    ' 3 Rows, 5 Columns
+    ' Row 1 (Headers): ID | Name | Jan | Feb | Mar
+    ' Row 2 (Data):    101 | Alice | 100 | 110 | 120
+    ' Row 3 (Data):    102 | Bob | 200 | 210 | 220
+    Dim wideData(1 To 3, 1 To 5) As Variant
+    wideData(1, 1) = "ID": wideData(1, 2) = "Name": wideData(1, 3) = "Jan": wideData(1, 4) = "Feb": wideData(1, 5) = "Mar"
+    wideData(2, 1) = 101: wideData(2, 2) = "Alice": wideData(2, 3) = 100: wideData(2, 4) = 110: wideData(2, 5) = 120
+    wideData(3, 1) = 102: wideData(3, 2) = "Bob": wideData(3, 3) = 200: wideData(3, 4) = 210: wideData(3, 5) = 220
+
+    ' 1. Test Standard Unpivot (Default headers, skip_blanks = False)
+    ' Jan, Feb, Mar are numerical in Row 2, so 3 unpivot columns and 2 key columns (ID, Name).
+    ' Expected output: 1 + 2 * 3 = 7 rows, 4 columns (ID, Name, Attribute, Value)
+    Dim res1 As Variant
+    res1 = Lib_XUnpivotFunction.XUnpivot(wideData)
+    
+    Lib_Tests.AssertEqual UBound(res1, 1), 7, "XUnpivot standard: output should have 7 rows"
+    Lib_Tests.AssertEqual UBound(res1, 2), 4, "XUnpivot standard: output should have 4 columns"
+    
+    ' Row 1 (Header)
+    Lib_Tests.AssertEqual res1(1, 1), "ID", "XUnpivot standard: Header col 1 should be ID"
+    Lib_Tests.AssertEqual res1(1, 2), "Name", "XUnpivot standard: Header col 2 should be Name"
+    Lib_Tests.AssertEqual res1(1, 3), "Attribute", "XUnpivot standard: Header col 3 should be Attribute"
+    Lib_Tests.AssertEqual res1(1, 4), "Value", "XUnpivot standard: Header col 4 should be Value"
+    
+    ' Row 2 (First unpivoted row for Alice)
+    Lib_Tests.AssertEqual res1(2, 1), 101, "XUnpivot standard: R2 C1 should be 101"
+    Lib_Tests.AssertEqual res1(2, 2), "Alice", "XUnpivot standard: R2 C2 should be Alice"
+    Lib_Tests.AssertEqual res1(2, 3), "Jan", "XUnpivot standard: R2 C3 should be Jan"
+    Lib_Tests.AssertEqual res1(2, 4), 100, "XUnpivot standard: R2 C4 should be 100"
+    
+    ' Row 4 (Third unpivoted row for Alice)
+    Lib_Tests.AssertEqual res1(4, 3), "Mar", "XUnpivot standard: R4 C3 should be Mar"
+    Lib_Tests.AssertEqual res1(4, 4), 120, "XUnpivot standard: R4 C4 should be 120"
+    
+    ' Row 5 (First unpivoted row for Bob)
+    Lib_Tests.AssertEqual res1(5, 1), 102, "XUnpivot standard: R5 C1 should be 102"
+    Lib_Tests.AssertEqual res1(5, 2), "Bob", "XUnpivot standard: R5 C2 should be Bob"
+    Lib_Tests.AssertEqual res1(5, 3), "Jan", "XUnpivot standard: R5 C3 should be Jan"
+    Lib_Tests.AssertEqual res1(5, 4), 200, "XUnpivot standard: R5 C4 should be 200"
+
+    ' 2. Test Custom Headers
+    Dim res2 As Variant
+    res2 = Lib_XUnpivotFunction.XUnpivot(wideData, "Month", "Sales")
+    Lib_Tests.AssertEqual res2(1, 3), "Month", "XUnpivot custom headers: Attribute header should be Month"
+    Lib_Tests.AssertEqual res2(1, 4), "Sales", "XUnpivot custom headers: Value header should be Sales"
+
+    ' 3. Test Skip Blanks
+    ' Modify Row 2 Mar to empty string and Row 3 Feb to Empty
+    wideData(2, 5) = ""
+    wideData(3, 4) = Empty
+    ' Output should omit 2 rows, so: 7 - 2 = 5 rows.
+    Dim res3 As Variant
+    res3 = Lib_XUnpivotFunction.XUnpivot(wideData, , , True)
+    Lib_Tests.AssertEqual UBound(res3, 1), 5, "XUnpivot skip blanks: output should have 5 rows"
+    
+    ' Verify first unpivoted rows for Alice: should have Jan (100) and Feb (110) but NOT Mar (which was "")
+    Lib_Tests.AssertEqual res3(2, 3), "Jan", "XUnpivot skip blanks: R2 Attribute should be Jan"
+    Lib_Tests.AssertEqual res3(3, 3), "Feb", "XUnpivot skip blanks: R3 Attribute should be Feb"
+    ' Next row should be Bob Jan (200) because Bob Feb was Empty
+    Lib_Tests.AssertEqual res3(4, 1), 102, "XUnpivot skip blanks: R4 ID should be 102"
+    Lib_Tests.AssertEqual res3(4, 3), "Jan", "XUnpivot skip blanks: R4 Attribute should be Jan"
+    Lib_Tests.AssertEqual res3(5, 3), "Mar", "XUnpivot skip blanks: R5 Attribute should be Mar"
+
+    ' 4. Test Single row boundary error
+    Dim singleRow(1 To 1, 1 To 3) As Variant
+    singleRow(1, 1) = "A": singleRow(1, 2) = "B": singleRow(1, 3) = "C"
+    Dim res4 As Variant
+    res4 = Lib_XUnpivotFunction.XUnpivot(singleRow)
+    Lib_Tests.AssertTrue IsError(res4), "XUnpivot boundary: Single row should return error variant"
+    
+    ' 5. Test No Numeric Columns error
+    ' All text in Row 2
+    Dim noNumeric(1 To 2, 1 To 3) As Variant
+    noNumeric(1, 1) = "ID": noNumeric(1, 2) = "Val1": noNumeric(1, 3) = "Val2"
+    noNumeric(2, 1) = "101": noNumeric(2, 2) = "text1": noNumeric(2, 3) = "text2"
+    Dim res5 As Variant
+    res5 = Lib_XUnpivotFunction.XUnpivot(noNumeric)
+    Lib_Tests.AssertTrue IsError(res5), "XUnpivot boundary: No numeric columns should return error variant"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Test_XUnpivot_Features", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_UdfRegistry_And_HelpCenter()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_UdfRegistry_And_HelpCenter")
     On Error GoTo ErrHandler
@@ -367,5 +458,104 @@ CleanExit:
     Exit Sub
 ErrHandler:
     Infra_Error.HandleError "Test_UdfRegistry_And_HelpCenter", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_FillDown_Features()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FillDown_Features")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_FillDown"
+
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    ' --- TEST 1: Multi-Column Fill Down ---
+    ws.Range("A1").Value2 = 10
+    ws.Range("B1").Value2 = 20
+    ws.Range("C1:C5").Value2 = "Ref"
+    
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("FillDown")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1:B1")
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("FillDown")
+    cmd.Execute ctx
+
+    Lib_Tests.AssertEqual ws.Range("A5").Value2, 10#, "Multi-column filldown: A5 should be 10"
+    Lib_Tests.AssertEqual ws.Range("B5").Value2, 20#, "Multi-column filldown: B5 should be 20"
+    Lib_Tests.AssertEqual ws.Range("A6").Value2, vbEmpty, "Multi-column filldown: A6 should be empty"
+
+    ' --- TEST 2: Proximity Search Distance Limit ---
+    ws.Cells.Clear
+    ws.Range("A1").Value2 = 100
+    ws.Range("L1:L5").Value2 = "Ref" ' Column 12 (distance = 11 columns)
+    
+    Set ctx = AppContainer.CreateCommandContext("FillDown")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1")
+    ctx.ActionContext.HasRangeSelection = True
+    
+    cmd.Execute ctx
+    Lib_Tests.AssertEqual ws.Range("A5").Value2, vbEmpty, "Proximity limit: A5 should be empty when neighbor is > 10 columns away"
+
+    ' Neighbor at column 11 (distance = 10 columns)
+    ws.Range("K1:K5").Value2 = "Ref"
+    cmd.Execute ctx
+    Lib_Tests.AssertEqual ws.Range("A5").Value2, 100#, "Proximity limit: A5 should be 100 when neighbor is exactly 10 columns away"
+
+    ' --- TEST 3: Fragmentation Safety Limit ---
+    ws.Cells.Clear
+    ws.Range("A1").Value2 = 1
+    ws.Range("B1:B10015").Value2 = "Ref"
+    
+    Dim filterVals(1 To 10011, 1 To 1) As Variant
+    Dim i As Long
+    For i = 1 To 10011
+        If i Mod 2 = 1 Then
+            filterVals(i, 1) = "show"
+        Else
+            filterVals(i, 1) = "hide"
+        End If
+    Next i
+    ws.Range("Z1:Z10011").Value2 = filterVals
+    ws.Range("Z1:Z10011").AutoFilter Field:=1, Criteria1:="show"
+    
+    Set ctx = AppContainer.CreateCommandContext("FillDown")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1")
+    ctx.ActionContext.HasRangeSelection = True
+    
+    cmd.Execute ctx
+    
+    ' Since the execution is aborted by the fragmentation safety guard,
+    ' the copy/paste should not have run, so A3 and A10011 should remain empty.
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, vbEmpty, "Fragmentation guard: A3 should remain empty"
+    Lib_Tests.AssertEqual ws.Range("A10011").Value2, vbEmpty, "Fragmentation guard: A10011 should remain empty"
+
+    ' Cleanup
+    ws.AutoFilterMode = False
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    ws.AutoFilterMode = False
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_FillDown_Features", Err
     Resume CleanExit
 End Sub
