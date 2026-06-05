@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Library
 ' @Description: UDF for advanced set filtering (Intersection, Difference) between ranges.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Error
+' @Dependencies: Infra_Error, Infra_ValueConversion
 
 ' Filters Range_A based on existence (or non-existence) in Range_B.
 ' Acts like a set operation (INTERSECTION or DIFFERENCE).
@@ -32,8 +32,8 @@ Public Function XFilter(ByVal Range_A As Variant, ByVal Range_B As Variant, Opti
     Dim valA As Variant, valB As Variant
     
     ' --- Optimization: Read ranges into memory arrays ---
-    arrA = Ensure2DArray(Range_A)
-    arrB = Ensure2DArray(Range_B)
+    arrA = Infra_ValueConversion.Ensure2DArray(Range_A)
+    arrB = Infra_ValueConversion.Ensure2DArray(Range_B)
     
     ' 2. Use a Dictionary for O(1) lookup speed (Late Bound)
     Set dictB = CreateObject("Scripting.Dictionary")
@@ -110,96 +110,5 @@ ErrHandler:
     XFilter = CVErr(xlErrValue) ' #VALUE! on general error
 End Function
 
-' Helper function to ensure any variant input (Range, Array, or Scalar) is converted to a 1-based 2D array.
-Private Function Ensure2DArray(ByVal InputVal As Variant) As Variant
-    On Error GoTo ErrHandler
 
-    Dim result() As Variant
-
-    If IsObject(InputVal) Then
-        If InputVal Is Nothing Then
-            ReDim result(1 To 1, 1 To 1)
-            result(1, 1) = Empty
-            Ensure2DArray = result
-            GoTo CleanExit
-        End If
-        If TypeOf InputVal Is Range Then
-            Dim r As Range: Set r = InputVal
-            If r.Cells.Count = 1 Then
-                ReDim result(1 To 1, 1 To 1)
-                result(1, 1) = r.Value2
-                Ensure2DArray = result
-            Else
-                Ensure2DArray = r.Value2
-            End If
-            GoTo CleanExit
-        End If
-    End If
-
-    If IsArray(InputVal) Then
-        Dim dims As Long
-        dims = GetArrayDims(InputVal)
-        If dims = 1 Then
-            Dim i As Long, lb As Long, ub As Long
-            lb = LBound(InputVal)
-            ub = UBound(InputVal)
-            ReDim result(1 To (ub - lb + 1), 1 To 1)
-            For i = lb To ub
-                result(i - lb + 1, 1) = InputVal(i)
-            Next i
-            Ensure2DArray = result
-        ElseIf dims = 2 Then
-            ' Check if it is a 1-based 2D array. If not, normalize it to 1-based.
-            Dim lb1 As Long, ub1 As Long, lb2 As Long, ub2 As Long
-            lb1 = LBound(InputVal, 1)
-            ub1 = UBound(InputVal, 1)
-            lb2 = LBound(InputVal, 2)
-            ub2 = UBound(InputVal, 2)
-            
-            If lb1 = 1 And lb2 = 1 Then
-                Ensure2DArray = InputVal
-            Else
-                Dim rIdx As Long, cIdx As Long
-                ReDim result(1 To (ub1 - lb1 + 1), 1 To (ub2 - lb2 + 1))
-                For rIdx = lb1 To ub1
-                    For cIdx = lb2 To ub2
-                        result(rIdx - lb1 + 1, cIdx - lb2 + 1) = InputVal(rIdx, cIdx)
-                    Next cIdx
-                Next rIdx
-                Ensure2DArray = result
-            End If
-        Else
-            ' Fallback for higher dimensions: use first cell
-            ReDim result(1 To 1, 1 To 1)
-            result(1, 1) = InputVal
-            Ensure2DArray = result
-        End If
-    Else
-        ' Scalar value
-        ReDim result(1 To 1, 1 To 1)
-        result(1, 1) = InputVal
-        Ensure2DArray = result
-    End If
-
-CleanExit:
-    Exit Function
-
-ErrHandler:
-    Infra_Error.HandleError "Ensure2DArray", Err
-    Resume CleanExit
-End Function
-
-Private Function GetArrayDims(ByVal arr As Variant) As Long
-    On Error Resume Next
-    Dim i As Long, dummy As Long
-    For i = 1 To 60000
-        dummy = LBound(arr, i)
-        If Err.Number <> 0 Then
-            GetArrayDims = i - 1
-            Err.Clear
-            Exit Function
-        End If
-    Next i
-    GetArrayDims = 0
-End Function
 

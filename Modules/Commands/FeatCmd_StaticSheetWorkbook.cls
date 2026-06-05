@@ -50,7 +50,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
 
     Dim ctx As Infra_ActionContext
-    Dim request As Infra_StaticRequest
+    Dim request As Infra_ScopedRequest
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
@@ -69,7 +69,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ExecuteStaticConversion(ByVal request As Infra_StaticRequest)
+Private Sub ExecuteStaticConversion(ByVal request As Infra_ScopedRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteStaticConversion")
     On Error GoTo ErrHandler
 
@@ -79,6 +79,7 @@ Private Sub ExecuteStaticConversion(ByVal request As Infra_StaticRequest)
     Dim convertedCount As Long
     Dim index As Long
     Dim scopeLabel As String
+    Dim originalScreenUpdating As Boolean
 
     If request Is Nothing Then GoTo CleanExit
     If request.Context Is Nothing Then GoTo CleanExit
@@ -86,8 +87,20 @@ Private Sub ExecuteStaticConversion(ByVal request As Infra_StaticRequest)
     Set sheetsToProcess = BuildSheetList(request)
     If sheetsToProcess Is Nothing Then GoTo CleanExit
 
-    If request.Scope = StaticConversionScopeActiveSheet Then
-        Infra_Undo.SaveState request.Context.WorksheetRef.UsedRange, "Static Sheet"
+    If request.Scope = TargetScopeActiveSheet Then
+        If Not Infra_Undo.SaveState(request.Context.WorksheetRef.UsedRange, "Static Sheet") Then
+            If Not Infra_Interaction.Confirm( _
+                "The active sheet's used range is too large to support Undo." & vbCrLf & vbCrLf & _
+                "Do you want to proceed with the conversion anyway?", _
+                "Make Static - Undo Warning", vbDefaultButton2) Then
+                GoTo CleanExit
+            End If
+        End If
+    End If
+
+    originalScreenUpdating = Application.ScreenUpdating
+    If request.Scope = TargetScopeWorkbook Then
+        Application.ScreenUpdating = False
     End If
 
     Infra_Progress.StartProgress "Converting Formulas to Values", sheetsToProcess.Count
@@ -99,11 +112,16 @@ Private Sub ExecuteStaticConversion(ByVal request As Infra_StaticRequest)
         If Infra_Progress.UserCancelled Then Exit For
     Next wsItem
 
-    scopeLabel = IIf(request.Scope = StaticConversionScopeWorkbook, "Whole Workbook", "Active Sheet")
+    scopeLabel = IIf(request.Scope = TargetScopeWorkbook, "Whole Workbook", "Active Sheet")
     Infra_Interaction.ShowInfo "Done! Converted " & convertedCount & " formula cell(s) - " & scopeLabel & ".", _
                                Infra_Config.ADDIN_NAME & " - Process Complete"
 
 CleanExit:
+    If Not request Is Nothing Then
+        If request.Scope = TargetScopeWorkbook Then
+            Application.ScreenUpdating = originalScreenUpdating
+        End If
+    End If
     Infra_Progress.EndProgress
     Exit Sub
 
@@ -113,14 +131,14 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Function BuildSheetList(ByVal request As Infra_StaticRequest) As Collection
+Private Function BuildSheetList(ByVal request As Infra_ScopedRequest) As Collection
     Dim tracker As Object: Set tracker = Infra_Error.Track("BuildSheetList")
     On Error GoTo ErrHandler
 
     Dim sheets As New Collection
     Dim ws As Worksheet
 
-    If request.Scope = StaticConversionScopeWorkbook Then
+    If request.Scope = TargetScopeWorkbook Then
         For Each ws In request.Context.WorkbookRef.Worksheets
             sheets.Add ws
         Next ws

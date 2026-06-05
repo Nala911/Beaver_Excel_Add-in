@@ -5,16 +5,16 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Centralized factory for creating and displaying standardized user prompts.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Error, Infra_Config, Infra_CleanDataRequest, Infra_ExportRequest, Infra_StaticRequest, Infra_BreakLinksRequest, Infra_ActionContext
+' @Dependencies: Infra_Error, Infra_Config, Infra_ExportRequest, Infra_ScopedRequest, Infra_ActionContext
 
 ' Shows the Clean Data options via UserForm picker and returns a populated Request object.
-Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_CleanDataRequest
+Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_ScopedRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowCleanDataDialog")
     On Error GoTo ErrHandler
     
     Dim promptMsg As String
     Dim normalizedChoice As String
-    Dim request As Infra_CleanDataRequest
+    Dim request As Infra_ScopedRequest
     Dim options As Variant
     Dim defaultChoice As String
     Dim hasSelection As Boolean
@@ -51,19 +51,19 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
                 Infra_Interaction.ShowWarning "Select a range first if you want to clean only the current selection.", BuildDialogTitle("Clean Data")
                 GoTo CleanExit
             End If
-            Set request = New Infra_CleanDataRequest
+            Set request = New Infra_ScopedRequest
             Set request.Context = ctx
-            request.Scope = CleanDataScopeSelection
+            request.Scope = TargetScopeSelection
             Set ShowCleanDataDialog = request
         Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-            Set request = New Infra_CleanDataRequest
+            Set request = New Infra_ScopedRequest
             Set request.Context = ctx
-            request.Scope = CleanDataScopeActiveSheet
+            request.Scope = TargetScopeActiveSheet
             Set ShowCleanDataDialog = request
         Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-            Set request = New Infra_CleanDataRequest
+            Set request = New Infra_ScopedRequest
             Set request.Context = ctx
-            request.Scope = CleanDataScopeWorkbook
+            request.Scope = TargetScopeWorkbook
             Set ShowCleanDataDialog = request
     End Select
 
@@ -139,11 +139,11 @@ ErrHandler:
 End Function
 
 ' Shows the conversion scope dialog for formula-to-value actions using a UserForm picker.
-Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As Infra_StaticRequest
+Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As Infra_ScopedRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowStaticConversionDialog")
     On Error GoTo ErrHandler
 
-    Dim request As Infra_StaticRequest
+    Dim request As Infra_ScopedRequest
     Dim promptMsg As String
     Dim confirmMsg As String
     Dim normalizedChoice As String
@@ -162,14 +162,14 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
 
     Select Case normalizedChoice
         Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-            Set request = New Infra_StaticRequest
+            Set request = New Infra_ScopedRequest
             Set request.Context = ctx
-            request.Scope = StaticConversionScopeActiveSheet
+            request.Scope = TargetScopeActiveSheet
             Set ShowStaticConversionDialog = request
         Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-            Set request = New Infra_StaticRequest
+            Set request = New Infra_ScopedRequest
             Set request.Context = ctx
-            request.Scope = StaticConversionScopeWorkbook
+            request.Scope = TargetScopeWorkbook
             Set ShowStaticConversionDialog = request
     End Select
 
@@ -180,7 +180,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal linkInfo As String) As Infra_BreakLinksRequest
+Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal linkInfo As String) As Infra_ScopedRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowBreakLinksDialog")
     On Error GoTo ErrHandler
 
@@ -188,7 +188,7 @@ Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal lin
     Dim options As Variant
     Dim defaultChoice As String
     Dim allowSheetScope As Boolean
-    Dim request As Infra_BreakLinksRequest
+    Dim request As Infra_ScopedRequest
     Dim promptMsg As String
     Dim confirmMsg As String
 
@@ -220,14 +220,14 @@ Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal lin
                 Infra_Interaction.ShowWarning "The active sheet has no breakable linked formulas, pivots, or tables. Use Workbook scope to remove the remaining workbook-level items.", BuildDialogTitle("Break External Links")
                 GoTo CleanExit
             End If
-            Set request = New Infra_BreakLinksRequest
+            Set request = New Infra_ScopedRequest
             Set request.Context = ctx
-            request.Scope = BreakLinksScopeActiveSheet
+            request.Scope = TargetScopeActiveSheet
             Set ShowBreakLinksDialog = request
         Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-            Set request = New Infra_BreakLinksRequest
+            Set request = New Infra_ScopedRequest
             Set request.Context = ctx
-            request.Scope = BreakLinksScopeWorkbook
+            request.Scope = TargetScopeWorkbook
             Set ShowBreakLinksDialog = request
     End Select
 

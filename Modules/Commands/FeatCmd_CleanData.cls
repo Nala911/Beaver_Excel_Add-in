@@ -28,7 +28,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
     
     Dim ctx As Infra_ActionContext
-    Dim request As Infra_CleanDataRequest
+    Dim request As Infra_ScopedRequest
     Dim stateInfo As Collection
 
     Set stateInfo = Infra_Error.NewStateInfo()
@@ -56,7 +56,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
+Private Sub ExecuteCleanData(ByVal request As Infra_ScopedRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteCleanData")
     On Error GoTo ErrHandler
     
@@ -66,6 +66,7 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Dim cleanedCount As Long
     Dim scopeLabel As String
     Dim highlightedAny As Boolean
+    Dim originalScreenUpdating As Boolean
 
     Set stateInfo = Infra_Error.NewStateInfo()
     
@@ -75,39 +76,48 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     
     ' --- 1. Save State for Undo ---
     Select Case request.Scope
-        Case CleanDataScopeSelection
+        Case TargetScopeSelection
             Set targetRange = request.Context.SelectionRange
             scopeLabel = "selection"
-        Case CleanDataScopeActiveSheet
+        Case TargetScopeActiveSheet
             Set targetRange = request.Context.WorksheetRef.UsedRange
             scopeLabel = "active sheet"
-        Case CleanDataScopeWorkbook
+        Case TargetScopeWorkbook
             Set targetRange = Nothing
             scopeLabel = "workbook"
     End Select
     
     If Not targetRange Is Nothing Then
-        Infra_Undo.SaveState targetRange, "Clean Data"
+        If Not Infra_Undo.SaveState(targetRange, "Clean Data") Then
+            If Not Infra_Interaction.Confirm( _
+                "The selected range is too large to support Undo." & vbCrLf & vbCrLf & _
+                "Do you want to proceed with the cleaning operation anyway?", _
+                "Clean Data - Undo Warning", vbDefaultButton2) Then
+                GoTo CleanExit
+            End If
+        End If
     End If
     
-    ' --- 2. Initialize Progress ---
-    If request.Scope = CleanDataScopeWorkbook Then
+    ' --- 2. Initialize Progress & Dynamic Screen Updating ---
+    originalScreenUpdating = Application.ScreenUpdating
+    If request.Scope = TargetScopeWorkbook Then
+        Application.ScreenUpdating = False
         Infra_Progress.StartProgress "Cleaning Data", request.Context.WorkbookRef.Worksheets.Count
     Else
         Infra_Progress.StartProgress "Cleaning Data", 1
     End If
     
     Select Case request.Scope
-        Case CleanDataScopeSelection
+        Case TargetScopeSelection
             cleanedCount = ProcessRangeForClean(request.Context.SelectionRange)
             highlightedAny = HighlightInconsistentFormulas(request.Context.SelectionRange)
             Infra_Progress.UpdateProgress 1, True
-        Case CleanDataScopeActiveSheet
+        Case TargetScopeActiveSheet
             cleanedCount = ProcessRangeForClean(request.Context.WorksheetRef.UsedRange)
             CleanNamedRanges request.Context.WorkbookRef, request.Context.WorksheetRef
             highlightedAny = HighlightInconsistentFormulas(request.Context.WorksheetRef.UsedRange)
             Infra_Progress.UpdateProgress 1, True
-        Case CleanDataScopeWorkbook
+        Case TargetScopeWorkbook
             CleanNamedRanges request.Context.WorkbookRef, Nothing
             Dim i As Long, count As Long
             count = request.Context.WorkbookRef.Worksheets.Count
@@ -129,6 +139,11 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Infra_Interaction.ShowInfo msg
 
 CleanExit:
+    If Not request Is Nothing Then
+        If request.Scope = TargetScopeWorkbook Then
+            Application.ScreenUpdating = originalScreenUpdating
+        End If
+    End If
     Infra_Progress.EndProgress
     Exit Sub
 

@@ -132,6 +132,78 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_MakePermanent_LegacyArray_And_Undo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_MakePermanent_LegacyArray_And_Undo")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_LegacyArray"
+
+    ' Setup a legacy CSE array formula in A1:A3
+    ws.Range("A1:A3").FormulaArray = "=SEQUENCE(3, 1)"
+    ws.Calculate
+    Infra_ValueConversion.WaitForCalculation
+
+    ' Asserts before execution
+    Lib_Tests.AssertEqual ws.Range("A1").HasArray, True, "A1 should be part of an array formula"
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 should be 1"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 should be 2"
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 should be 3"
+
+    ' Initialize AppContainer
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    ' Create command context for MakePermanent
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("MakePermanent")
+
+    ' Select only part of the array formula range (A1:A2)
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1:A2")
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("MakePermanent")
+
+    ' Execute the command - it should fallback and convert the entire array
+    cmd.Execute ctx
+
+    ' Assert that formulas are gone and values are static
+    Lib_Tests.AssertEqual ws.Range("A1").HasFormula, False, "A1 formula should be removed"
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 static value should be 1"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 static value should be 2"
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 static value should be 3"
+
+    ' Now register and perform undo
+    Infra_Undo.RegisterPendingUndo
+    Infra_Undo.PerformUndo
+
+    ' Assert that CSE array formula is restored
+    Lib_Tests.AssertEqual ws.Range("A1").HasArray, True, "A1 array formula should be restored"
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 restored value should be 1"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 restored value should be 2"
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 restored value should be 3"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_MakePermanent_LegacyArray_And_Undo", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_ValueConversion_ResolveSpillExpandedRange()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ValueConversion_ResolveSpillExpandedRange")
     On Error GoTo ErrHandler
@@ -557,5 +629,66 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_FillDown_Features", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_Backspace_LargeRange_Undo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_Backspace_LargeRange_Undo")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_LargeUndo"
+    
+    ' Add some values in the top cells
+    ws.Range("A1").Value2 = "Value 1"
+    ws.Range("A5").Value2 = "Value 5"
+    
+    ' Initialize AppContainer
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    ' Create command context for Backspace
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("Backspace")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    
+    ' Select 20,000 rows (327,680,000 cells), exceeding MAX_UNDO_CELLS
+    Set ctx.ActionContext.SelectionRange = ws.Rows("1:20000")
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("Backspace")
+    
+    ' Execute the command directly
+    cmd.Execute ctx
+    
+    ' Assert that the values are cleared
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, vbEmpty, "A1 should be cleared by Backspace"
+    Lib_Tests.AssertEqual ws.Range("A5").Value2, vbEmpty, "A5 should be cleared by Backspace"
+
+    ' Register and perform undo
+    Infra_Undo.RegisterPendingUndo
+    Infra_Undo.PerformUndo
+
+    ' Assert that the values are fully restored
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "Value 1", "A1 should be restored by Undo"
+    Lib_Tests.AssertEqual ws.Range("A5").Value2, "Value 5", "A5 should be restored by Undo"
+
+    ' Cleanup the temporary worksheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_Backspace_LargeRange_Undo", Err
     Resume CleanExit
 End Sub

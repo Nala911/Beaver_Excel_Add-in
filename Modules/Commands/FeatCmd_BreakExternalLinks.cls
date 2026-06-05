@@ -30,7 +30,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim wb As Workbook
     Dim linkArr As Variant
     Dim linkInfo As String
-    Dim request As Infra_BreakLinksRequest
+    Dim request As Infra_ScopedRequest
     Dim ctx As Infra_ActionContext
     Dim hasWorkbookLevelItems As Boolean
     Dim hasSheetLevelItems As Boolean
@@ -53,16 +53,23 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     ' 4. EXECUTION
     Dim stats As String
-    If request.Scope = BreakLinksScopeActiveSheet Then
-        Infra_Undo.SaveState ctx.WorksheetRef.UsedRange, "Break Links"
+    If request.Scope = TargetScopeActiveSheet Then
+        If Not Infra_Undo.SaveState(ctx.WorksheetRef.UsedRange, "Break Links") Then
+            If Not Infra_Interaction.Confirm( _
+                "The active sheet's used range is too large to support Undo." & vbCrLf & vbCrLf & _
+                "Do you want to proceed with breaking external links anyway?", _
+                "Break External Links - Undo Warning", vbDefaultButton2) Then
+                GoTo CleanExit
+            End If
+        End If
     End If
     stats = ExecuteBreakLinks(wb, request, linkArr)
-    If request.Scope = BreakLinksScopeActiveSheet And hasWorkbookLevelItems Then
+    If request.Scope = TargetScopeActiveSheet And hasWorkbookLevelItems Then
         stats = stats & vbCrLf & vbCrLf & "Workbook-level links, connections, and external names were left unchanged because Sheet scope was selected."
     End If
 
     ' 5. COMPLETION
-    Infra_Interaction.ShowInfo "Process completed for: " & IIf(request.Scope = BreakLinksScopeWorkbook, "Whole Workbook", "Active Sheet") & vbCrLf & vbCrLf & stats
+    Infra_Interaction.ShowInfo "Process completed for: " & IIf(request.Scope = TargetScopeWorkbook, "Whole Workbook", "Active Sheet") & vbCrLf & vbCrLf & stats
 
 CleanExit:
     Exit Sub
@@ -175,7 +182,7 @@ Private Sub GetSheetBreakableCounts(ByVal ws As Worksheet, ByRef formulaCount As
     Next lo
 End Sub
 
-Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_BreakLinksRequest, ByVal linkArr As Variant) As String
+Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_ScopedRequest, ByVal linkArr As Variant) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteBreakLinks")
     On Error GoTo ErrHandler
     
@@ -185,9 +192,10 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
     Dim conn As WorkbookConnection
     Dim processWholeWorkbook As Boolean
     Dim index As Long
-
+    Dim originalScreenUpdating As Boolean
+ 
     If request Is Nothing Then GoTo CleanExit
-    processWholeWorkbook = (request.Scope = BreakLinksScopeWorkbook)
+    processWholeWorkbook = (request.Scope = TargetScopeWorkbook)
     
     ' Global breaks
     If processWholeWorkbook Then
@@ -221,7 +229,12 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
     Else
         wsToProcess.Add request.Context.WorksheetRef
     End If
-
+ 
+    originalScreenUpdating = Application.ScreenUpdating
+    If request.Scope = TargetScopeWorkbook Then
+        Application.ScreenUpdating = False
+    End If
+ 
     Infra_Progress.StartProgress "Breaking External Links", wsToProcess.Count
     For Each ws In wsToProcess
         index = index + 1
@@ -238,6 +251,11 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
                        "Tables Converted: " & tablesConverted
 
 CleanExit:
+    If Not request Is Nothing Then
+        If request.Scope = TargetScopeWorkbook Then
+            Application.ScreenUpdating = originalScreenUpdating
+        End If
+    End If
     Infra_Progress.EndProgress
     Exit Function
 
@@ -250,32 +268,27 @@ End Function
 Private Function RemoveExternalWorkbookNames(ByVal wb As Workbook) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("RemoveExternalWorkbookNames")
     On Error GoTo ErrHandler
-
-    Dim externalNames As New Collection
-    Dim nm As Name
-    Dim nameKey As Variant
-
+ 
+    Dim i As Long
+ 
     If wb Is Nothing Then GoTo CleanExit
-
-    For Each nm In wb.Names
+ 
+    For i = wb.Names.Count To 1 Step -1
         Dim extRefersToVal As String
         extRefersToVal = ""
         On Error Resume Next
-        extRefersToVal = nm.RefersTo
+        extRefersToVal = wb.Names(i).RefersTo
         On Error GoTo ErrHandler
+        
         If InStr(1, extRefersToVal, "[", vbTextCompare) > 0 Then
-            externalNames.Add nm.Name
+            On Error Resume Next
+            wb.Names(i).Delete
+            If Err.Number = 0 Then RemoveExternalWorkbookNames = RemoveExternalWorkbookNames + 1
+            Err.Clear
+            On Error GoTo ErrHandler
         End If
-    Next nm
-
-    For Each nameKey In externalNames
-        On Error Resume Next
-        wb.Names(CStr(nameKey)).Delete
-        If Err.Number = 0 Then RemoveExternalWorkbookNames = RemoveExternalWorkbookNames + 1
-        Err.Clear
-        On Error GoTo ErrHandler
-    Next nameKey
-
+    Next i
+ 
 CleanExit:
     Exit Function
 
@@ -348,7 +361,7 @@ End Sub
 
 ' --- Testing Entry Points ---
 ' Allows headless automated testing of the link breaking and name removal logic.
-Public Function ExecuteBreakLinksDirect(ByVal wb As Workbook, ByVal request As Infra_BreakLinksRequest, ByRef linkArr As Variant) As String
+Public Function ExecuteBreakLinksDirect(ByVal wb As Workbook, ByVal request As Infra_ScopedRequest, ByRef linkArr As Variant) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteBreakLinksDirect")
     On Error GoTo ErrHandler
     

@@ -2,18 +2,18 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "Infra_BreakLinksRequest"
+Attribute VB_Name = "Infra_ScopedRequest"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-' @Module: Infra_BreakLinksRequest
+' @Module: Infra_ScopedRequest
 ' @Category: Core
-' @Description: Typed request for break-links workflows.
+' @Description: Typed request describing the target scope and action context for a scoped command execution.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_ActionContext
+' @Dependencies: Infra_ActionContext, TargetScope
 
 Public Context As Infra_ActionContext
-Public Scope As BreakLinksScope
+Public Scope As TargetScope

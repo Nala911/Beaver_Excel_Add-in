@@ -65,11 +65,21 @@ Public Sub HandleError(ByVal procedureName As String, ByRef errSource As ErrObje
 End Sub
 
 Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As ErrObject, Optional ByVal stateInfo As Collection = Nothing, Optional ByVal category As String = "runtime", Optional ByVal severity As String = "fatal")
+    Dim errNum As Long
+    Dim errDesc As String
+    Dim errSrc As String
+    
+    If Not errSource Is Nothing Then
+        errNum = errSource.Number
+        errDesc = errSource.Description
+        errSrc = errSource.Source
+    End If
+
     On Error Resume Next
     
     Dim ctx As Infra_ErrorContext
     Dim errorMsg As String
-    Set ctx = BuildErrorContext(procedureName, errSource, stateInfo, category, severity)
+    Set ctx = BuildErrorContext(procedureName, errNum, errDesc, errSrc, stateInfo, category, severity)
     errorMsg = BuildPromptString(ctx)
     
     ' 1. Log to Immediate Window (Developer Console)
@@ -200,7 +210,7 @@ Private Function GetRichContext(Optional ByVal stateInfo As Collection = Nothing
     On Error GoTo 0
 End Function
 
-Private Function BuildErrorContext(ByVal procedureName As String, ByRef errSource As ErrObject, Optional ByVal stateInfo As Collection = Nothing, Optional ByVal category As String = "runtime", Optional ByVal severity As String = "fatal") As Infra_ErrorContext
+Private Function BuildErrorContext(ByVal procedureName As String, ByVal errNum As Long, ByVal errDesc As String, ByVal errSrc As String, Optional ByVal stateInfo As Collection = Nothing, Optional ByVal category As String = "runtime", Optional ByVal severity As String = "fatal") As Infra_ErrorContext
     Dim ctx As New Infra_ErrorContext
     Dim selectionRange As Range
 
@@ -208,9 +218,9 @@ Private Function BuildErrorContext(ByVal procedureName As String, ByRef errSourc
     ctx.ProcedureName = procedureName
     ctx.Severity = severity
     ctx.Category = category
-    ctx.ErrorNumber = errSource.Number
-    ctx.ErrorDescription = errSource.Description
-    ctx.ErrorSource = errSource.Source
+    ctx.ErrorNumber = errNum
+    ctx.ErrorDescription = errDesc
+    ctx.ErrorSource = errSrc
     ctx.Username = Environ$("Username")
     ctx.AppVersion = Infra_Config.ADDIN_VERSION
     ctx.Breadcrumbs = GetBreadcrumbs()

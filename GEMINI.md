@@ -204,7 +204,7 @@ graph TD
 - `Infra_Error`: Centralizes tracking, breadcrumbs, diagnostics, user-facing error handling, and failsafe reset behavior.
 - `Infra_ContextTracker`: Provides RAII-style `PushContext` and `PopContext` support via `Infra_Error.Track`. Assign this to an object variable so cleanup occurs correctly on exit.
 - `Infra_Interaction`: Centralizes message boxes, text prompts, range prompts, and reusable `UserForm`-based option pickers.
-- `Infra_UIFactory`: Implements standardized picker dialogs using `UI_OptionPicker` and creates typed request objects.
+- `Infra_UIFactory`: Implements standardized picker dialogs using `UI_OptionPicker` and creates typed request objects (such as the unified `Infra_ScopedRequest`).
 - `Infra_ValueConversion`: Provides shared data and formula conversion utilities.
 - `Infra_Undo`: Provides custom undo support for range mutations, securely buffered inside `ThisWorkbook`'s private sheet to protect user data from being saved or leaked inside external target workbooks.
 - `Infra_Progress`: Provides status-bar progress reporting for slow-running tasks.
@@ -349,6 +349,8 @@ graph TD
 - Iterate backwards using an index countdown (`For i = Collection.Count To 1 Step -1`) when mutating or deleting elements inside collections (such as `PivotTables`, `ListObjects`, or `Names`) to avoid dynamic re-indexing skip bugs.
 - Safely intercept and translate literal Excel cell error variants (type `Error`) using `Select Case` with `CVErr()` constants (e.g., `Case CVErr(xlErrNA)`) before executing standard string or conversion operations (like `CStr()` or `CInt()`), preventing `Type mismatch (Error 13)` crashes.
 - Limit expensive cell-by-cell COM operations on large ranges (e.g., formula checks) to a safety cell count limit (e.g., 5,000 cells) to avoid freezing Excel.
+- Use `Infra_ValueConversion.Ensure2DArray` to convert variant inputs (Range, Array, or Scalar) into 1-based 2D arrays rather than implementing duplicate array-handling helpers.
+- Check the return status of `Infra_Undo.SaveState` when setting up undo buffers before cell mutation. If `SaveState` returns `False` (e.g. range size exceeds safety limits), explicitly prompt or warn the user before proceeding.
 - Flexible linter checks inside `Update.ps1` scan the entire procedure body to verify `Infra_Error.Track` is used, supporting descriptive comments at the top of public procedures.
 - Do not manually edit generated files (`UI_Ribbon.bas`, `UI_Hotkeys.bas`, `Infra_CommandRegistry.bas`, `Lib_TestManifest.bas`).
 

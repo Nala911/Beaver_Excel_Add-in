@@ -17,15 +17,34 @@ Private m_PendingUndoAction As String
 
 ' Captures the state of a range and registers an Undo action.
 ' Call this BEFORE modifying the range.
-Public Sub SaveState(ByVal Target As Range, ByVal ActionName As String)
+Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("SaveState")
     On Error GoTo ErrHandler
     
     If Target Is Nothing Then GoTo CleanExit
     
-    ' Safety Check: Don't capture massive ranges that would crash Excel
-    If Target.Cells.CountLarge > MAX_UNDO_CELLS Then
-        Debug.Print "BEAVER [UNDO]: Range too large to capture safely (" & Target.Cells.CountLarge & " cells). Skipping undo registration."
+    Dim captureRange As Range
+    Set captureRange = Target
+    
+    ' Safety Check: Don't capture massive ranges that would crash Excel.
+    ' If the target range is large, try to restrict it to the sheet's UsedRange.
+    If captureRange.Cells.CountLarge > MAX_UNDO_CELLS Then
+        Dim usedIntersect As Range
+        On Error Resume Next
+        Set usedIntersect = Application.Intersect(captureRange, captureRange.Worksheet.UsedRange)
+        On Error GoTo ErrHandler
+        
+        If Not usedIntersect Is Nothing Then
+            Set captureRange = usedIntersect
+        Else
+            Debug.Print "BEAVER [UNDO]: Target range is too large to capture safely (" & Target.Cells.CountLarge & " cells) and does not intersect with UsedRange. Skipping undo registration."
+            GoTo CleanExit
+        End If
+    End If
+    
+    ' Double check size after intersection (if the intersection itself is still too large)
+    If captureRange.Cells.CountLarge > MAX_UNDO_CELLS Then
+        Debug.Print "BEAVER [UNDO]: Restrained capture range is still too large to capture safely (" & captureRange.Cells.CountLarge & " cells). Skipping undo registration."
         GoTo CleanExit
     End If
     
@@ -42,27 +61,30 @@ Public Sub SaveState(ByVal Target As Range, ByVal ActionName As String)
     ' Clear previous undo data
     undoSh.Cells.Clear
     
-    ' Copy Target to Undo Sheet at the same address so relative formulas
+    ' Copy captureRange to Undo Sheet at the same address so relative formulas
     ' keep their original references instead of being re-based from A1.
-    Target.Copy Destination:=undoSh.Range(Target.Address)
+    captureRange.Copy Destination:=undoSh.Range(captureRange.Address)
 
     ' Store metadata outside the undo payload so large target ranges cannot
     ' overwrite it.
-    StoreUndoMetadata Target.Worksheet.Parent.Name, Target.Worksheet.Name, Target.Address, ActionName
+    StoreUndoMetadata Target.Worksheet.Parent.Name, Target.Worksheet.Name, captureRange.Address, ActionName
     
     ' Stage the Undo macro (registration happens later)
     m_PendingUndoAction = ActionName
     
     ' Clean up clipboard
     Application.CutCopyMode = False
+    
+    SaveState = True
 
 CleanExit:
-    Exit Sub
+    Exit Function
 ErrHandler:
     ClearUndoMetadata
+    SaveState = False
     Infra_Error.HandleError "SaveState", Err
     Resume CleanExit
-End Sub
+End Function
 
 ' Registers the staged undo action with Excel. Called at the end of command execution.
 Public Sub RegisterPendingUndo()
