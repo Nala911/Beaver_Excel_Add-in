@@ -11,6 +11,13 @@
                         "DefaultExportScale":  3,
                         "MaxExportScale":  10
                     },
+    "SafetyConstants":  {
+                            "MaxUndoCells":  1000000,
+                            "MaxWrapCells":  50000,
+                            "MaxFormulaCheckCells":  5000,
+                            "MaxFillProximityColumns":  10,
+                            "MaxFillDownAreas":  5000
+                        },
     "AddinIdentity":  {
                           "Name":  "Beaver Add-in",
                           "Version":  "2.0.68"

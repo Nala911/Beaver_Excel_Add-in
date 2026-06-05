@@ -94,12 +94,13 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         ' --- PRIORITY 3: PROXIMITY SEARCH (closest neighbor) ---
         ' Optimization: Limit proximity distance to 10 columns
         If Not foundRef Then
-            Const MAX_PROXIMITY_DIST As Long = 10
+            Dim maxProximityDist As Long
+            maxProximityDist = Infra_Config.MAX_FILL_PROXIMITY_COLUMNS
             Dim dist As Long
             Dim leftCol As Long, rightCol As Long
             Dim targetCol As Long
             
-            For dist = 1 To MAX_PROXIMITY_DIST
+            For dist = 1 To maxProximityDist
                 leftCol = colIdx - dist
                 If leftCol >= 1 Then
                     If Not IsEmpty(ws.Cells(startRow, leftCol)) Then
@@ -162,9 +163,9 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         totalAreas = totalAreas + colVisibleRanges(i).Areas.Count
     Next i
     
-    If totalAreas > 5000 Then
+    If totalAreas > Infra_Config.MAX_FILL_DOWN_AREAS Then
         Err.Raise vbObjectError + 1001, "FillDown.Execute", _
-            "The target range is too fragmented (exceeds 5,000 non-contiguous areas). Action aborted to prevent Excel from freezing."
+            "The target range is too fragmented (exceeds " & Format(Infra_Config.MAX_FILL_DOWN_AREAS, "#,##0") & " non-contiguous areas). Action aborted to prevent Excel from freezing."
     End If
 
     ' Register Undo for the combined range

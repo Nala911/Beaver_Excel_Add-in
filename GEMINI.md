@@ -195,12 +195,12 @@ graph TD
 - `Infra_CommandRegistry` maps entry macros to command names and instantiates command objects.
 - `AppContainer.ExecuteEntryPoint` resolves the command and calls `CommandInvoker.ExecuteCommand`.
 - `CommandInvoker.ExecuteCommand` runs `CanExecute`, applies `Infra_AppStateGuard`, executes the command, and registers any Undo actions.
-- Shared helpers in `Infra_CommandSupport` convert `ICommandContext` into `Infra_ActionContext`.
+- Shared helpers in `Infra_CommandSupport` convert `ICommandContext` into `Infra_ActionContext` and resolve worksheets for bulk operations using the centralized `ResolveWorksheetsToProcess` helper.
 
 ### Shared Infrastructure
 - `Infra_AppStateGuard`: Captures and restores Excel application state (e.g., `ScreenUpdating`, `EnableEvents`, `DisplayAlerts`, `Calculation`). Always declare inline as `Dim guard As New Infra_AppStateGuard` to leverage RAII cleanup on scope exit.
 - `Infra_AppState`: Captures workbook, worksheet, cell, and range context, providing selection helpers.
-- `Infra_Config`: Loads `config.json` through the typed `Infra_ConfigModel`.
+- `Infra_Config`: Loads `config.json` through the typed `Infra_ConfigModel` (exposing UI constants and safety threshold constants).
 - `Infra_Error`: Centralizes tracking, breadcrumbs, diagnostics, user-facing error handling, and failsafe reset behavior.
 - `Infra_ContextTracker`: Provides RAII-style `PushContext` and `PopContext` support via `Infra_Error.Track`. Assign this to an object variable so cleanup occurs correctly on exit.
 - `Infra_Interaction`: Centralizes message boxes, text prompts, range prompts, and reusable `UserForm`-based option pickers.
@@ -276,7 +276,7 @@ graph TD
 *Rule:* If you add or modify a shortcut, update `features.json` and run `Update.ps1` to sync it. Do not hardcode `Application.OnKey` bindings in feature modules.
 
 ### Config Contract
-`config.json` schema contains `UIConstants`, `AddinIdentity`, `FeatureFlags`, `Hotkeys`, and `Icons`.
+`config.json` schema contains `UIConstants`, `SafetyConstants`, `AddinIdentity`, `FeatureFlags`, `Hotkeys`, and `Icons`.
 
 #### Schema Snapshot
 ```json
@@ -292,6 +292,13 @@ graph TD
     "HeaderColor": "#AEAAAA",
     "DefaultExportScale": 3,
     "MaxExportScale": 10
+  },
+  "SafetyConstants": {
+    "MaxUndoCells": 1000000,
+    "MaxWrapCells": 50000,
+    "MaxFormulaCheckCells": 5000,
+    "MaxFillProximityColumns": 10,
+    "MaxFillDownAreas": 5000
   },
   "AddinIdentity": {
     "Name": "Beaver Add-in",
@@ -348,7 +355,7 @@ graph TD
 - Preserve user-facing constants in `config.json`.
 - Iterate backwards using an index countdown (`For i = Collection.Count To 1 Step -1`) when mutating or deleting elements inside collections (such as `PivotTables`, `ListObjects`, or `Names`) to avoid dynamic re-indexing skip bugs.
 - Safely intercept and translate literal Excel cell error variants (type `Error`) using `Select Case` with `CVErr()` constants (e.g., `Case CVErr(xlErrNA)`) before executing standard string or conversion operations (like `CStr()` or `CInt()`), preventing `Type mismatch (Error 13)` crashes.
-- Limit expensive cell-by-cell COM operations on large ranges (e.g., formula checks) to a safety cell count limit (e.g., 5,000 cells) to avoid freezing Excel.
+- Limit expensive cell-by-cell COM operations on large ranges (e.g., formula checks) to a safety cell count limit (e.g., 5,000 cells) to avoid freezing Excel. Always load safety thresholds dynamically from `Infra_Config` instead of hardcoding limits.
 - Use `Infra_ValueConversion.Ensure2DArray` to convert variant inputs (Range, Array, or Scalar) into 1-based 2D arrays rather than implementing duplicate array-handling helpers.
 - Check the return status of `Infra_Undo.SaveState` when setting up undo buffers before cell mutation. If `SaveState` returns `False` (e.g. range size exceeds safety limits), explicitly prompt or warn the user before proceeding.
 - Flexible linter checks inside `Update.ps1` scan the entire procedure body to verify `Infra_Error.Track` is used, supporting descriptive comments at the top of public procedures.

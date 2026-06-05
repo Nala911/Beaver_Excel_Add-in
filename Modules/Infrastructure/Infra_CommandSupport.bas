@@ -266,3 +266,32 @@ ErrHandler:
     Set ValidateCanModifySelection = ValidationFailure(message)
     Resume CleanExit
 End Function
+
+Public Function ResolveWorksheetsToProcess(ByVal request As Infra_ScopedRequest) As Collection
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ResolveWorksheetsToProcess")
+    On Error GoTo ErrHandler
+
+    Dim sheets As New Collection
+    Dim ws As Worksheet
+
+    If request Is Nothing Then GoTo CleanExit
+    If request.Context Is Nothing Then GoTo CleanExit
+
+    If request.Scope = TargetScopeWorkbook Then
+        For Each ws In request.Context.WorkbookRef.Worksheets
+            sheets.Add ws
+        Next ws
+    Else
+        sheets.Add request.Context.WorksheetRef
+    End If
+
+    Set ResolveWorksheetsToProcess = sheets
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Set ResolveWorksheetsToProcess = Nothing
+    Infra_Error.HandleError "ResolveWorksheetsToProcess", Err
+    Resume CleanExit
+End Function

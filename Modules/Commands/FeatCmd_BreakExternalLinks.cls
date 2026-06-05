@@ -224,11 +224,8 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
     End If
 
     ' Range/Sheet level
-    If processWholeWorkbook Then
-        For Each ws In wb.Worksheets: wsToProcess.Add ws: Next ws
-    Else
-        wsToProcess.Add request.Context.WorksheetRef
-    End If
+    Set wsToProcess = Infra_CommandSupport.ResolveWorksheetsToProcess(request)
+    If wsToProcess Is Nothing Then GoTo CleanExit
  
     originalScreenUpdating = Application.ScreenUpdating
     If request.Scope = TargetScopeWorkbook Then

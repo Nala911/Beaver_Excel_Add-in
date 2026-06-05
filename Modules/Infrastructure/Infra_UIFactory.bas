@@ -45,27 +45,14 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_S
 
     If Not PromptForScopeSelection(ctx, "Clean Data", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
 
-    Select Case normalizedChoice
-        Case "R", "RANGE", "SELECTED", "SELECTION"
-            If Not hasSelection Then
-                Infra_Interaction.ShowWarning "Select a range first if you want to clean only the current selection.", BuildDialogTitle("Clean Data")
-                GoTo CleanExit
-            End If
-            Set request = New Infra_ScopedRequest
-            Set request.Context = ctx
-            request.Scope = TargetScopeSelection
-            Set ShowCleanDataDialog = request
-        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-            Set request = New Infra_ScopedRequest
-            Set request.Context = ctx
-            request.Scope = TargetScopeActiveSheet
-            Set ShowCleanDataDialog = request
-        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-            Set request = New Infra_ScopedRequest
-            Set request.Context = ctx
-            request.Scope = TargetScopeWorkbook
-            Set ShowCleanDataDialog = request
-    End Select
+    If normalizedChoice = "R" Or normalizedChoice = "RANGE" Or normalizedChoice = "SELECTED" Or normalizedChoice = "SELECTION" Then
+        If Not hasSelection Then
+            Infra_Interaction.ShowWarning "Select a range first if you want to clean only the current selection.", BuildDialogTitle("Clean Data")
+            GoTo CleanExit
+        End If
+    End If
+
+    Set ShowCleanDataDialog = CreateScopedRequest(ctx, normalizedChoice)
 
 CleanExit:
     Exit Function
@@ -160,18 +147,7 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
 
     If Not PromptForScopeSelection(ctx, "Make Static", promptMsg, "Sheet", Array("Sheet", "Workbook"), confirmMsg, normalizedChoice) Then GoTo CleanExit
 
-    Select Case normalizedChoice
-        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-            Set request = New Infra_ScopedRequest
-            Set request.Context = ctx
-            request.Scope = TargetScopeActiveSheet
-            Set ShowStaticConversionDialog = request
-        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-            Set request = New Infra_ScopedRequest
-            Set request.Context = ctx
-            request.Scope = TargetScopeWorkbook
-            Set ShowStaticConversionDialog = request
-    End Select
+    Set ShowStaticConversionDialog = CreateScopedRequest(ctx, normalizedChoice)
 
 CleanExit:
     Exit Function
@@ -214,22 +190,14 @@ Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal lin
 
     If Not PromptForScopeSelection(ctx, "Break External Links", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
 
-    Select Case normalizedChoice
-        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-            If Not allowSheetScope Then
-                Infra_Interaction.ShowWarning "The active sheet has no breakable linked formulas, pivots, or tables. Use Workbook scope to remove the remaining workbook-level items.", BuildDialogTitle("Break External Links")
-                GoTo CleanExit
-            End If
-            Set request = New Infra_ScopedRequest
-            Set request.Context = ctx
-            request.Scope = TargetScopeActiveSheet
-            Set ShowBreakLinksDialog = request
-        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-            Set request = New Infra_ScopedRequest
-            Set request.Context = ctx
-            request.Scope = TargetScopeWorkbook
-            Set ShowBreakLinksDialog = request
-    End Select
+    If normalizedChoice = "S" Or normalizedChoice = "SHEET" Or normalizedChoice = "ACTIVE SHEET" Or normalizedChoice = "ACTIVESHEET" Then
+        If Not allowSheetScope Then
+            Infra_Interaction.ShowWarning "The active sheet has no breakable linked formulas, pivots, or tables. Use Workbook scope to remove the remaining workbook-level items.", BuildDialogTitle("Break External Links")
+            GoTo CleanExit
+        End If
+    End If
+
+    Set ShowBreakLinksDialog = CreateScopedRequest(ctx, normalizedChoice)
 
 CleanExit:
     Exit Function
@@ -725,4 +693,21 @@ ErrHandler:
     Infra_Error.HandleError "PromptForScopeSelection", Err
     PromptForScopeSelection = False
     Resume CleanExit
+End Function
+
+Private Function CreateScopedRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_ScopedRequest
+    Dim request As New Infra_ScopedRequest
+    Set request.Context = ctx
+    Select Case NormalizeChoiceText(choiceText)
+        Case "R", "RANGE", "SELECTED", "SELECTION"
+            request.Scope = TargetScopeSelection
+        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
+            request.Scope = TargetScopeActiveSheet
+        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
+            request.Scope = TargetScopeWorkbook
+        Case Else
+            Set CreateScopedRequest = Nothing
+            Exit Function
+    End Select
+    Set CreateScopedRequest = request
 End Function

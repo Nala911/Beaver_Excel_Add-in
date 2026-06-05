@@ -34,6 +34,11 @@ Private pGeneratedFeatureCount As Long
 Private pIcons As Object
 Private pFeatureFlags As Object
 Private pHotkeys As Collection
+Private pMaxUndoCells As Long
+Private pMaxWrapCells As Long
+Private pMaxFormulaCheckCells As Long
+Private pMaxFillProximityColumns As Long
+Private pMaxFillDownAreas As Long
 
 ' --- UI Constants (Read-Only) ---
 
@@ -171,4 +176,41 @@ Public Property Get Hotkeys() As Collection
 End Property
 Public Property Set Hotkeys(ByVal v As Collection)
     Set pHotkeys = v ' @Internal
+End Property
+
+' --- Safety Constants (Read-Only) ---
+
+Public Property Get MaxUndoCells() As Long
+    MaxUndoCells = pMaxUndoCells
+End Property
+Public Property Let MaxUndoCells(ByVal v As Long)
+    pMaxUndoCells = v ' @Internal
+End Property
+
+Public Property Get MaxWrapCells() As Long
+    MaxWrapCells = pMaxWrapCells
+End Property
+Public Property Let MaxWrapCells(ByVal v As Long)
+    pMaxWrapCells = v ' @Internal
+End Property
+
+Public Property Get MaxFormulaCheckCells() As Long
+    MaxFormulaCheckCells = pMaxFormulaCheckCells
+End Property
+Public Property Let MaxFormulaCheckCells(ByVal v As Long)
+    pMaxFormulaCheckCells = v ' @Internal
+End Property
+
+Public Property Get MaxFillProximityColumns() As Long
+    MaxFillProximityColumns = pMaxFillProximityColumns
+End Property
+Public Property Let MaxFillProximityColumns(ByVal v As Long)
+    pMaxFillProximityColumns = v ' @Internal
+End Property
+
+Public Property Get MaxFillDownAreas() As Long
+    MaxFillDownAreas = pMaxFillDownAreas
+End Property
+Public Property Let MaxFillDownAreas(ByVal v As Long)
+    pMaxFillDownAreas = v ' @Internal
 End Property

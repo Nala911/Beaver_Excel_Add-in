@@ -93,6 +93,26 @@ Public Property Get COLUMN_WIDTH_THRESHOLD() As Long
     COLUMN_WIDTH_THRESHOLD = Model.ColumnWidthThreshold
 End Property
 
+Public Property Get MAX_UNDO_CELLS() As Long
+    MAX_UNDO_CELLS = Model.MaxUndoCells
+End Property
+
+Public Property Get MAX_WRAP_CELLS() As Long
+    MAX_WRAP_CELLS = Model.MaxWrapCells
+End Property
+
+Public Property Get MAX_FORMULA_CHECK_CELLS() As Long
+    MAX_FORMULA_CHECK_CELLS = Model.MaxFormulaCheckCells
+End Property
+
+Public Property Get MAX_FILL_PROXIMITY_COLUMNS() As Long
+    MAX_FILL_PROXIMITY_COLUMNS = Model.MaxFillProximityColumns
+End Property
+
+Public Property Get MAX_FILL_DOWN_AREAS() As Long
+    MAX_FILL_DOWN_AREAS = Model.MaxFillDownAreas
+End Property
+
 Public Property Get GENERATED_FEATURE_COUNT() As Long
     GENERATED_FEATURE_COUNT = Model.GeneratedFeatureCount
 End Property
@@ -173,6 +193,13 @@ Private Sub LoadConfig()
         .IncludeDevFeatures = GetValidatedValue("FeatureFlags", "IncludeDevFeatures", .IncludeDevFeatures, "Boolean")
         .GeneratedFeatureCount = GetValidatedValue("FeatureFlags", "GeneratedFeatureCount", .GeneratedFeatureCount, "Long", 0, 100000)
         
+        ' Safety Constants
+        .MaxUndoCells = GetValidatedValue("SafetyConstants", "MaxUndoCells", .MaxUndoCells, "Long", 100, 10000000)
+        .MaxWrapCells = GetValidatedValue("SafetyConstants", "MaxWrapCells", .MaxWrapCells, "Long", 100, 1000000)
+        .MaxFormulaCheckCells = GetValidatedValue("SafetyConstants", "MaxFormulaCheckCells", .MaxFormulaCheckCells, "Long", 100, 1000000)
+        .MaxFillProximityColumns = GetValidatedValue("SafetyConstants", "MaxFillProximityColumns", .MaxFillProximityColumns, "Long", 1, 100)
+        .MaxFillDownAreas = GetValidatedValue("SafetyConstants", "MaxFillDownAreas", .MaxFillDownAreas, "Long", 100, 100000)
+        
         ' Icons
         On Error Resume Next
         Set .Icons = pRawConfig("Icons")
@@ -211,6 +238,14 @@ Private Sub ApplyDefaultConfigModel(ByVal model As Infra_ConfigModel)
     model.ReleaseTier = "stable"
     model.IncludeDevFeatures = False
     model.GeneratedFeatureCount = 0
+    
+    ' Safety Constants
+    model.MaxUndoCells = 1000000
+    model.MaxWrapCells = 50000
+    model.MaxFormulaCheckCells = 5000
+    model.MaxFillProximityColumns = 10
+    model.MaxFillDownAreas = 5000
+    
     Set model.Icons = CreateObject("Scripting.Dictionary")
     Set model.FeatureFlags = CreateObject("Scripting.Dictionary")
     Set model.Hotkeys = New Collection

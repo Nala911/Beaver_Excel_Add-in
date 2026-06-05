@@ -62,6 +62,62 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     ' --- Step 3: Save State for Undo ---
     Infra_Undo.SaveState selRange, "Format Range"
 
+    FormatRangeDirect selRange, ws
+
+CleanExit:
+    Infra_Progress.EndProgress
+    Exit Sub
+
+ErrHandler:
+    Infra_Progress.EndProgress
+    Infra_Error.HandleError "FormatRange.Execute", Err
+    Resume CleanExit
+End Sub
+
+Private Function CountOverlappingTables(ByVal ws As Worksheet, ByVal selRange As Range) As Long
+    Dim tbl As ListObject
+
+    If ws Is Nothing Then Exit Function
+    If selRange Is Nothing Then Exit Function
+
+    For Each tbl In ws.ListObjects
+        If Not Intersect(tbl.Range, selRange) Is Nothing Then
+            CountOverlappingTables = CountOverlappingTables + 1
+        End If
+    Next tbl
+End Function
+
+Private Function ConfirmStructuralFormatting(ByVal overlappingTableCount As Long, ByVal hasMergedCells As Boolean) As Boolean
+    Dim message As String
+
+    message = "Format Range will make structural changes before applying formatting." & vbCrLf & vbCrLf
+
+    If overlappingTableCount > 0 Then
+        message = message & "Excel tables to convert to normal ranges: " & overlappingTableCount & vbCrLf
+    End If
+
+    If hasMergedCells Then
+        message = message & "Merged cells in the selection will be unmerged." & vbCrLf
+    End If
+
+    message = message & vbCrLf & "Continue?"
+    ConfirmStructuralFormatting = Infra_Interaction.Confirm(message, Infra_Config.ADDIN_NAME & " - Format Range", vbDefaultButton2)
+End Function
+
+' --- Testing Entry Point ---
+Public Sub FormatRangeDirect(ByVal selRange As Range, ByVal ws As Worksheet)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FormatRangeDirect")
+    On Error GoTo ErrHandler
+
+    Dim col As Range
+    Dim tbl As ListObject
+    Dim firstDataCell As Range
+    Dim dataRange As Range
+    Dim colCount As Long
+    Dim i As Long
+
+    If ws Is Nothing Or selRange Is Nothing Then GoTo CleanExit
+
     ' --- Step 4: Convert overlapping tables to plain ranges (Optimized) ---
     For Each tbl In ws.ListObjects
         If Not Intersect(tbl.Range, selRange) Is Nothing Then
@@ -93,7 +149,6 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Infra_Progress.UpdateProgress 50
 
     ' --- Step 8: Cap wide columns ---
-    Dim colCount As Long, i As Long
     colCount = selRange.Columns.Count
     For i = 1 To colCount
         Set col = selRange.Columns(i)
@@ -139,41 +194,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Infra_Progress.UpdateProgress 100
 
 CleanExit:
-    Infra_Progress.EndProgress
     Exit Sub
-
 ErrHandler:
-    Infra_Progress.EndProgress
-    Infra_Error.HandleError "FormatRange.Execute", Err
+    Infra_Error.HandleError "FormatRangeDirect", Err
     Resume CleanExit
 End Sub
-
-Private Function CountOverlappingTables(ByVal ws As Worksheet, ByVal selRange As Range) As Long
-    Dim tbl As ListObject
-
-    If ws Is Nothing Then Exit Function
-    If selRange Is Nothing Then Exit Function
-
-    For Each tbl In ws.ListObjects
-        If Not Intersect(tbl.Range, selRange) Is Nothing Then
-            CountOverlappingTables = CountOverlappingTables + 1
-        End If
-    Next tbl
-End Function
-
-Private Function ConfirmStructuralFormatting(ByVal overlappingTableCount As Long, ByVal hasMergedCells As Boolean) As Boolean
-    Dim message As String
-
-    message = "Format Range will make structural changes before applying formatting." & vbCrLf & vbCrLf
-
-    If overlappingTableCount > 0 Then
-        message = message & "Excel tables to convert to normal ranges: " & overlappingTableCount & vbCrLf
-    End If
-
-    If hasMergedCells Then
-        message = message & "Merged cells in the selection will be unmerged." & vbCrLf
-    End If
-
-    message = message & vbCrLf & "Continue?"
-    ConfirmStructuralFormatting = Infra_Interaction.Confirm(message, Infra_Config.ADDIN_NAME & " - Format Range", vbDefaultButton2)
-End Function

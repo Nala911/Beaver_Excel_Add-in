@@ -8,7 +8,6 @@ Option Explicit
 ' @Dependencies: Infra_Error
 
 Private Const UNDO_SHEET_NAME As String = "_BeaverUndo"
-Private Const MAX_UNDO_CELLS As Long = 1000000 ' 1M cells safety limit
 Private Const UNDO_META_WORKBOOK_NAME As String = "BeaverUndoWorkbook"
 Private Const UNDO_META_WORKSHEET_NAME As String = "BeaverUndoWorksheet"
 Private Const UNDO_META_ADDRESS_NAME As String = "BeaverUndoAddress"
@@ -28,7 +27,7 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As 
     
     ' Safety Check: Don't capture massive ranges that would crash Excel.
     ' If the target range is large, try to restrict it to the sheet's UsedRange.
-    If captureRange.Cells.CountLarge > MAX_UNDO_CELLS Then
+    If captureRange.Cells.CountLarge > Infra_Config.MAX_UNDO_CELLS Then
         Dim usedIntersect As Range
         On Error Resume Next
         Set usedIntersect = Application.Intersect(captureRange, captureRange.Worksheet.UsedRange)
@@ -43,7 +42,7 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As 
     End If
     
     ' Double check size after intersection (if the intersection itself is still too large)
-    If captureRange.Cells.CountLarge > MAX_UNDO_CELLS Then
+    If captureRange.Cells.CountLarge > Infra_Config.MAX_UNDO_CELLS Then
         Debug.Print "BEAVER [UNDO]: Restrained capture range is still too large to capture safely (" & captureRange.Cells.CountLarge & " cells). Skipping undo registration."
         GoTo CleanExit
     End If

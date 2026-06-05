@@ -84,7 +84,7 @@ Private Sub ExecuteStaticConversion(ByVal request As Infra_ScopedRequest)
     If request Is Nothing Then GoTo CleanExit
     If request.Context Is Nothing Then GoTo CleanExit
 
-    Set sheetsToProcess = BuildSheetList(request)
+    Set sheetsToProcess = Infra_CommandSupport.ResolveWorksheetsToProcess(request)
     If sheetsToProcess Is Nothing Then GoTo CleanExit
 
     If request.Scope = TargetScopeActiveSheet Then
@@ -131,30 +131,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Function BuildSheetList(ByVal request As Infra_ScopedRequest) As Collection
-    Dim tracker As Object: Set tracker = Infra_Error.Track("BuildSheetList")
-    On Error GoTo ErrHandler
 
-    Dim sheets As New Collection
-    Dim ws As Worksheet
-
-    If request.Scope = TargetScopeWorkbook Then
-        For Each ws In request.Context.WorkbookRef.Worksheets
-            sheets.Add ws
-        Next ws
-    Else
-        sheets.Add request.Context.WorksheetRef
-    End If
-
-    Set BuildSheetList = sheets
-
-CleanExit:
-    Exit Function
-ErrHandler:
-    Set BuildSheetList = Nothing
-    Infra_Error.HandleError "BuildSheetList", Err
-    Resume CleanExit
-End Function
 
 Private Function ConvertSheetToValues(ByVal ws As Worksheet) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("ConvertSheetToValues")
@@ -167,5 +144,18 @@ CleanExit:
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "ConvertSheetToValues", Err
+    Resume CleanExit
+End Function
+
+Public Function TestConvertSheetToValuesDirect(ByVal ws As Worksheet) As Long
+    Dim tracker As Object: Set tracker = Infra_Error.Track("TestConvertSheetToValuesDirect")
+    On Error GoTo ErrHandler
+
+    TestConvertSheetToValuesDirect = ConvertSheetToValues(ws)
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "TestConvertSheetToValuesDirect", Err
     Resume CleanExit
 End Function

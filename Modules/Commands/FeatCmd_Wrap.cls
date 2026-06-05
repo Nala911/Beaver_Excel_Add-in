@@ -19,7 +19,6 @@ Implements ICommand
 
 Private Const PLACEHOLDER As String = "[value]"
 Private Const COMMAND_NAME As String = "Wrap"
-Private Const MAX_CELLS_LIMIT As Long = 50000
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -44,7 +43,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set rng = ctx.SelectionRange
     If rng Is Nothing Then GoTo CleanExit
 
-    If rng.CountLarge > MAX_CELLS_LIMIT Then
+    If rng.CountLarge > Infra_Config.MAX_WRAP_CELLS Then
         If Not Infra_Interaction.Confirm("You have selected " & Format(rng.CountLarge, "#,##0") & " cells. This may take a moment to process. Continue?") Then GoTo CleanExit
     End If
 
@@ -429,3 +428,30 @@ ErrHandler:
     Infra_Error.HandleError "GetWrappedContent", Err
     Resume CleanExit
 End Function
+
+' --- Testing Entry Points ---
+Public Sub TestApplyWrapPatternDirect(ByVal targetCells As Range, ByVal userPattern As String, ByVal isFormulaRange As Boolean, ByRef errorCount As Long)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("TestApplyWrapPatternDirect")
+    On Error GoTo ErrHandler
+
+    ApplyWrapPatternToRange targetCells, userPattern, isFormulaRange, errorCount
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "TestApplyWrapPatternDirect", Err
+    Resume CleanExit
+End Sub
+
+Public Sub TestApplyWrapperCellDirect(ByVal targetCell As Range, ByVal wrapperFormula As String, ByRef errorCount As Long)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("TestApplyWrapperCellDirect")
+    On Error GoTo ErrHandler
+
+    ApplyWrapperCellToCell targetCell, wrapperFormula, errorCount
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "TestApplyWrapperCellDirect", Err
+    Resume CleanExit
+End Sub

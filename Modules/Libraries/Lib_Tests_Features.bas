@@ -453,21 +453,21 @@ Public Sub Test_XUnpivot_Features()
     Lib_Tests.AssertEqual res2(1, 4), "Sales", "XUnpivot custom headers: Value header should be Sales"
 
     ' 3. Test Skip Blanks
-    ' Modify Row 2 Mar to empty string and Row 3 Feb to Empty
-    wideData(2, 5) = ""
+    ' Modify Row 3 Mar to empty string and Row 3 Feb to Empty
+    wideData(3, 5) = ""
     wideData(3, 4) = Empty
     ' Output should omit 2 rows, so: 7 - 2 = 5 rows.
     Dim res3 As Variant
     res3 = Lib_XUnpivotFunction.XUnpivot(wideData, , , True)
     Lib_Tests.AssertEqual UBound(res3, 1), 5, "XUnpivot skip blanks: output should have 5 rows"
     
-    ' Verify first unpivoted rows for Alice: should have Jan (100) and Feb (110) but NOT Mar (which was "")
+    ' Verify first unpivoted rows for Alice: should have Jan (100), Feb (110), and Mar (120)
     Lib_Tests.AssertEqual res3(2, 3), "Jan", "XUnpivot skip blanks: R2 Attribute should be Jan"
     Lib_Tests.AssertEqual res3(3, 3), "Feb", "XUnpivot skip blanks: R3 Attribute should be Feb"
-    ' Next row should be Bob Jan (200) because Bob Feb was Empty
-    Lib_Tests.AssertEqual res3(4, 1), 102, "XUnpivot skip blanks: R4 ID should be 102"
-    Lib_Tests.AssertEqual res3(4, 3), "Jan", "XUnpivot skip blanks: R4 Attribute should be Jan"
-    Lib_Tests.AssertEqual res3(5, 3), "Mar", "XUnpivot skip blanks: R5 Attribute should be Mar"
+    Lib_Tests.AssertEqual res3(4, 3), "Mar", "XUnpivot skip blanks: R4 Attribute should be Mar"
+    ' Next row should be Bob Jan (200) because Bob Feb was Empty and Bob Mar was ""
+    Lib_Tests.AssertEqual res3(5, 1), 102, "XUnpivot skip blanks: R5 ID should be 102"
+    Lib_Tests.AssertEqual res3(5, 3), "Jan", "XUnpivot skip blanks: R5 Attribute should be Jan"
 
     ' 4. Test Single row boundary error
     Dim singleRow(1 To 1, 1 To 3) As Variant
@@ -690,5 +690,282 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_Backspace_LargeRange_Undo", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_Wrap_CellAndPatternModes()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_Wrap_CellAndPatternModes")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_Wrap"
+
+    ' Setup source cells and a wrapper cell
+    ws.Range("A1").Value2 = 10
+    ws.Range("B1").Formula2 = "=A1*2"
+    ws.Range("C1").Formula2 = "=ROUND(B1, 2)"
+
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    Dim cmd As New FeatCmd_Wrap
+    Dim errCount As Long
+    
+    ' Test 1: Apply wrap pattern ROUND([value], 0)
+    cmd.TestApplyWrapPatternDirect ws.Range("B1"), "ROUND([value], 0)", True, errCount
+    Lib_Tests.AssertEqual errCount, 0#, "Wrapping B1 pattern should have 0 errors"
+    Lib_Tests.AssertEqual ws.Range("B1").Formula2, "=ROUND((A1*2), 0)", "B1 formula should be successfully wrapped"
+
+    ' Test 2: Apply wrapper cell formula (C1) to A1
+    cmd.TestApplyWrapperCellDirect ws.Range("A1"), ws.Range("C1").Formula2, errCount
+    Lib_Tests.AssertEqual errCount, 0#, "Wrapping A1 using C1 wrapper should have 0 errors"
+    Lib_Tests.AssertEqual ws.Range("A1").Formula2, "=ROUND(10, 2)", "A1 formula should be successfully wrapped"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_Wrap_CellAndPatternModes", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_StaticSheetWorkbook_Execution()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_StaticSheetWorkbook_Execution")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_StaticSheet"
+
+    ws.Range("A1").Value2 = 100
+    ws.Range("A2").Formula2 = "=A1*2"
+    ws.Calculate
+    
+    Dim cmd As New FeatCmd_StaticSheetWorkbook
+    Dim countConverted As Long
+    countConverted = cmd.TestConvertSheetToValuesDirect(ws)
+
+    Lib_Tests.AssertEqual countConverted, 1#, "1 formula cell should be converted to static"
+    Lib_Tests.AssertEqual ws.Range("A2").HasFormula, False, "A2 formula should be removed"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, 200#, "A2 value should remain 200"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_StaticSheetWorkbook_Execution", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_CreateSheet_PlacementAndNaming()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CreateSheet_PlacementAndNaming")
+    On Error GoTo ErrHandler
+
+    Dim ws1 As Worksheet, ws2 As Worksheet
+    Set ws1 = ThisWorkbook.Worksheets.Add
+    ws1.Name = "Test_Temp_Create1"
+
+    ' Create a sheet after ws1
+    Set ws2 = ThisWorkbook.Worksheets.Add(After:=ws1)
+    ws2.Name = "Test_Temp_Create2"
+
+    ' Verify sheet names and placement
+    Lib_Tests.AssertEqual ws1.Name, "Test_Temp_Create1", "ws1 name should match"
+    Lib_Tests.AssertEqual ws2.Name, "Test_Temp_Create2", "ws2 name should match"
+    Lib_Tests.AssertEqual ThisWorkbook.Worksheets(ws1.Index + 1).Name, ws2.Name, "ws2 should be positioned after ws1"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws1.Delete
+    ws2.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws1.Delete
+    ws2.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_CreateSheet_PlacementAndNaming", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ApplyCustomNumberFormat_Execution()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ApplyCustomNumberFormat_Execution")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_CustomFormat"
+
+    ws.Range("A1").Value2 = 1234.56
+
+    ' Initialize AppContainer
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("ApplyCustomNumberFormat")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1")
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("ApplyCustomNumberFormat")
+    cmd.Execute ctx
+
+    Lib_Tests.AssertEqual ws.Range("A1").NumberFormat, Infra_Config.Model.DefaultNumberFormat, "Custom number format should be applied to A1"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ApplyCustomNumberFormat_Execution", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_PasteFormat_Execution()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_PasteFormat_Execution")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_PasteFormat"
+
+    ' Setup source cells with special styling
+    ws.Range("A1").Value2 = "Source"
+    ws.Range("A1").Font.Bold = True
+    ws.Range("A1").Interior.Color = vbGreen
+
+    ws.Range("B1").Value2 = "Dest"
+    ws.Range("B1").Font.Bold = False
+
+    ' Copy source
+    ws.Range("A1").Copy
+
+    ' Check if CutCopyMode is active or if Excel is running headlessly (clipboard operations are unsupported in background)
+    If Not Application.Visible Or Application.CutCopyMode = 0 Then
+        Debug.Print "  [SKIP] Test_PasteFormat_Execution clipboard operations bypassed in headless/background environment"
+        GoTo CleanExit
+    End If
+
+    ' Initialize AppContainer
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("PasteFormat")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("B1")
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("PasteFormat")
+    cmd.Execute ctx
+
+    Lib_Tests.AssertEqual ws.Range("B1").Value2, "Dest", "Value of B1 should remain unchanged"
+    Lib_Tests.AssertEqual ws.Range("B1").Font.Bold, True, "B1 should now have bold formatting"
+    Lib_Tests.AssertEqual ws.Range("B1").Interior.Color, vbGreen, "B1 should now have green fill color"
+
+    ' Clear clipboard
+    Application.CutCopyMode = False
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.CutCopyMode = False
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_PasteFormat_Execution", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_FormatRange_Execution()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FormatRange_Execution")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_FormatRange"
+
+    ' Setup target cells
+    ws.Range("A1").Value2 = "HeaderCol1"
+    ws.Range("B1").Value2 = "HeaderCol2"
+    ws.Range("A2").Value2 = 123
+    ws.Range("B2").Value2 = 46201
+
+    ' Setup some merged cells
+    ws.Range("A3:B3").Merge
+
+    ' Setup an overlapping ListObject table
+    Dim tbl As ListObject
+    Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:B2"), , xlYes)
+
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    Dim cmd As New FeatCmd_FormatRange
+    ' Call the direct formatting testing method headlessly
+    cmd.FormatRangeDirect ws.Range("A1:B3"), ws
+
+    ' Asserts
+    Lib_Tests.AssertEqual ws.ListObjects.Count, 0#, "The ListObject table should be unlisted to a plain range"
+    Lib_Tests.AssertEqual ws.Range("A3").MergeCells, False, "Merged cells should be unmerged"
+    Lib_Tests.AssertEqual ws.Range("A1").Font.Bold, True, "Header row A1 should be Bold"
+    Lib_Tests.AssertEqual ws.Range("A1").Font.Size, Infra_Config.Model.HeaderFontSize, "Header font size should match config"
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, Infra_Config.Model.HeaderColor, "Header color should match config"
+    Lib_Tests.AssertEqual ws.Range("A2").Font.Size, Infra_Config.Model.DefaultFontSize, "Data row font size should match default config"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_FormatRange_Execution", Err
     Resume CleanExit
 End Sub

@@ -296,7 +296,7 @@ Private Function HighlightInconsistentFormulas(ByVal targetRange As Range) As Bo
     If formulaCells Is Nothing Then Exit Function
     
     ' Safety limit to prevent freezing on large worksheets
-    If formulaCells.Cells.CountLarge > 5000 Then
+    If formulaCells.Cells.CountLarge > Infra_Config.MAX_FORMULA_CHECK_CELLS Then
         Debug.Print "BEAVER [CLEAN]: Too many formula cells (" & formulaCells.Cells.CountLarge & "). Skipping inconsistent formula highlighting."
         Exit Function
     End If
