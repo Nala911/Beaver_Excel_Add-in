@@ -109,22 +109,32 @@ Private Sub ExecuteCleanData(ByVal request As Infra_ScopedRequest)
     
     Select Case request.Scope
         Case TargetScopeSelection
-            cleanedCount = ProcessRangeForClean(request.Context.SelectionRange)
-            highlightedAny = HighlightInconsistentFormulas(request.Context.SelectionRange)
+            cleanedCount = ProcessRangeForClean(request.Context.SelectionRange, request)
+            If request.CleanInconsistentFormulas Then
+                highlightedAny = HighlightInconsistentFormulas(request.Context.SelectionRange)
+            End If
             Infra_Progress.UpdateProgress 1, True
         Case TargetScopeActiveSheet
-            cleanedCount = ProcessRangeForClean(request.Context.WorksheetRef.UsedRange)
-            CleanNamedRanges request.Context.WorkbookRef, request.Context.WorksheetRef
-            highlightedAny = HighlightInconsistentFormulas(request.Context.WorksheetRef.UsedRange)
+            cleanedCount = ProcessRangeForClean(request.Context.WorksheetRef.UsedRange, request)
+            If request.CleanBrokenNames Then
+                CleanNamedRanges request.Context.WorkbookRef, request.Context.WorksheetRef
+            End If
+            If request.CleanInconsistentFormulas Then
+                highlightedAny = HighlightInconsistentFormulas(request.Context.WorksheetRef.UsedRange)
+            End If
             Infra_Progress.UpdateProgress 1, True
         Case TargetScopeWorkbook
-            CleanNamedRanges request.Context.WorkbookRef, Nothing
+            If request.CleanBrokenNames Then
+                CleanNamedRanges request.Context.WorkbookRef, Nothing
+            End If
             Dim i As Long, count As Long
             count = request.Context.WorkbookRef.Worksheets.Count
             For i = 1 To count
                 Set ws = request.Context.WorkbookRef.Worksheets(i)
-                cleanedCount = cleanedCount + ProcessRangeForClean(ws.UsedRange)
-                If HighlightInconsistentFormulas(ws.UsedRange) Then highlightedAny = True
+                cleanedCount = cleanedCount + ProcessRangeForClean(ws.UsedRange, request)
+                If request.CleanInconsistentFormulas Then
+                    If HighlightInconsistentFormulas(ws.UsedRange) Then highlightedAny = True
+                End If
                 Infra_Progress.UpdateProgress i, True
                 If Infra_Progress.UserCancelled Then Exit For
             Next i
@@ -152,7 +162,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Function ProcessRangeForClean(ByRef targetRange As Range) As Long
+Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request As Infra_ScopedRequest) As Long
     ' Note: No tracker here for performance; this is a core processing loop.
     If targetRange Is Nothing Then Exit Function
 
@@ -169,11 +179,17 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range) As Long
     If textCells Is Nothing Then Exit Function
 
     ' Convert Text format to General so text-numbers can become real numbers
-    On Error Resume Next
-    For Each area In textCells.Areas
-        If area.NumberFormat = "@" Then area.NumberFormat = "General"
-    Next area
-    On Error GoTo 0
+    If request.CleanTextNumbers Then
+        On Error Resume Next
+        For Each area In textCells.Areas
+            If area.NumberFormat = "@" Then area.NumberFormat = "General"
+        Next area
+        On Error GoTo 0
+    End If
+
+    Const CHUNK_ROW_SIZE As Long = 20000
+    Dim r As Long, chunkRowsCount As Long
+    Dim chunkRange As Range
 
     totalAreas = textCells.Areas.Count
     For i = 1 To totalAreas
@@ -182,24 +198,44 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range) As Long
         If area.Cells.CountLarge = 1 Then
             Dim oldVal As Variant, newVal As Variant
             oldVal = area.Value
-            newVal = CleanTextValue(oldVal)
+            newVal = CleanTextValue(oldVal, request)
             If CStr(newVal) <> CStr(oldVal) Or TypeName(newVal) <> TypeName(oldVal) Then
                 area.Value = newVal
                 changeCount = changeCount + 1
             End If
         Else
-            dataArr = area.Value
-            changeCount = changeCount + CleanTextArray(dataArr)
-            area.Value = dataArr
+            ' Check if area is large enough to segment into chunks
+            If area.Rows.Count > CHUNK_ROW_SIZE Then
+                For r = 1 To area.Rows.Count Step CHUNK_ROW_SIZE
+                    chunkRowsCount = CHUNK_ROW_SIZE
+                    If r + chunkRowsCount - 1 > area.Rows.Count Then
+                        chunkRowsCount = area.Rows.Count - r + 1
+                    End If
+                    
+                    Set chunkRange = area.Rows(r).Resize(chunkRowsCount)
+                    
+                    dataArr = chunkRange.Value
+                    changeCount = changeCount + CleanTextArray(dataArr, request)
+                    chunkRange.Value = dataArr
+                    
+                    DoEvents
+                    If Infra_Progress.UserCancelled Then Exit For
+                Next r
+            Else
+                dataArr = area.Value
+                changeCount = changeCount + CleanTextArray(dataArr, request)
+                area.Value = dataArr
+            End If
         End If
         
-        If i Mod 20 = 0 Then DoEvents
+        DoEvents
+        If Infra_Progress.UserCancelled Then Exit For
     Next i
     
     ProcessRangeForClean = changeCount
 End Function
 
-Private Function CleanTextArray(ByRef dataArr As Variant) As Long
+Private Function CleanTextArray(ByRef dataArr As Variant, ByVal request As Infra_ScopedRequest) As Long
     ' Note: No tracker here for performance.
     Dim rowIndex As Long
     Dim columnIndex As Long
@@ -210,7 +246,7 @@ Private Function CleanTextArray(ByRef dataArr As Variant) As Long
     For rowIndex = LBound(dataArr, 1) To UBound(dataArr, 1)
         For columnIndex = LBound(dataArr, 2) To UBound(dataArr, 2)
             oldVal = dataArr(rowIndex, columnIndex)
-            newVal = CleanTextValue(oldVal)
+            newVal = CleanTextValue(oldVal, request)
             If CStr(newVal) <> CStr(oldVal) Or TypeName(newVal) <> TypeName(oldVal) Then
                 dataArr(rowIndex, columnIndex) = newVal
                 changeCount = changeCount + 1
@@ -221,7 +257,7 @@ Private Function CleanTextArray(ByRef dataArr As Variant) As Long
     CleanTextArray = changeCount
 End Function
 
-Private Function CleanTextValue(ByVal rawValue As Variant) As Variant
+Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infra_ScopedRequest) As Variant
     ' Note: No tracker here. This is called in tight loops.
     If IsError(rawValue) Then
         CleanTextValue = rawValue
@@ -238,23 +274,33 @@ Private Function CleanTextValue(ByVal rawValue As Variant) As Variant
     End If
     
     ' Replace non-breaking space (Chr 160)
-    If InStr(1, textValue, ChrW$(160)) > 0 Then
-        textValue = Replace(textValue, ChrW$(160), " ")
+    If request.CleanTrimSpaces Then
+        If InStr(1, textValue, ChrW$(160)) > 0 Then
+            textValue = Replace(textValue, ChrW$(160), " ")
+        End If
     End If
     
     ' Application.Trim handles internal double spaces; Application.Clean handles non-printables.
-    textValue = Application.Trim(Application.Clean(textValue))
+    If request.CleanTrimSpaces And request.CleanNonPrintables Then
+        textValue = Application.Trim(Application.Clean(textValue))
+    ElseIf request.CleanTrimSpaces Then
+        textValue = Application.Trim(textValue)
+    ElseIf request.CleanNonPrintables Then
+        textValue = Application.Clean(textValue)
+    End If
     
     ' Fix numbers stored as text
-    If IsNumeric(textValue) Then
-        On Error Resume Next
-        Dim dblVal As Double
-        dblVal = CDbl(textValue)
-        If Err.Number = 0 Then
-            CleanTextValue = dblVal
-            Exit Function
+    If request.CleanTextNumbers Then
+        If IsNumeric(textValue) Then
+            On Error Resume Next
+            Dim dblVal As Double
+            dblVal = CDbl(textValue)
+            If Err.Number = 0 Then
+                CleanTextValue = dblVal
+                Exit Function
+            End If
+            On Error GoTo 0
         End If
-        On Error GoTo 0
     End If
     
     CleanTextValue = textValue
@@ -312,18 +358,33 @@ Private Function HighlightInconsistentFormulas(ByVal targetRange As Range) As Bo
     HighlightInconsistentFormulas = True
 End Function
 
-' --- Testing Entry Point ---
+' --- Testing Entry Points ---
 ' Allows headless automated testing of the range cleaning logic.
 Public Function CleanRangeDirect(ByVal targetRange As Range) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("CleanRangeDirect")
     On Error GoTo ErrHandler
     
-    CleanRangeDirect = ProcessRangeForClean(targetRange)
+    Dim request As New Infra_ScopedRequest
+    CleanRangeDirect = ProcessRangeForClean(targetRange, request)
 
 CleanExit:
     Exit Function
 
 ErrHandler:
     Infra_Error.HandleError "CleanRangeDirect", Err
+    Resume CleanExit
+End Function
+
+Public Function CleanRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As Infra_ScopedRequest) As Long
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CleanRangeWithOptionsDirect")
+    On Error GoTo ErrHandler
+    
+    CleanRangeWithOptionsDirect = ProcessRangeForClean(targetRange, request)
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "CleanRangeWithOptionsDirect", Err
     Resume CleanExit
 End Function

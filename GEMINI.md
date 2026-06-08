@@ -2,6 +2,16 @@
 
 This file is the canonical project blueprint and operational guide for AI agents working in this repo. It contains stable project facts, runtime architecture, configuration schemas, coding standards, change patterns, and response guidelines. Read this file first to understand the codebase and change files safely.
 
+> [!IMPORTANT]
+> **EXCLUSIVELY AI-MAINTAINED CODEBASE**
+> This repository is maintained, refactored, and built entirely by autonomous AI agents (such as Gemini). There are no human developers maintaining the codebase directly; human interaction is restricted to specifying requirements or reviewing execution plans.
+> 
+> Because subsequent agents will build directly on your changes, you must:
+> 1. **Keep it self-documenting**: Make code self-documenting, clean, and strictly typed.
+> 2. **Adhere to design patterns**: Do not break established patterns like the `ICommand` pipeline, `AppContainer` DI, `Infra_AppStateGuard` cleanup, and `Infra_Error.Track` error wrappers.
+> 3. **Keep tests passing**: Ensure the build pipeline (`Update.ps1`) compiles and all tests pass perfectly before completing any task.
+> 4. **Add unit tests**: Cover any new command, custom logic, or helper with automated unit tests in `Lib_Tests_Features.bas` (using the prefix `Public Sub Test_*`).
+
 Current config version: 2.0.68
 
 ---
@@ -67,7 +77,8 @@ Excel Add-in\
    \- UI\
       |- UI_Ribbon.bas         Ribbon callbacks
       |- UI_Hotkeys.bas        hotkey callbacks
-      \- UI_OptionPicker.frm   reusable choice picker dialog (and .frx)
+      |- UI_OptionPicker.frm   reusable choice picker dialog (and .frx)
+      \- UI_HelpCenter.frm     scrollable Help Center dialog (and .frx)
 ```
 
 ---
@@ -224,7 +235,7 @@ graph TD
 - `BreakExternalLinks` -> `FeatCmd_BreakExternalLinks`
 - `Duplicate` -> `FeatCmd_Duplicate`
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf`
-- `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter` (Generates the Help Center programmatically in a new workbook)
+- `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter` (Displays guidance, hotkeys, and diagnostics in a scrollable UserForm)
 - `HelloWorld` -> `FeatCmd_HelloWorld`
 
 #### Hotkey-Driven Commands
@@ -255,7 +266,7 @@ graph TD
 - **Support**: Help center.
 
 *UI Interaction Design Rules:*
-- **Fixed-choice flows** (e.g. Clean Data scope, Export format, Make Static scope, Break Links scope, Wrap mode, and sheet placement) must use a reusable `UserForm` option picker.
+- **Fixed-choice and multi-select checkbox flows** (e.g. Clean Data options, Export format, Make Static scope, Break Links scope, Wrap mode, and sheet placement) must use a reusable `UserForm` option picker (configured for single-select or multi-select).
 - **Free-form inputs** (e.g. formula patterns) must use text prompts.
 - **Save destinations** (e.g. duplicate/export flows) must use a shared Save As picker with Desktop-based defaults and overwrite confirmation.
 
@@ -387,13 +398,19 @@ End Sub
 
 ---
 
-## 7. Developer & Agent Guidelines
+## 7. Autonomous Agent Guidelines
+
+> [!NOTE]
+> This codebase has no human maintainers. All refactoring, feature development, bug fixing, and compilation checks are executed by AI agents. Code quality, reliability, and documentation hygiene must remain exceptionally high to ensure continuous automated updates.
 
 ### Operational Working Rules
 - Always edit exported source files (`.bas`, `.cls`, `.frm`), not the compiled workbook.
 - Keep `features.json`, `config.json`, `ribbon.xml`, `UI_Ribbon.bas`, and `UI_Hotkeys.bas` aligned.
 - Avoid touching `Lib_JsonConverter.bas`, `.frx` files, or test/undo sheets.
 - Follow the **Safe Edit Order** and **Validation Order** after every change.
+- When creating or modifying `UserForm` `.frm` files, verify that a corresponding binary `.frx` file is also present and valid.
+- Always run the full `Update.ps1` script (including runtime smoke tests) to confirm compilation succeeds and existing tests pass.
+- Write new automated unit tests in `Lib_Tests_Features.bas` for any new feature or command to prevent regression by future agents.
 
 ### Response & Output Expectations
 - Keep explanations short, practical, and concrete.

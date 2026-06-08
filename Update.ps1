@@ -916,23 +916,29 @@ public class WindowScraper {
                     GetWindowText(hWnd, title, 256);
                     string sTitle = title.ToString();
                     
-                    // Check for common Office/Excel error window titles
+                    // Check for common Office/Excel error window titles (exclude main VBE window)
                     if (sTitle.Contains("Microsoft Excel") || 
                         sTitle.Contains("Custom UI") || 
                         sTitle.Contains("Runtime Error") ||
-                        sTitle.Contains("Microsoft Visual Basic")) {
+                        (sTitle.Contains("Microsoft Visual Basic") && !sTitle.Contains("for Applications"))) {
                         
                         bool foundNewText = false;
                         EnumChildWindows(hWnd, (hChild, lChild) => {
                             var text = new StringBuilder(1024);
                             GetWindowText(hChild, text, 1024);
                             var sText = text.ToString().Trim();
-                            // Collect text but avoid common UI buttons
+                            // Collect text but avoid common UI buttons and VBE workspace panels
                             if (sText.Length > 0 && 
                                 !sText.Equals("OK", StringComparison.OrdinalIgnoreCase) && 
                                 !sText.Equals("Cancel", StringComparison.OrdinalIgnoreCase) && 
                                 !sText.Equals("Close", StringComparison.OrdinalIgnoreCase) &&
                                 !sText.Equals("Help", StringComparison.OrdinalIgnoreCase) &&
+                                !sText.StartsWith("MsoDock", StringComparison.OrdinalIgnoreCase) &&
+                                !sText.Equals("Standard", StringComparison.OrdinalIgnoreCase) &&
+                                !sText.Equals("Menu Bar", StringComparison.OrdinalIgnoreCase) &&
+                                !sText.Contains("VBAProject") &&
+                                !sText.Contains("Project Window") &&
+                                !sText.Contains("Properties") &&
                                 !seenTexts.Contains(sText)) {
                                 result.AppendLine(sText);
                                 seenTexts.Add(sText);
@@ -1274,6 +1280,26 @@ function Invoke-EnhancedLinting {
     return $allPassed
 }
 
+# ==============================================================================
+# Function: Test-FormFilesValidity
+# Purpose:  Ensures all .frm UserForm source files have a matching .frx binary file,
+#           preventing unspecified VBE import errors.
+# ==============================================================================
+function Test-FormFilesValidity {
+    param ([string]$SourceDir)
+    Write-Host "Checking Form Companion Files..." -ForegroundColor Cyan
+    $frmFiles = @(Get-ChildItem -Path $SourceDir -Include *.frm -Recurse)
+    $allPassed = $true
+    foreach ($file in $frmFiles) {
+        $frxPath = [System.IO.Path]::ChangeExtension($file.FullName, ".frx")
+        if (-not (Test-Path $frxPath)) {
+            Write-Host "  [$($file.Name)] Error: Missing companion binary file (.frx). MSForms requires a .frx file to import successfully." -ForegroundColor Red
+            $allPassed = $false
+        }
+    }
+    return $allPassed
+}
+
 # --- 1. PRE-DEPLOYMENT VALIDATION ---
 $configPath = Join-Path $PSScriptRoot "config.json"
 
@@ -1303,12 +1329,13 @@ try {
         $validRibbon = Test-RibbonValidity -XmlPath $ribbonXmlPath -ModulesDir $modulesDir
         $validVba = Invoke-VbaSyntaxCheck -SourceDir $modulesDir
         $validLint = Invoke-EnhancedLinting -SourceDir $modulesDir
+        $validForms = Test-FormFilesValidity -SourceDir $modulesDir
 
-        if (-not ($validRibbon -and $validVba -and $validLint)) {
+        if (-not ($validRibbon -and $validVba -and $validLint -and $validForms)) {
             throw "Pre-deployment validation failed"
         }
 
-        return "ribbon, syntax, and lint checks passed"
+        return "ribbon, syntax, lint, and form checks passed"
     } | Out-Null
 
     # --- 2. ENVIRONMENT CHECKS ---
@@ -1582,6 +1609,12 @@ try {
 
 
 
+            if ($null -ne $excel.VBE) {
+                try {
+                    $excel.VBE.MainWindow.Visible = $false
+                } catch { }
+            }
+
             $workbook.Save()
             $workbook.Close($true)
             Release-ComObjectSafely $activePane
@@ -1684,7 +1717,27 @@ try {
 
             Write-Host "Running internal unit tests..." -ForegroundColor Cyan
             try {
-                $testExcel.Run("Lib_Tests.RunAllTests")
+                $retryCount = 0
+                $maxRetries = 5
+                $runCompleted = $false
+                while (-not $runCompleted -and $retryCount -lt $maxRetries) {
+                    try {
+                        $testExcel.Run("Lib_Tests.RunAllTests")
+                        $runCompleted = $true
+                    } catch {
+                        $errMsg = $_.Exception.Message + " " + $_.Exception.InnerException.Message
+                        if ($errMsg -match "0x800AC472" -or $errMsg -match "800ac472") {
+                            $retryCount++
+                            Write-Host "  Excel is busy (0x800AC472). Retrying in 1s ($retryCount/$maxRetries)..." -ForegroundColor Yellow
+                            Start-Sleep -Seconds 1
+                        } else {
+                            throw $_
+                        }
+                    }
+                }
+                if (-not $runCompleted) {
+                    throw "Failed to run tests because Excel remained busy."
+                }
                 Write-Host "  SUCCESS: Unit tests completed." -ForegroundColor Green
             } catch {
                 Write-Host "  FAILURE: Unit tests failed." -ForegroundColor Red

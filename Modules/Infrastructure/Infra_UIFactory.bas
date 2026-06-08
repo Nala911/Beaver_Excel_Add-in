@@ -52,7 +52,49 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_S
         End If
     End If
 
-    Set ShowCleanDataDialog = CreateScopedRequest(ctx, normalizedChoice)
+    Set request = CreateScopedRequest(ctx, normalizedChoice)
+    If request Is Nothing Then GoTo CleanExit
+
+    Dim cleanOptionsList As Variant
+    Dim cleanDefaultsChecked As Variant
+    Dim selectedIndices As Variant
+    Dim idx As Variant
+
+    cleanOptionsList = Array( _
+        "Trim extra spaces & non-breaking spaces", _
+        "Remove non-printable characters", _
+        "Convert text-formatted numbers to real numbers", _
+        "Delete broken named ranges (#REF!)", _
+        "Highlight inconsistent formulas (yellow)" _
+    )
+    cleanDefaultsChecked = Array(True, True, True, True, True)
+
+    If Not Infra_Interaction.PromptMultiOption( _
+        "Select the data cleaning options to apply:", _
+        "Clean Data Options", _
+        cleanOptionsList, _
+        cleanDefaultsChecked, _
+        selectedIndices) Then
+        GoTo CleanExit
+    End If
+
+    request.CleanTrimSpaces = False
+    request.CleanNonPrintables = False
+    request.CleanTextNumbers = False
+    request.CleanBrokenNames = False
+    request.CleanInconsistentFormulas = False
+
+    For Each idx In selectedIndices
+        Select Case idx
+            Case 0: request.CleanTrimSpaces = True
+            Case 1: request.CleanNonPrintables = True
+            Case 2: request.CleanTextNumbers = True
+            Case 3: request.CleanBrokenNames = True
+            Case 4: request.CleanInconsistentFormulas = True
+        End Select
+    Next idx
+
+    Set ShowCleanDataDialog = request
 
 CleanExit:
     Exit Function

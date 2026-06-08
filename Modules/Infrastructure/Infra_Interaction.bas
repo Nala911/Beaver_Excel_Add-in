@@ -175,6 +175,60 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+Public Function PromptMultiOption( _
+    ByVal promptMsg As String, _
+    ByVal title As String, _
+    ByVal options As Variant, _
+    ByVal defaultChecked As Variant, _
+    ByRef outSelectedIndices As Variant) As Boolean
+    
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptMultiOption")
+    On Error GoTo ErrHandler
+
+    Dim frm As Object
+    Dim wasConfirmed As Boolean
+
+    On Error Resume Next
+    Set frm = VBA.UserForms.Add(OPTION_PICKER_FORM_NAME)
+    On Error GoTo ErrHandler
+
+    If frm Is Nothing Then
+        Infra_Interaction.ShowCritical "Could not load the option picker form.", ResolveTitle(title)
+        GoTo CleanExit
+    End If
+
+    frm.ConfigureMultiOptionPicker ResolveTitle(title), promptMsg, options, defaultChecked
+    frm.Show
+
+    On Error Resume Next
+    wasConfirmed = frm.WasConfirmed
+    If Err.Number <> 0 Then
+        Err.Clear
+        wasConfirmed = False
+    ElseIf wasConfirmed Then
+        outSelectedIndices = frm.SelectedIndices
+        If Err.Number <> 0 Then
+            Err.Clear
+            wasConfirmed = False
+        End If
+    End If
+    On Error GoTo ErrHandler
+
+    If wasConfirmed Then
+        PromptMultiOption = True
+    End If
+
+CleanExit:
+    On Error Resume Next
+    If Not frm Is Nothing Then Unload frm
+    On Error GoTo 0
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "PromptMultiOption", Err
+    Resume CleanExit
+End Function
+
 Public Function PromptSaveAsPath(ByVal dialogTitle As String, ByVal initialPath As String, ByVal fileFilter As String, ByRef outPath As String) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptSaveAsPath")
     On Error GoTo ErrHandler

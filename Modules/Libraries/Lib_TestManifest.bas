@@ -21,6 +21,7 @@ Public Sub RunGeneratedTests()
     Lib_Tests_Features.Test_ApplyCustomNumberFormat_Execution
     Lib_Tests_Features.Test_Backspace_LargeRange_Undo
     Lib_Tests_Features.Test_BreakExternalLinks_Execution
+    Lib_Tests_Features.Test_CleanData_CheckboxOptions
     Lib_Tests_Features.Test_CleanData_TrimmingAndNumericalFixing
     Lib_Tests_Features.Test_CreateSheet_PlacementAndNaming
     Lib_Tests_Features.Test_FillDown_Features
