@@ -8,13 +8,13 @@ Option Explicit
 ' @Dependencies: Infra_Error, Infra_Config, Infra_ExportRequest, Infra_ScopedRequest, Infra_ActionContext
 
 ' Shows the Clean Data options via UserForm picker and returns a populated Request object.
-Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_ScopedRequest
+Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_CleanDataRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowCleanDataDialog")
     On Error GoTo ErrHandler
     
     Dim promptMsg As String
     Dim normalizedChoice As String
-    Dim request As Infra_ScopedRequest
+    Dim request As Infra_CleanDataRequest
     Dim options As Variant
     Dim defaultChoice As String
     Dim hasSelection As Boolean
@@ -52,7 +52,7 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_S
         End If
     End If
 
-    Set request = CreateScopedRequest(ctx, normalizedChoice)
+    Set request = CreateCleanDataRequest(ctx, normalizedChoice)
     If request Is Nothing Then GoTo CleanExit
 
     Dim cleanOptionsList As Variant
@@ -652,9 +652,11 @@ End Function
 Private Function ActiveSheetHasBreakableItems(ByVal ctx As Infra_ActionContext) As Boolean
     Dim ws As Worksheet
     Dim formulaCells As Range
-    Dim cell As Range
+    Dim area As Range
     Dim lo As ListObject
     Dim pvt As PivotTable
+    Dim formulaArr As Variant
+    Dim r As Long, c As Long
 
     On Error GoTo CleanExit
 
@@ -667,12 +669,24 @@ Private Function ActiveSheetHasBreakableItems(ByVal ctx As Infra_ActionContext) 
     On Error GoTo CleanExit
 
     If Not formulaCells Is Nothing Then
-        For Each cell In formulaCells.Cells
-            If InStr(1, cell.Formula, "[", vbTextCompare) > 0 Then
-                ActiveSheetHasBreakableItems = True
-                Exit Function
+        For Each area In formulaCells.Areas
+            If area.Cells.CountLarge = 1 Then
+                If InStr(1, area.Formula, "[", vbTextCompare) > 0 Then
+                    ActiveSheetHasBreakableItems = True
+                    Exit Function
+                End If
+            Else
+                formulaArr = area.Formula
+                For r = 1 To UBound(formulaArr, 1)
+                    For c = 1 To UBound(formulaArr, 2)
+                        If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then
+                            ActiveSheetHasBreakableItems = True
+                            Exit Function
+                        End If
+                    Next c
+                Next r
             End If
-        Next cell
+        Next area
     End If
 
     For Each pvt In ws.PivotTables
@@ -752,4 +766,21 @@ Private Function CreateScopedRequest(ByVal ctx As Infra_ActionContext, ByVal cho
             Exit Function
     End Select
     Set CreateScopedRequest = request
+End Function
+
+Private Function CreateCleanDataRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_CleanDataRequest
+    Dim request As New Infra_CleanDataRequest
+    Set request.Context = ctx
+    Select Case NormalizeChoiceText(choiceText)
+        Case "R", "RANGE", "SELECTED", "SELECTION"
+            request.Scope = TargetScopeSelection
+        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
+            request.Scope = TargetScopeActiveSheet
+        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
+            request.Scope = TargetScopeWorkbook
+        Case Else
+            Set CreateCleanDataRequest = Nothing
+            Exit Function
+    End Select
+    Set CreateCleanDataRequest = request
 End Function

@@ -170,7 +170,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     ' Register Undo for the combined range
     If Not undoRange Is Nothing Then
-        Infra_Undo.SaveState undoRange, "Fill Down"
+        If Not Infra_Undo.SaveStateOrConfirm(undoRange, "Fill Down") Then GoTo CleanExit
     End If
 
     ' Copy/Paste values for each column

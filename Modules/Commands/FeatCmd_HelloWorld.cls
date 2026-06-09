@@ -34,7 +34,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
 
-    Infra_Undo.SaveState ctx.WorksheetRef.Range("A1"), "Hello World"
+    If Not Infra_Undo.SaveStateOrConfirm(ctx.WorksheetRef.Range("A1"), "Hello World") Then GoTo CleanExit
 
     ctx.WorksheetRef.Range("A1").Value2 = "Hello world"
 

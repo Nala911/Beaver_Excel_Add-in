@@ -301,7 +301,7 @@ Public Sub Test_CleanData_CheckboxOptions()
     ws.Range("A1").Value2 = "  hello   world  "
     ws.Range("A2").Value2 = "123.45"
 
-    Dim request As New Infra_ScopedRequest
+    Dim request As New Infra_CleanDataRequest
     request.CleanTrimSpaces = False
     request.CleanTextNumbers = True
 

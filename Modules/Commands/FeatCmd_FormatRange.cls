@@ -60,7 +60,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     End If
 
     ' --- Step 3: Save State for Undo ---
-    Infra_Undo.SaveState selRange, "Format Range"
+    If Not Infra_Undo.SaveStateOrConfirm(selRange, "Format Range") Then GoTo CleanExit
 
     FormatRangeDirect selRange, ws
 

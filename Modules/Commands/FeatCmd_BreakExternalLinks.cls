@@ -54,14 +54,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     ' 4. EXECUTION
     Dim stats As String
     If request.Scope = TargetScopeActiveSheet Then
-        If Not Infra_Undo.SaveState(ctx.WorksheetRef.UsedRange, "Break Links") Then
-            If Not Infra_Interaction.Confirm( _
-                "The active sheet's used range is too large to support Undo." & vbCrLf & vbCrLf & _
-                "Do you want to proceed with breaking external links anyway?", _
-                "Break External Links - Undo Warning", vbDefaultButton2) Then
-                GoTo CleanExit
-            End If
-        End If
+        If Not Infra_Undo.SaveStateOrConfirm(ctx.WorksheetRef.UsedRange, "Break Links") Then GoTo CleanExit
     End If
     stats = ExecuteBreakLinks(wb, request, linkArr)
     If request.Scope = TargetScopeActiveSheet And hasWorkbookLevelItems Then
@@ -224,7 +217,7 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
     End If
 
     ' Range/Sheet level
-    Set wsToProcess = Infra_CommandSupport.ResolveWorksheetsToProcess(request)
+    Set wsToProcess = Infra_CommandSupport.ResolveWorksheetsToProcess(request.Context, request.Scope)
     If wsToProcess Is Nothing Then GoTo CleanExit
  
     originalScreenUpdating = Application.ScreenUpdating

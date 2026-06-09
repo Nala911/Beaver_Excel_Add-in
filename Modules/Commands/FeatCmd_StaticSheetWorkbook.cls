@@ -84,18 +84,11 @@ Private Sub ExecuteStaticConversion(ByVal request As Infra_ScopedRequest)
     If request Is Nothing Then GoTo CleanExit
     If request.Context Is Nothing Then GoTo CleanExit
 
-    Set sheetsToProcess = Infra_CommandSupport.ResolveWorksheetsToProcess(request)
+    Set sheetsToProcess = Infra_CommandSupport.ResolveWorksheetsToProcess(request.Context, request.Scope)
     If sheetsToProcess Is Nothing Then GoTo CleanExit
 
     If request.Scope = TargetScopeActiveSheet Then
-        If Not Infra_Undo.SaveState(request.Context.WorksheetRef.UsedRange, "Static Sheet") Then
-            If Not Infra_Interaction.Confirm( _
-                "The active sheet's used range is too large to support Undo." & vbCrLf & vbCrLf & _
-                "Do you want to proceed with the conversion anyway?", _
-                "Make Static - Undo Warning", vbDefaultButton2) Then
-                GoTo CleanExit
-            End If
-        End If
+        If Not Infra_Undo.SaveStateOrConfirm(request.Context.WorksheetRef.UsedRange, "Static Sheet") Then GoTo CleanExit
     End If
 
     originalScreenUpdating = Application.ScreenUpdating

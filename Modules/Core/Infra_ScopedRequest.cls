@@ -17,17 +17,3 @@ Option Explicit
 
 Public Context As Infra_ActionContext
 Public Scope As TargetScope
-
-Public CleanTrimSpaces As Boolean
-Public CleanNonPrintables As Boolean
-Public CleanTextNumbers As Boolean
-Public CleanBrokenNames As Boolean
-Public CleanInconsistentFormulas As Boolean
-
-Private Sub Class_Initialize()
-    CleanTrimSpaces = True
-    CleanNonPrintables = True
-    CleanTextNumbers = True
-    CleanBrokenNames = True
-    CleanInconsistentFormulas = True
-End Sub

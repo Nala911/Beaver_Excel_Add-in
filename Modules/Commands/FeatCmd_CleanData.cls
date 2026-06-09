@@ -28,7 +28,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
     
     Dim ctx As Infra_ActionContext
-    Dim request As Infra_ScopedRequest
+    Dim request As Infra_CleanDataRequest
     Dim stateInfo As Collection
 
     Set stateInfo = Infra_Error.NewStateInfo()
@@ -56,7 +56,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ExecuteCleanData(ByVal request As Infra_ScopedRequest)
+Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteCleanData")
     On Error GoTo ErrHandler
     
@@ -88,14 +88,7 @@ Private Sub ExecuteCleanData(ByVal request As Infra_ScopedRequest)
     End Select
     
     If Not targetRange Is Nothing Then
-        If Not Infra_Undo.SaveState(targetRange, "Clean Data") Then
-            If Not Infra_Interaction.Confirm( _
-                "The selected range is too large to support Undo." & vbCrLf & vbCrLf & _
-                "Do you want to proceed with the cleaning operation anyway?", _
-                "Clean Data - Undo Warning", vbDefaultButton2) Then
-                GoTo CleanExit
-            End If
-        End If
+        If Not Infra_Undo.SaveStateOrConfirm(targetRange, "Clean Data") Then GoTo CleanExit
     End If
     
     ' --- 2. Initialize Progress & Dynamic Screen Updating ---
@@ -162,7 +155,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request As Infra_ScopedRequest) As Long
+Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request As Infra_CleanDataRequest) As Long
     ' Note: No tracker here for performance; this is a core processing loop.
     If targetRange Is Nothing Then Exit Function
 
@@ -235,7 +228,7 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     ProcessRangeForClean = changeCount
 End Function
 
-Private Function CleanTextArray(ByRef dataArr As Variant, ByVal request As Infra_ScopedRequest) As Long
+Private Function CleanTextArray(ByRef dataArr As Variant, ByVal request As Infra_CleanDataRequest) As Long
     ' Note: No tracker here for performance.
     Dim rowIndex As Long
     Dim columnIndex As Long
@@ -257,7 +250,7 @@ Private Function CleanTextArray(ByRef dataArr As Variant, ByVal request As Infra
     CleanTextArray = changeCount
 End Function
 
-Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infra_ScopedRequest) As Variant
+Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infra_CleanDataRequest) As Variant
     ' Note: No tracker here. This is called in tight loops.
     If IsError(rawValue) Then
         CleanTextValue = rawValue
@@ -364,7 +357,7 @@ Public Function CleanRangeDirect(ByVal targetRange As Range) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("CleanRangeDirect")
     On Error GoTo ErrHandler
     
-    Dim request As New Infra_ScopedRequest
+    Dim request As New Infra_CleanDataRequest
     CleanRangeDirect = ProcessRangeForClean(targetRange, request)
 
 CleanExit:
@@ -375,7 +368,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function CleanRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As Infra_ScopedRequest) As Long
+Public Function CleanRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As Infra_CleanDataRequest) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("CleanRangeWithOptionsDirect")
     On Error GoTo ErrHandler
     

@@ -267,22 +267,21 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function ResolveWorksheetsToProcess(ByVal request As Infra_ScopedRequest) As Collection
+Public Function ResolveWorksheetsToProcess(ByVal context As Infra_ActionContext, ByVal scope As TargetScope) As Collection
     Dim tracker As Object: Set tracker = Infra_Error.Track("ResolveWorksheetsToProcess")
     On Error GoTo ErrHandler
 
     Dim sheets As New Collection
     Dim ws As Worksheet
 
-    If request Is Nothing Then GoTo CleanExit
-    If request.Context Is Nothing Then GoTo CleanExit
+    If context Is Nothing Then GoTo CleanExit
 
-    If request.Scope = TargetScopeWorkbook Then
-        For Each ws In request.Context.WorkbookRef.Worksheets
+    If scope = TargetScopeWorkbook Then
+        For Each ws In context.WorkbookRef.Worksheets
             sheets.Add ws
         Next ws
     Else
-        sheets.Add request.Context.WorksheetRef
+        sheets.Add context.WorksheetRef
     End If
 
     Set ResolveWorksheetsToProcess = sheets

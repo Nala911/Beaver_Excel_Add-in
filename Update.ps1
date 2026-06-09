@@ -901,13 +901,16 @@ public class WindowScraper {
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
 
-    public static string ScrapeAndClose(int processId, int timeoutSeconds) {
+    public static string ScrapeAndClose(int processId, int timeoutSeconds, string signalFilePath) {
         var result = new StringBuilder();
         var seenTexts = new HashSet<string>();
         var startTime = DateTime.Now;
 
         // Loop to catch windows that might appear with a delay or sequentially
         while ((DateTime.Now - startTime).TotalSeconds < timeoutSeconds) {
+            if (!string.IsNullOrEmpty(signalFilePath) && System.IO.File.Exists(signalFilePath)) {
+                break;
+            }
             EnumWindows((hWnd, lParam) => {
                 int windowPid;
                 GetWindowThreadProcessId(hWnd, out windowPid);
@@ -1029,8 +1032,11 @@ function Test-RibbonValidity {
     if ($callbacks) {
         Write-Host "  Checking $($callbacks.Count) callbacks across all modules..."
         $vbaFiles = Get-ChildItem -Path $ModulesDir -Include *.bas, *.cls -Recurse
-        $vbaCode = ""
-        foreach ($f in $vbaFiles) { $vbaCode += Get-Content $f.FullName -Raw }
+        $sb = New-Object System.Text.StringBuilder
+        foreach ($f in $vbaFiles) {
+            [void]$sb.AppendLine([System.IO.File]::ReadAllText($f.FullName))
+        }
+        $vbaCode = $sb.ToString()
         
         foreach ($cb in $callbacks) {
             if ($vbaCode -notmatch "Sub\s+$cb\s*\(") {
@@ -1136,7 +1142,7 @@ function Invoke-VbaSyntaxCheck {
 
     $allPassed = $true
     foreach ($file in $vbaFiles) {
-        $rawLines = Get-Content $file.FullName
+        $rawLines = [System.IO.File]::ReadAllLines($file.FullName)
         $fileName = $file.Name
         
         # Join line continuations (_) while tracking original line numbers
@@ -1212,8 +1218,8 @@ function Invoke-EnhancedLinting {
     $allPassed = $true
 
     foreach ($file in $vbaFiles) {
-        $content = Get-Content $file.FullName -Raw
-        $lines = Get-Content $file.FullName
+        $content = [System.IO.File]::ReadAllText($file.FullName)
+        $lines = $content -split "`r?`n"
         $fileName = $file.Name
 
         # 1. Check for Option Explicit
@@ -1302,6 +1308,7 @@ function Test-FormFilesValidity {
 
 # --- 1. PRE-DEPLOYMENT VALIDATION ---
 $configPath = Join-Path $PSScriptRoot "config.json"
+$sharedExcel = $null
 
 try {
     Invoke-Stage -Stage "manifest_sync" -Action {
@@ -1413,8 +1420,11 @@ try {
 
     # --- 3. BEGIN UPDATE ---
     Invoke-Stage -Stage "workbook_update" -Action {
-        Write-Host "Starting Excel... (This may take a moment)"
-        $excel = Start-ExcelApplication -Purpose "workbook update"
+        if ($null -eq $sharedExcel) {
+            Write-Host "Starting Excel... (This may take a moment)"
+            $script:sharedExcel = Start-ExcelApplication -Purpose "workbook update"
+        }
+        $excel = $sharedExcel
         $excel.Visible = $false
         $excel.DisplayAlerts = $false
         $workbook = $null
@@ -1641,14 +1651,12 @@ try {
             Release-ComObjectSafely $commandBars
             Release-ComObjectSafely $vbaProject
             Release-ComObjectSafely $workbook
-            if ($excel) {
-                try { $excel.Quit() } catch { }
-            }
-            Release-ComObjectSafely $excel
-            [System.GC]::Collect()
-            [System.GC]::WaitForPendingFinalizers()
-            [System.GC]::Collect()
-            [System.GC]::WaitForPendingFinalizers()
+            $activePane = $null
+            $btn = $null
+            $cb = $null
+            $commandBars = $null
+            $vbaProject = $null
+            $workbook = $null
         }
     } | Out-Null
 
@@ -1669,13 +1677,17 @@ try {
         Write-Host "Starting Runtime Testing..." -ForegroundColor Cyan
         Reset-StructuredTestResults -Path $structuredTestResultsPath
 
-        $testExcel = Start-ExcelApplication -Purpose "runtime testing"
+        if ($null -eq $sharedExcel) {
+            $script:sharedExcel = Start-ExcelApplication -Purpose "runtime testing"
+        }
+        $testExcel = $sharedExcel
         $testExcel.Visible = $false
         $testExcel.DisplayAlerts = $false
         $testWorkbook = $null
         $watcher = $null
         $ribbonUiErrorsEnabled = $false
         $testExcelPid = 0
+        $signalFile = Join-Path $env:TEMP ("BeaverRibbonSignal_" + [System.Guid]::NewGuid().ToString("N") + ".tmp")
 
         try {
             Set-RibbonUiErrors -Enabled $true
@@ -1685,10 +1697,10 @@ try {
 
             if ($testExcelPid -gt 0) {
                 $watcher = Start-Job -ScriptBlock {
-                    param($ProcessIdToScrape, $code)
+                    param($ProcessIdToScrape, $code, $SignalPath)
                     Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
-                    return [WindowScraper]::ScrapeAndClose($ProcessIdToScrape, 20)
-                } -ArgumentList $testExcelPid, $scraperCode
+                    return [WindowScraper]::ScrapeAndClose($ProcessIdToScrape, 20, $SignalPath)
+                } -ArgumentList $testExcelPid, $scraperCode, $signalFile
 
                 Write-Host "Opening workbook and checking for Ribbon UI errors..."
                 $testExcel.Visible = $true
@@ -1699,9 +1711,13 @@ try {
                 $testExcel.Visible = $false
                 $testExcel.DisplayAlerts = $false
 
+                $null = New-Item -Path $signalFile -ItemType File -Force
                 $ribbonError = Receive-Job -Job $watcher -Wait
                 Remove-Job $watcher -Force
                 $watcher = $null
+                if (Test-Path $signalFile) {
+                    Remove-Item -Path $signalFile -Force -ErrorAction SilentlyContinue
+                }
 
                 if ($ribbonError) {
                     Write-Host "  ERROR: Ribbon UI Validation failed." -ForegroundColor Red
@@ -1775,6 +1791,9 @@ try {
             if ($watcher) {
                 Remove-Job $watcher -Force -ErrorAction SilentlyContinue
             }
+            if (Test-Path $signalFile) {
+                Remove-Item -Path $signalFile -Force -ErrorAction SilentlyContinue
+            }
             if ($ribbonUiErrorsEnabled) {
                 Set-RibbonUiErrors -Enabled $false
             }
@@ -1782,18 +1801,22 @@ try {
                 try { $testWorkbook.Close($false) } catch { }
             }
             Release-ComObjectSafely $testWorkbook
-            if ($testExcel) {
-                try { $testExcel.Quit() } catch { }
-            }
-            Release-ComObjectSafely $testExcel
-            [System.GC]::Collect()
-            [System.GC]::WaitForPendingFinalizers()
-            [System.GC]::Collect()
-            [System.GC]::WaitForPendingFinalizers()
+            $testWorkbook = $null
         }
     } | Out-Null
 
     Write-StageSummary
 } catch {
     Stop-Script $_.Exception.Message
+} finally {
+    if ($null -ne $sharedExcel) {
+        Write-Host "Closing Excel application..." -ForegroundColor Gray
+        try { $sharedExcel.Quit() } catch { }
+        Release-ComObjectSafely $sharedExcel
+        $sharedExcel = $null
+    }
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
 }

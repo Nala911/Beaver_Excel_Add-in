@@ -85,6 +85,31 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+' Captures the state of a range and registers an Undo action.
+' If capture fails (e.g. range size exceeds safety limits), explicitly prompts or warns the user before proceeding.
+' Returns True if the action should proceed, False if cancelled.
+Public Function SaveStateOrConfirm(ByVal Target As Range, ByVal ActionName As String) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("SaveStateOrConfirm")
+    On Error GoTo ErrHandler
+
+    SaveStateOrConfirm = True
+    If Target Is Nothing Then GoTo CleanExit
+
+    If Not SaveState(Target, ActionName) Then
+        SaveStateOrConfirm = Infra_Interaction.Confirm( _
+            "The selected range is too large to support Undo for '" & ActionName & "'." & vbCrLf & vbCrLf & _
+            "Do you want to proceed with the operation anyway?", _
+            ActionName & " - Undo Warning", vbDefaultButton2)
+    End If
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "SaveStateOrConfirm", Err
+    SaveStateOrConfirm = False
+    Resume CleanExit
+End Function
+
 ' Registers the staged undo action with Excel. Called at the end of command execution.
 Public Sub RegisterPendingUndo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("RegisterPendingUndo")

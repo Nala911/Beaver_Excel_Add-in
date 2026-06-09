@@ -365,7 +365,7 @@ Private Sub btnOK_Click()
         Next i
         
         If Not hasSelection Then
-            MsgBox "Please select at least one cleaning option.", vbExclamation, Me.Caption
+            MsgBox "Please select at least one option.", vbExclamation, Me.Caption
             Exit Sub
         End If
         

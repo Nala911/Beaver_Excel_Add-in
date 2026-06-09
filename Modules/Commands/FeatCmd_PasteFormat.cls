@@ -40,7 +40,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         GoTo CleanExit
     End If
 
-    Infra_Undo.SaveState targetRange, "Paste Format"
+    If Not Infra_Undo.SaveStateOrConfirm(targetRange, "Paste Format") Then GoTo CleanExit
 
     On Error Resume Next
     targetRange.PasteSpecial Paste:=xlPasteFormats
