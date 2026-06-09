@@ -1,7 +1,11 @@
 Attribute VB_Name = "Infra_AppState"
 Option Explicit
 
-Public ActiveGuard As Infra_AppStateGuard
+Public GuardNestingLevel As Long
+Public OriginalCalculation As XlCalculation
+Public OriginalScreenUpdating As Boolean
+Public OriginalEnableEvents As Boolean
+Public OriginalDisplayAlerts As Boolean
 
 ' @Module: Infra_AppState
 ' @Category: Infrastructure

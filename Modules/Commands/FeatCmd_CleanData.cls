@@ -165,9 +165,15 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     Dim i As Long, totalAreas As Long
     Dim changeCount As Long
 
-    On Error Resume Next
-    Set textCells = targetRange.SpecialCells(xlCellTypeConstants, xlTextValues)
-    On Error GoTo 0
+    If targetRange.CountLarge = 1 Then
+        If Not targetRange.HasFormula And VarType(targetRange.Value) = vbString Then
+            Set textCells = targetRange
+        End If
+    Else
+        On Error Resume Next
+        Set textCells = targetRange.SpecialCells(xlCellTypeConstants, xlTextValues)
+        On Error GoTo 0
+    End If
 
     If textCells Is Nothing Then Exit Function
 

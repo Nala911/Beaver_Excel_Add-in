@@ -997,3 +997,126 @@ ErrHandler:
     Infra_Error.HandleError "Test_FormatRange_Execution", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_Delete_Execution_And_Undo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_Delete_Execution_And_Undo")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_Delete"
+
+    ws.Range("A1").Value2 = "DeleteMe"
+    
+    ' Select range
+    ws.Range("A1").Select
+    
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    
+    ' Resolve and Execute Delete Command
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("Delete")
+    
+    Dim context As ICommandContext
+    Set context = AppContainer.CreateCommandContext("Delete", vbNullString, "Test", vbNullString)
+    
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "DeleteMe", "A1 should contain text initially"
+    
+    ' Validate and Execute
+    Dim valResult As CommandValidationResult
+    Set valResult = cmd.Validate(context)
+    Lib_Tests.AssertEqual valResult.IsExecutable, True, "Command should be executable"
+    
+    cmd.Execute context
+    
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, Empty, "A1 should be cleared after Delete command"
+    
+    ' Perform Undo
+    Infra_Undo.PerformUndo
+    
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "DeleteMe", "A1 value should be restored by Undo"
+    
+    ' Test deleting a shape
+    Dim shp As Shape
+    Set shp = ws.Shapes.AddShape(msoShapeRectangle, 10, 10, 50, 50)
+    shp.Select
+    
+    ' Re-create context for shape selection
+    Set context = AppContainer.CreateCommandContext("Delete", vbNullString, "Test", vbNullString)
+    cmd.Execute context
+    
+    Lib_Tests.AssertEqual ws.Shapes.Count, 0#, "Shape should be deleted"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_Delete_Execution_And_Undo", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_FilterByCell_Execution()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FilterByCell_Execution")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_Filter"
+
+    ' Setup simple table
+    ws.Range("A1").Value2 = "Fruit"
+    ws.Range("A2").Value2 = "Apple"
+    ws.Range("A3").Value2 = "Banana"
+    ws.Range("A4").Value2 = "Apple"
+    
+    ws.Range("B1").Value2 = "Quantity"
+    ws.Range("B2").Value2 = 10
+    ws.Range("B3").Value2 = 20
+    ws.Range("B4").Value2 = 30
+
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("FilterByCell")
+    
+    ' Select cell to filter by (Apple)
+    ws.Range("A2").Select
+    
+    Dim context As ICommandContext
+    Set context = AppContainer.CreateCommandContext("FilterByCell", vbNullString, "Test", vbNullString)
+    
+    ' Execute
+    cmd.Execute context
+    
+    ' Assertions
+    Lib_Tests.AssertEqual ws.AutoFilterMode, True, "AutoFilter should be enabled"
+    
+    Dim autoflt As AutoFilter
+    Set autoflt = ws.AutoFilter
+    Lib_Tests.AssertEqual autoflt.Range.Address, ws.Range("A1:B4").Address, "Filter range should encompass A1:B4"
+    
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_FilterByCell_Execution", Err
+    Resume CleanExit
+End Sub

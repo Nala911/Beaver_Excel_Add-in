@@ -24,7 +24,9 @@ Public Sub RunGeneratedTests()
     Lib_Tests_Features.Test_CleanData_CheckboxOptions
     Lib_Tests_Features.Test_CleanData_TrimmingAndNumericalFixing
     Lib_Tests_Features.Test_CreateSheet_PlacementAndNaming
+    Lib_Tests_Features.Test_Delete_Execution_And_Undo
     Lib_Tests_Features.Test_FillDown_Features
+    Lib_Tests_Features.Test_FilterByCell_Execution
     Lib_Tests_Features.Test_FormatRange_Execution
     Lib_Tests_Features.Test_HelloWorld_Execution_And_Undo
     Lib_Tests_Features.Test_MakePermanent_LegacyArray_And_Undo

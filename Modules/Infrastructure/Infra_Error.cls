@@ -340,8 +340,9 @@ Private Sub ResetApplicationState()
         .DisplayAlerts = True
         
         ' Restore original calculation mode if captured by an active AppStateGuard
-        If Not Infra_AppState.ActiveGuard Is Nothing Then
-            .Calculation = Infra_AppState.ActiveGuard.OriginalCalculation
+        If Infra_AppState.GuardNestingLevel > 0 Then
+            .Calculation = Infra_AppState.OriginalCalculation
+            Infra_AppState.GuardNestingLevel = 0
         End If
     End With
     On Error GoTo 0

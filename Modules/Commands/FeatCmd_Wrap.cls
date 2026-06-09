@@ -20,6 +20,8 @@ Implements ICommand
 Private Const PLACEHOLDER As String = "[value]"
 Private Const COMMAND_NAME As String = "Wrap"
 
+Private m_RegExp As Object
+
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
 End Property
@@ -303,12 +305,7 @@ Private Function FindFirstReferenceToken(ByVal formulaText As String, ByRef star
     Dim matches As Object
     Dim match As Object
 
-    Set re = CreateObject("VBScript.RegExp")
-    re.Global = True
-    re.IgnoreCase = True
-    re.MultiLine = False
-    re.Pattern = "(?:'[^']+'!|[A-Za-z0-9_\.]+!)?\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)?(?:#)?"
-
+    Set re = GetRegExp()
     Set matches = re.Execute(formulaText)
     If matches.Count = 0 Then GoTo CleanExit
 
@@ -428,6 +425,21 @@ ErrHandler:
     Infra_Error.HandleError "GetWrappedContent", Err
     Resume CleanExit
 End Function
+
+Private Function GetRegExp() As Object
+    If m_RegExp Is Nothing Then
+        Set m_RegExp = CreateObject("VBScript.RegExp")
+        m_RegExp.Global = True
+        m_RegExp.IgnoreCase = True
+        m_RegExp.MultiLine = False
+        m_RegExp.Pattern = "(?:'[^']+'!|[A-Za-z0-9_\.]+!)?\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)?(?:#)?"
+    End If
+    Set GetRegExp = m_RegExp
+End Function
+
+Private Sub Class_Terminate()
+    Set m_RegExp = Nothing
+End Sub
 
 ' --- Testing Entry Points ---
 Public Sub TestApplyWrapPatternDirect(ByVal targetCells As Range, ByVal userPattern As String, ByVal isFormulaRange As Boolean, ByRef errorCount As Long)

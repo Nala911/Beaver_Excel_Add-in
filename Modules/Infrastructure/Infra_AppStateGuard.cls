@@ -41,8 +41,14 @@ Private Sub Class_Initialize()
     m_DisplayAlerts = False
     m_Calculation = xlCalculationManual
     
-    ' Register as active guard
-    Set Infra_AppState.ActiveGuard = Me
+    ' Register nested level and capture outer-most states
+    If Infra_AppState.GuardNestingLevel = 0 Then
+        Infra_AppState.OriginalScreenUpdating = m_OriginalScreenUpdating
+        Infra_AppState.OriginalEnableEvents = m_OriginalEnableEvents
+        Infra_AppState.OriginalDisplayAlerts = m_OriginalDisplayAlerts
+        Infra_AppState.OriginalCalculation = m_OriginalCalculation
+    End If
+    Infra_AppState.GuardNestingLevel = Infra_AppState.GuardNestingLevel + 1
     
     ' Apply Default Silent State
     UpdateState
@@ -59,9 +65,8 @@ Private Sub Class_Terminate()
     On Error Resume Next
     
     ' Clear active guard registration
-    If Infra_AppState.ActiveGuard Is Me Then
-        Set Infra_AppState.ActiveGuard = Nothing
-    End If
+    Infra_AppState.GuardNestingLevel = Infra_AppState.GuardNestingLevel - 1
+    If Infra_AppState.GuardNestingLevel < 0 Then Infra_AppState.GuardNestingLevel = 0
 
     ' Restore original application state in a failsafe manner
     With Application

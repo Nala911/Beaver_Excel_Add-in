@@ -19,9 +19,15 @@ Public Function ConvertRangeToValues(ByVal targetRange As Range) As Long
     Dim cell As Range
     Dim processedCount As Long
 
-    On Error Resume Next
-    Set formulaCells = targetRange.SpecialCells(xlCellTypeFormulas)
-    On Error GoTo ErrHandler
+    If targetRange.CountLarge = 1 Then
+        If targetRange.HasFormula Then
+            Set formulaCells = targetRange
+        End If
+    Else
+        On Error Resume Next
+        Set formulaCells = targetRange.SpecialCells(xlCellTypeFormulas)
+        On Error GoTo ErrHandler
+    End If
 
     If Not formulaCells Is Nothing Then
         For Each cell In formulaCells.Cells

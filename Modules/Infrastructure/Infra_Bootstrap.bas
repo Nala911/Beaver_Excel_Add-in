@@ -28,6 +28,7 @@ Public Sub Shutdown()
     On Error GoTo ErrHandler
 
     Infra_Hotkeys.UnregisterHotkeys
+    ThisWorkbook.Saved = True
 
 CleanExit:
     Exit Sub
