@@ -66,6 +66,32 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Ribbon_OnModifyData(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnModifyData")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnModifyData", "Ribbon_OnModifyData", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnModifyData", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnHighlightData(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnHighlightData")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnHighlightData", "Ribbon_OnHighlightData", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnHighlightData", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Ribbon_OnBreakExternalLinks(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnBreakExternalLinks")
     On Error GoTo ErrHandler

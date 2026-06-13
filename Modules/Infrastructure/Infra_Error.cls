@@ -184,7 +184,7 @@ Private Function GetRichContext(Optional ByVal stateInfo As Collection = Nothing
             
             Dim cellFormula As String
             If sel.HasFormula Then
-                cellFormula = sel.Formula
+                cellFormula = sel.Formula2
                 context = context & "Selection.Formula: " & cellFormula & vbCrLf
             End If
             

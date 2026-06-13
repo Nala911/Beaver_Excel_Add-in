@@ -13,7 +13,22 @@ Public Function ShowMessage(ByVal message As String, Optional ByVal style As VbM
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowMessage")
     On Error GoTo ErrHandler
 
-    ShowMessage = MsgBox(message, style, ResolveTitle(title))
+    If Application.Visible Then
+        ShowMessage = MsgBox(message, style, ResolveTitle(title))
+    Else
+        Debug.Print "BEAVER [INTERACTION]: (" & style & ") " & message
+        If (style And vbYesNo) = vbYesNo Then
+            ShowMessage = vbYes
+        ElseIf (style And vbOKCancel) = vbOKCancel Then
+            ShowMessage = vbOK
+        ElseIf (style And vbRetryCancel) = vbRetryCancel Then
+            ShowMessage = vbRetry
+        ElseIf (style And vbAbortRetryIgnore) = vbAbortRetryIgnore Then
+            ShowMessage = vbIgnore
+        Else
+            ShowMessage = vbOK
+        End If
+    End If
 
 CleanExit:
     Exit Function

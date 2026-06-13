@@ -255,6 +255,7 @@ Public Sub Test_CleanData_TrimmingAndNumericalFixing()
 
     ' Setup test values
     ws.Range("A1").Value2 = "  hello   world  " ' Text with leading/trailing and double spaces
+    ws.Range("A2").NumberFormat = "@"
     ws.Range("A2").Value2 = "123.45"              ' Number stored as text
     ws.Range("A3").Value2 = "normal text"         ' Normal text (should not change)
     
@@ -267,7 +268,8 @@ Public Sub Test_CleanData_TrimmingAndNumericalFixing()
 
     ' Asserts
     Lib_Tests.AssertEqual ws.Range("A1").Value2, "hello world", "CleanData should trim and remove extra spaces"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, 123.45, "CleanData should convert numeric strings to numbers"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, "123.45", "CleanData should leave numeric text unchanged since text number conversion was removed"
+    Lib_Tests.AssertEqual ws.Range("A2").NumberFormat, "@", "Number format should remain text"
     Lib_Tests.AssertEqual ws.Range("A3").Value2, "normal text", "CleanData should leave normal text untouched"
     Lib_Tests.AssertEqual ws.Range("A4").Value2, "hello world", "CleanData should replace non-breaking spaces with standard spaces"
 
@@ -299,18 +301,18 @@ Public Sub Test_CleanData_CheckboxOptions()
 
     ' Setup test values
     ws.Range("A1").Value2 = "  hello   world  "
-    ws.Range("A2").Value2 = "123.45"
+    ws.Range("A2").Value2 = "hello" & ChrW$(7) & "world"
 
     Dim request As New Infra_CleanDataRequest
     request.CleanTrimSpaces = False
-    request.CleanTextNumbers = True
+    request.CleanNonPrintables = True
 
     Dim cmd As New FeatCmd_CleanData
     Dim cleanedCount As Long
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A1:A2"), request)
 
     Lib_Tests.AssertEqual ws.Range("A1").Value2, "  hello   world  ", "CleanData should NOT trim spaces if CleanTrimSpaces is False"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, 123.45, "CleanData should still convert text-numbers if CleanTextNumbers is True"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, "helloworld", "CleanData should remove non-printable characters if CleanNonPrintables is True"
 
     Application.DisplayAlerts = False
     ws.Delete
@@ -326,6 +328,90 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_CleanData_CheckboxOptions", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_CleanData_NewEnhancements()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CleanData_NewEnhancements")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_CleanEnh"
+    Dim cleanedCount As Long
+
+    ' 1. Test standardizing invisible characters (zero-width, BOM, Unicode spaces)
+    ws.Range("A1").Value2 = "hello" & ChrW$(8203) & "world"
+    ws.Range("A2").Value2 = ChrW$(65279) & "BOMtest"
+    ws.Range("A3").Value2 = "thin" & ChrW$(8201) & "space"
+    ws.Range("A4").Value2 = "narrow" & ChrW$(8239) & "space"
+
+    Dim req As New Infra_CleanDataRequest
+    req.CleanInvisibleChars = True
+    req.CleanTrimSpaces = False
+    req.CleanNonPrintables = False
+    req.CleanConvertNumbers = False
+    req.CleanBrokenNames = False
+
+    Dim cmd As New FeatCmd_CleanData
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A1:A4"), req)
+
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "helloworld", "Should remove zero-width space"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, "BOMtest", "Should remove BOM"
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, "thin space", "Should convert thin space to standard space"
+    Lib_Tests.AssertEqual ws.Range("A4").Value2, "narrow space", "Should convert narrow space to standard space"
+
+    ' 2. Test Line Breaks: Replace with space
+    ws.Range("B1").Value2 = "line1" & vbCrLf & "line2" & vbLf & "line3"
+    req.CleanInvisibleChars = False
+    req.CleanReplaceLineBreaksWithSpace = True
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("B1"), req)
+    Lib_Tests.AssertEqual ws.Range("B1").Value2, "line1 line2 line3", "Should replace line breaks with spaces"
+
+    ' 3. Test Line Breaks: Remove entirely
+    ws.Range("B2").Value2 = "line1" & vbCrLf & "line2" & vbLf & "line3"
+    req.CleanReplaceLineBreaksWithSpace = False
+    req.CleanRemoveLineBreaks = True
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("B2"), req)
+    Lib_Tests.AssertEqual ws.Range("B2").Value2, "line1line2line3", "Should remove line breaks entirely"
+
+    ' 4. Test Line Breaks: Standardize to single LF and protect from non-printables
+    ws.Range("B3").Value2 = "line1" & vbCrLf & vbCrLf & "line2" & vbCr & vbCr & "line3"
+    req.CleanRemoveLineBreaks = False
+    req.CleanStandardizeLineBreaks = True
+    req.CleanNonPrintables = True
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("B3"), req)
+    Lib_Tests.AssertEqual ws.Range("B3").Value2, "line1" & vbLf & "line2" & vbLf & "line3", "Should standardize line breaks to single LF and protect them"
+
+    ' 5. Test numeric text conversion
+    ws.Range("C1").NumberFormat = "@"
+    ws.Range("C1").Value2 = "123.45"
+    ws.Range("C2").NumberFormat = "@"
+    ws.Range("C2").Value2 = " &HFF "
+    req.CleanStandardizeLineBreaks = False
+    req.CleanNonPrintables = False
+    req.CleanConvertNumbers = True
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("C1:C2"), req)
+    
+    Lib_Tests.AssertEqual ws.Range("C1").Value2, 123.45, "Should convert numeric text to number"
+    Lib_Tests.AssertEqual VarType(ws.Range("C1").Value2), vbDouble, "Converted number should be double"
+    Lib_Tests.AssertEqual ws.Range("C2").Value2, " &HFF ", "Should NOT convert hex strings to number"
+
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_CleanData_NewEnhancements", Err
     Resume CleanExit
 End Sub
 
@@ -749,6 +835,15 @@ Public Sub Test_Wrap_CellAndPatternModes()
     Lib_Tests.AssertEqual errCount, 0#, "Wrapping A1 using C1 wrapper should have 0 errors"
     Lib_Tests.AssertEqual ws.Range("A1").Formula2, "=ROUND(10, 2)", "A1 formula should be successfully wrapped"
 
+    ' Test 3: Apply wrapper cell formula (C1) to range A2:A3 in bulk (using the new ApplyWrapperCellToRange via TestApplyWrapperCellRangeDirect)
+    ws.Range("A2").Formula2 = "=B1*2"
+    ws.Range("A3").Formula2 = "=B1*3"
+    errCount = 0
+    cmd.TestApplyWrapperCellRangeDirect ws.Range("A2:A3"), ws.Range("C1").Formula2, True, errCount
+    Lib_Tests.AssertEqual errCount, 0#, "Wrapping A2:A3 using C1 wrapper in bulk should have 0 errors"
+    Lib_Tests.AssertEqual ws.Range("A2").Formula2, "=ROUND(B1*2, 2)", "A2 formula should be successfully wrapped in bulk"
+    Lib_Tests.AssertEqual ws.Range("A3").Formula2, "=ROUND(B1*3, 2)", "A3 formula should be successfully wrapped in bulk"
+
     ' Cleanup
     Application.DisplayAlerts = False
     ws.Delete
@@ -959,22 +1054,28 @@ Public Sub Test_FormatRange_Execution()
     ws.Range("B1").Value2 = "HeaderCol2"
     ws.Range("A2").Value2 = 123
     ws.Range("B2").Value2 = 46201
+    ws.Range("D1").Value2 = "HeaderCol3"
+    ws.Range("E1").Value2 = "HeaderCol4"
+    ws.Range("D2").Value2 = 789
+    ws.Range("E2").Value2 = 999
 
     ' Setup some merged cells
     ws.Range("A3:B3").Merge
 
-    ' Setup an overlapping ListObject table
+    ' Setup multiple overlapping ListObject tables
     Dim tbl As ListObject
     Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:B2"), , xlYes)
+    Dim tbl2 As ListObject
+    Set tbl2 = ws.ListObjects.Add(xlSrcRange, ws.Range("D1:E2"), , xlYes)
 
     AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
 
     Dim cmd As New FeatCmd_FormatRange
     ' Call the direct formatting testing method headlessly
-    cmd.FormatRangeDirect ws.Range("A1:B3"), ws
+    cmd.FormatRangeDirect ws.Range("A1:E3"), ws
 
     ' Asserts
-    Lib_Tests.AssertEqual ws.ListObjects.Count, 0#, "The ListObject table should be unlisted to a plain range"
+    Lib_Tests.AssertEqual ws.ListObjects.Count, 0#, "All overlapping ListObject tables should be unlisted"
     Lib_Tests.AssertEqual ws.Range("A3").MergeCells, False, "Merged cells should be unmerged"
     Lib_Tests.AssertEqual ws.Range("A1").Font.Bold, True, "Header row A1 should be Bold"
     Lib_Tests.AssertEqual ws.Range("A1").Font.Size, Infra_Config.Model.HeaderFontSize, "Header font size should match config"
@@ -1120,3 +1221,411 @@ ErrHandler:
     Infra_Error.HandleError "Test_FilterByCell_Execution", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_HighlightData_InconsistentFormulasAndDuplicates()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HighlightData_InconsistentFormulasAndDuplicates")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_HighlightData"
+
+    ' 1. Set up formula cells to test inconsistent formulas
+    ws.Range("B1").Value2 = 10
+    ws.Range("B2").Value2 = 20
+    ws.Range("B3").Value2 = 30
+    ws.Range("B4").Value2 = 40
+    ws.Range("B5").Value2 = 50
+
+    ws.Range("A1").Formula2 = "=B1"
+    ws.Range("A2").Formula2 = "=B2"
+    ws.Range("A3").Formula2 = "=B99" ' Inconsistent formula!
+    ws.Range("A4").Formula2 = "=B4"
+    ws.Range("A5").Formula2 = "=B5"
+
+    ' 2. Set up duplicates
+    ws.Range("C1").Value2 = "apple"
+    ws.Range("C2").Value2 = "banana"
+    ws.Range("C3").Value2 = "apple" ' Duplicate of C1!
+    ws.Range("C4").Value2 = "cherry"
+    ws.Range("C5").Value2 = ""      ' Empty (should not count as duplicate)
+    ws.Range("C6").Value2 = ""      ' Empty (should not count as duplicate)
+
+    ' Reset colors
+    ws.Range("A1:A5").Interior.ColorIndex = xlNone
+    ws.Range("C1:C6").Interior.ColorIndex = xlNone
+
+    Dim cmd As New FeatCmd_HighlightData
+    cmd.HighlightRangeDirect ws.Range("A1:A5,C1:C6")
+
+    ' Check duplicate assertions: C1 and C3 should be highlighted with RGB(255, 199, 206)
+    Lib_Tests.AssertEqual ws.Range("C1").Interior.Color, RGB(255, 199, 206), "C1 should be highlighted as duplicate"
+    Lib_Tests.AssertEqual ws.Range("C3").Interior.Color, RGB(255, 199, 206), "C3 should be highlighted as duplicate"
+    Lib_Tests.AssertEqual ws.Range("C2").Interior.ColorIndex, xlNone, "C2 is unique and should not be highlighted"
+    Lib_Tests.AssertEqual ws.Range("C4").Interior.ColorIndex, xlNone, "C4 is unique and should not be highlighted"
+    Lib_Tests.AssertEqual ws.Range("C5").Interior.ColorIndex, xlNone, "C5 is empty and should not be highlighted"
+    Lib_Tests.AssertEqual ws.Range("C6").Interior.ColorIndex, xlNone, "C6 is empty and should not be highlighted"
+
+    ' Test inconsistent formula if error indicator evaluated (Excel may require background error checking)
+    Dim isIncA3 As Boolean
+    isIncA3 = False
+    On Error Resume Next
+    isIncA3 = ws.Range("A3").Errors(xlInconsistentFormula).Value
+    On Error GoTo ErrHandler
+    
+    If isIncA3 Then
+        Lib_Tests.AssertEqual ws.Range("A3").Interior.Color, RGB(255, 255, 153), "A3 should be highlighted as inconsistent formula"
+        Lib_Tests.AssertEqual ws.Range("A1").Interior.ColorIndex, xlNone, "A1 should not be highlighted"
+    Else
+        Debug.Print "BEAVER [TEST]: xlInconsistentFormula check skipped or not active in the current Excel test environment."
+    End If
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_HighlightData_InconsistentFormulasAndDuplicates", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ModifyData_Casing()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ModifyData_Casing")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_ModCase"
+
+    ws.Range("A1").Value2 = "heLLo wOrld"
+    ws.Range("A2").Value2 = "heLLo wOrld"
+    ws.Range("A3").Value2 = "heLLo wOrld"
+
+    Dim cmd As New FeatCmd_ModifyData
+    Dim req As New Infra_ModifyDataRequest
+    Set req.Context = New Infra_ActionContext
+    
+    ' 1. Test UPPERCASE
+    Dim changes As Long
+    req.Operation = "Case: UPPERCASE"
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A1"), req)
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "HELLO WORLD", "Should convert to uppercase"
+
+    ' 2. Test lowercase
+    req.Operation = "Case: lowercase"
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A2"), req)
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, "hello world", "Should convert to lowercase"
+
+    ' 3. Test Proper Case
+    req.Operation = "Case: Proper Case"
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A3"), req)
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, "Hello World", "Should convert to Proper Case"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ModifyData_Casing", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ModifyData_DateStandardization()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ModifyData_DateStandardization")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_ModDate"
+
+    ws.Range("A1:A4").NumberFormat = "@"
+    ws.Range("A1").Value = "05/12/2021" ' dd/mm/yyyy -> Dec 5, 2021
+    ws.Range("A2").Value = "12/05/2021" ' mm/dd/yyyy -> Dec 5, 2021
+    ws.Range("A3").Value = "15-Feb-21"   ' dd-mmm-yy -> Feb 15, 2021
+    ws.Range("A4").Value = "20210215"    ' yyyymmdd -> Feb 15, 2021
+
+    Dim cmd As New FeatCmd_ModifyData
+    Dim req As New Infra_ModifyDataRequest
+    Set req.Context = New Infra_ActionContext
+    req.Operation = "Date Standardization"
+
+    ' 1. Test dd/mm/yyyy
+    req.DatePattern = "dd/mm/yyyy"
+    Dim changes As Long
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A1"), req)
+    Lib_Tests.AssertEqual ws.Range("A1").Value, DateSerial(2021, 12, 5), "Should convert dd/mm/yyyy to Dec 5, 2021"
+    Lib_Tests.AssertEqual ws.Range("A1").NumberFormat, Infra_Config.Model.DisplayDateFormat, "Format should be date format"
+
+    ' 2. Test mm/dd/yyyy
+    req.DatePattern = "mm/dd/yyyy"
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A2"), req)
+    Lib_Tests.AssertEqual ws.Range("A2").Value, DateSerial(2021, 12, 5), "Should convert mm/dd/yyyy to Dec 5, 2021"
+
+    ' 3. Test dd-mmm-yy
+    req.DatePattern = "dd-mmm-yy"
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A3"), req)
+    Lib_Tests.AssertEqual ws.Range("A3").Value, DateSerial(2021, 2, 15), "Should convert dd-mmm-yy to Feb 15, 2021"
+
+    ' 4. Test yyyymmdd (non-delimited)
+    req.DatePattern = "yyyymmdd"
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A4"), req)
+    Lib_Tests.AssertEqual ws.Range("A4").Value, DateSerial(2021, 2, 15), "Should convert yyyymmdd to Feb 15, 2021"
+
+    ' 5. Test Date type re-interpretation (Excel parsed as 3rd June, but user meant 6th March)
+    Dim cellA5 As Range
+    Set cellA5 = ws.Range("A5")
+    cellA5.Value = DateSerial(2010, 6, 3) ' June 3, 2010
+    cellA5.NumberFormat = "dd-mm-yyyy"
+
+    req.DatePattern = "mm-dd-yyyy"
+    changes = cmd.ModifyRangeWithOptionsDirect(cellA5, req)
+    Lib_Tests.AssertEqual cellA5.Value, DateSerial(2010, 3, 6), "Should re-interpret June 3, 2010 as March 6, 2010 using mm-dd-yyyy"
+    Lib_Tests.AssertEqual changes, 1, "Should report 1 change"
+
+    ' 6. Test Date type re-interpretation with built-in format, adjusting for system locale
+    Dim cellA6 As Range
+    Set cellA6 = ws.Range("A6")
+    Dim systemOrder As Long
+    On Error Resume Next
+    systemOrder = Application.International(xlDateOrder)
+    If Err.Number <> 0 Then systemOrder = 1 ' Default to DMY
+    On Error GoTo ErrHandler
+    
+    If systemOrder = 1 Then ' DMY system
+        cellA6.Value = DateSerial(2021, 3, 1) ' March 1, 2021
+        cellA6.NumberFormat = "m/d/yyyy" ' Format that formats to March 1, 2021 (e.g. 3/1/2021)
+        req.DatePattern = "mm-dd-yyyy"
+        changes = cmd.ModifyRangeWithOptionsDirect(cellA6, req)
+        Lib_Tests.AssertEqual cellA6.Value, DateSerial(2021, 1, 3), "DMY: Should re-interpret March 1, 2021 as Jan 3, 2021 using m/d/yyyy format"
+        Lib_Tests.AssertEqual changes, 1, "DMY: Should report 1 change"
+    ElseIf systemOrder = 0 Then ' MDY system
+        cellA6.Value = DateSerial(2021, 1, 3) ' Jan 3, 2021
+        cellA6.NumberFormat = "dd-mm-yyyy" ' Format that formats to Jan 3, 2021 (e.g. 03-01-2021)
+        req.DatePattern = "dd-mm-yyyy"
+        changes = cmd.ModifyRangeWithOptionsDirect(cellA6, req)
+        Lib_Tests.AssertEqual cellA6.Value, DateSerial(2021, 3, 1), "MDY: Should re-interpret Jan 3, 2021 as March 1, 2021 using dd-mm-yyyy format"
+        Lib_Tests.AssertEqual changes, 1, "MDY: Should report 1 change"
+    End If
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ModifyData_DateStandardization", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ModifyData_Undo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ModifyData_Undo")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_ModUndo"
+
+    ws.Range("A1").Value2 = "original text"
+
+    ' Setup command context
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("ModifyData")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1")
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("ModifyData")
+
+    ' Run headless modification directly on A1 (Proper Case)
+    Dim req As New Infra_ModifyDataRequest
+    Set req.Context = ctx.ActionContext
+    req.Operation = "Case: Proper Case"
+
+    Dim featCmd As FeatCmd_ModifyData
+    Set featCmd = cmd
+    
+    ' Save undo state first
+    If Not Infra_Undo.SaveStateOrConfirm(ws.Range("A1"), "Modify Data") Then
+        Err.Raise 5, "Test_ModifyData_Undo", "Failed to save undo state"
+    End If
+    
+    Dim changes As Long
+    changes = featCmd.ModifyRangeWithOptionsDirect(ws.Range("A1"), req)
+    
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "Original Text", "A1 should be Proper Case"
+
+    ' Register pending undo and perform
+    Infra_Undo.RegisterPendingUndo
+    Infra_Undo.PerformUndo
+
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "original text", "A1 should be restored to original text after undo"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ModifyData_Undo", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_HighlightData_FormulaLimitSafety()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HighlightData_FormulaLimitSafety")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_HiLimit"
+
+    ' Write 5005 unique formulas to exceed the default MAX_FORMULA_CHECK_CELLS (5000) and avoid duplicates
+    ws.Range("A1:A5005").Formula2 = "=ROW()"
+
+    Dim cmd As New FeatCmd_HighlightData
+    
+    ' This call should complete and not throw any errors, and skip checking formulas because of the limit
+    cmd.HighlightRangeDirect ws.Range("A1:A5005")
+
+    ' Since it was skipped, A1 should remain xlNone (no color index)
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.ColorIndex, xlNone, "Formula check should have been skipped, leaving A1 uncolored"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_HighlightData_FormulaLimitSafety", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_FormatRange_WholeSheetSafety()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FormatRange_WholeSheetSafety")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_FmtWhole"
+
+    ' Write one value in C3
+    ws.Range("C3").Value2 = "content"
+
+    Dim cmd As New FeatCmd_FormatRange
+    
+    ' Select entire worksheet range and execute formatting
+    ' This should run instantly because it restricts itself to UsedRange (which contains C3)
+    cmd.FormatRangeDirect ws.Cells, ws
+
+    ' C3 should be formatted (e.g. bold header font or regular cell format)
+    Lib_Tests.AssertEqual ws.Range("C3").Font.Bold, True, "C3 should be bolded as it became the header of the intersected used range"
+    Lib_Tests.AssertEqual ws.Range("C3").Font.Size, 11#, "C3 font size should be 11"
+
+    ' Cell outside used range (e.g., Z99) should remain unformatted
+    Lib_Tests.AssertEqual ws.Range("Z99").Font.Bold, False, "Z99 should not be bolded"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_FormatRange_WholeSheetSafety", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_CleanData_LargeSelectionSafety()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CleanData_LargeSelectionSafety")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_ClnWhole"
+
+    ' Write dirty text in C3
+    ws.Range("C3").Value2 = "  dirty text  "
+
+    Dim cmd As New FeatCmd_CleanData
+    Dim request As New Infra_CleanDataRequest
+    Set request.Context = AppContainer.CreateCommandContext("CleanData").ActionContext
+    Set request.Context.WorksheetRef = ws
+    Set request.Context.WorkbookRef = ThisWorkbook
+    
+    ' Run clean on the entire sheet
+    ' It should intersect with UsedRange and only clean C3, running instantly
+    Dim changes As Long
+    changes = cmd.CleanRangeWithOptionsDirect(ws.Cells, request)
+
+    Lib_Tests.AssertEqual ws.Range("C3").Value2, "dirty text", "C3 should be trimmed"
+    Lib_Tests.AssertTrue changes >= 1, "Should report at least 1 change"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_CleanData_LargeSelectionSafety", Err
+    Resume CleanExit
+End Sub
+
+
+

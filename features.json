@@ -25,6 +25,8 @@
                        "Label":  "Data Tools",
                        "Features":  [
                                         "BtnCleanData",
+                                        "BtnModifyData",
+                                        "BtnHighlightData",
                                         "BtnBreakLinks"
                                     ]
                    },
@@ -87,6 +89,30 @@
                          "Keytip":  "CD",
                          "Screentip":  "Clean Data",
                          "Supertip":  "Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook).",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnModifyData",
+                         "Label":  "Modify Data",
+                         "OnAction":  "Ribbon_OnModifyData",
+                         "Macro":  "UI_Ribbon.Ribbon_OnModifyData",
+                         "CommandName":  "ModifyData",
+                         "Icon":  "ChangeCase",
+                         "Keytip":  "MD",
+                         "Screentip":  "Modify Data",
+                         "Supertip":  "Modifies text and dates in the selection (casing or date standardization).",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnHighlightData",
+                         "Label":  "Highlight Data",
+                         "OnAction":  "Ribbon_OnHighlightData",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightData",
+                         "CommandName":  "HighlightData",
+                         "Icon":  "ConditionalFormattingMenu",
+                         "Keytip":  "HD",
+                         "Screentip":  "Highlight Data",
+                         "Supertip":  "Highlights inconsistent formulas (yellow) and duplicate values (soft red) in the selected scope (Range, Sheet, or Workbook).",
                          "RuntimeTestMode":  "interactive"
                      },
                      {

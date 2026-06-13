@@ -155,9 +155,9 @@ Private Sub GetSheetBreakableCounts(ByVal ws As Worksheet, ByRef formulaCount As
     If Not fCells Is Nothing Then
         For Each area In fCells.Areas
             If area.Cells.CountLarge = 1 Then
-                If InStr(1, area.Formula, "[", vbTextCompare) > 0 Then formulaCount = formulaCount + 1
+                If InStr(1, area.Formula2, "[", vbTextCompare) > 0 Then formulaCount = formulaCount + 1
             Else
-                formulaArr = area.Formula
+                formulaArr = area.Formula2
                 For r = 1 To UBound(formulaArr, 1)
                     For c = 1 To UBound(formulaArr, 2)
                         If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then formulaCount = formulaCount + 1
@@ -303,12 +303,12 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
     If Not fCells Is Nothing Then
         For Each area In fCells.Areas
             If area.Cells.CountLarge = 1 Then
-                If InStr(1, area.Formula, "[", vbTextCompare) > 0 Then
+                If InStr(1, area.Formula2, "[", vbTextCompare) > 0 Then
                     area.Value = area.Value
                     fCount = fCount + 1
                 End If
             Else
-                formulaArr = area.Formula
+                formulaArr = area.Formula2
                 valueArr = area.Value
                 changed = False
                 For r = 1 To UBound(formulaArr, 1)

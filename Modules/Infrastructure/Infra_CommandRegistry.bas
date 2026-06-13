@@ -18,6 +18,10 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "StaticSheetWorkbook"
         Case "UI_RIBBON.RIBBON_ONCLEANDATA"
             ResolveCommandName = "CleanData"
+        Case "UI_RIBBON.RIBBON_ONMODIFYDATA"
+            ResolveCommandName = "ModifyData"
+        Case "UI_RIBBON.RIBBON_ONHIGHLIGHTDATA"
+            ResolveCommandName = "HighlightData"
         Case "UI_RIBBON.RIBBON_ONBREAKEXTERNALLINKS"
             ResolveCommandName = "BreakExternalLinks"
         Case "UI_RIBBON.RIBBON_ONDUPLICATE"
@@ -67,6 +71,10 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
             Set CreateCommand = New FeatCmd_StaticSheetWorkbook
         Case "CLEANDATA"
             Set CreateCommand = New FeatCmd_CleanData
+        Case "MODIFYDATA"
+            Set CreateCommand = New FeatCmd_ModifyData
+        Case "HIGHLIGHTDATA"
+            Set CreateCommand = New FeatCmd_HighlightData
         Case "BREAKEXTERNALLINKS"
             Set CreateCommand = New FeatCmd_BreakExternalLinks
         Case "DUPLICATE"

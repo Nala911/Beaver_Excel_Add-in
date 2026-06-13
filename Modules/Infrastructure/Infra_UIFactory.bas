@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Centralized factory for creating and displaying standardized user prompts.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Error, Infra_Config, Infra_ExportRequest, Infra_ScopedRequest, Infra_ActionContext
+' @Dependencies: Infra_Error, Infra_Config, Infra_ExportRequest, Infra_ScopedRequest, Infra_ActionContext, Infra_HighlightDataRequest, Infra_ModifyDataRequest
 
 ' Shows the Clean Data options via UserForm picker and returns a populated Request object.
 Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_CleanDataRequest
@@ -19,11 +19,19 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
     Dim defaultChoice As String
     Dim hasSelection As Boolean
     Dim confirmMsg As String
+    Dim bypassScopePrompt As Boolean
 
     hasSelection = HasUsableSelection(ctx)
+    bypassScopePrompt = False
+
     If hasSelection Then
-        options = BuildChoiceArray("Range", "Sheet", "Workbook")
-        defaultChoice = "Range"
+        If ctx.SelectionRange.Cells.CountLarge > 1 Then
+            normalizedChoice = "RANGE"
+            bypassScopePrompt = True
+        Else
+            options = BuildChoiceArray("Sheet", "Workbook")
+            defaultChoice = "Sheet"
+        End If
     Else
         options = BuildChoiceArray("Sheet", "Workbook")
         defaultChoice = "Sheet"
@@ -34,16 +42,18 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
                 "Scope:" & vbCrLf & _
                 "Sheet - Active sheet" & vbCrLf & _
                 "Workbook - All sheets"
-    If hasSelection Then
-        promptMsg = promptMsg & vbCrLf & "Range - Current selection"
-    Else
+    If hasSelection And Not bypassScopePrompt Then
+        promptMsg = promptMsg & vbCrLf & vbCrLf & "Note: The active selection is a single cell. Choose Sheet or Workbook scope to proceed."
+    ElseIf Not hasSelection Then
         promptMsg = promptMsg & vbCrLf & vbCrLf & "No selection is required for Sheet or Workbook scope."
     End If
 
     confirmMsg = "Workbook-wide Clean Data updates every sheet and cannot be restored as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
                  "Continue with workbook-wide cleaning?"
 
-    If Not PromptForScopeSelection(ctx, "Clean Data", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
+    If Not bypassScopePrompt Then
+        If Not PromptForScopeSelection(ctx, "Clean Data", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
+    End If
 
     If normalizedChoice = "R" Or normalizedChoice = "RANGE" Or normalizedChoice = "SELECTED" Or normalizedChoice = "SELECTION" Then
         If Not hasSelection Then
@@ -63,11 +73,14 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
     cleanOptionsList = Array( _
         "Trim extra spaces & non-breaking spaces", _
         "Remove non-printable characters", _
-        "Convert text-formatted numbers to real numbers", _
-        "Delete broken named ranges (#REF!)", _
-        "Highlight inconsistent formulas (yellow)" _
+        "Standardize invisible chars (zero-width, BOM, thin spaces)", _
+        "Line breaks: Replace with space", _
+        "Line breaks: Remove entirely", _
+        "Line breaks: Standardize to single LF", _
+        "Convert numeric text to numbers", _
+        "Delete broken named ranges (#REF!)" _
     )
-    cleanDefaultsChecked = Array(True, True, True, True, True)
+    cleanDefaultsChecked = Array(True, True, True, False, False, False, False, True)
 
     If Not Infra_Interaction.PromptMultiOption( _
         "Select the data cleaning options to apply:", _
@@ -80,17 +93,23 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
 
     request.CleanTrimSpaces = False
     request.CleanNonPrintables = False
-    request.CleanTextNumbers = False
+    request.CleanInvisibleChars = False
+    request.CleanReplaceLineBreaksWithSpace = False
+    request.CleanRemoveLineBreaks = False
+    request.CleanStandardizeLineBreaks = False
+    request.CleanConvertNumbers = False
     request.CleanBrokenNames = False
-    request.CleanInconsistentFormulas = False
 
     For Each idx In selectedIndices
         Select Case idx
             Case 0: request.CleanTrimSpaces = True
             Case 1: request.CleanNonPrintables = True
-            Case 2: request.CleanTextNumbers = True
-            Case 3: request.CleanBrokenNames = True
-            Case 4: request.CleanInconsistentFormulas = True
+            Case 2: request.CleanInvisibleChars = True
+            Case 3: request.CleanReplaceLineBreaksWithSpace = True
+            Case 4: request.CleanRemoveLineBreaks = True
+            Case 5: request.CleanStandardizeLineBreaks = True
+            Case 6: request.CleanConvertNumbers = True
+            Case 7: request.CleanBrokenNames = True
         End Select
     Next idx
 
@@ -100,6 +119,193 @@ CleanExit:
     Exit Function
 ErrHandler:
     Infra_Error.HandleError "ShowCleanDataDialog", Err
+    Resume CleanExit
+End Function
+
+' Shows the Modify Data options via UserForm picker and returns a populated Request object.
+Public Function ShowModifyDataDialog(ByVal ctx As Infra_ActionContext) As Infra_ModifyDataRequest
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ShowModifyDataDialog")
+    On Error GoTo ErrHandler
+
+    Dim request As Infra_ModifyDataRequest
+    Dim hasSelection As Boolean
+
+    hasSelection = HasUsableSelection(ctx)
+    If Not hasSelection Then
+        Infra_Interaction.ShowWarning "Please select a range of cells to modify first.", "Modify Data"
+        GoTo CleanExit
+    End If
+
+    Dim toolOptions As Variant
+    toolOptions = Array("Date Fixer", "Case Fixer")
+
+    Dim selectedTool As String
+    If Not Infra_Interaction.PromptOption( _
+        "Select the modification tool to apply to the selection:", _
+        "Modify Data Options", _
+        "Date Fixer", _
+        toolOptions, _
+        selectedTool) Then
+        GoTo CleanExit
+    End If
+
+    Dim selectedOp As String
+    Dim datePattern As String
+    datePattern = vbNullString
+
+    If selectedTool = "Date Fixer" Then
+        selectedOp = "Date Standardization"
+        If Not Infra_Interaction.PromptText( _
+            "Enter the date pattern format used in the source data (e.g. DD/MM/YYYY, MM/DD/YYYY, YYYYMMDD):", _
+            "Date Standardization", _
+            "DD/MM/YYYY", _
+            datePattern) Then
+            GoTo CleanExit
+        End If
+        
+        datePattern = Trim$(datePattern)
+        If datePattern = vbNullString Then
+            Infra_Interaction.ShowWarning "A date pattern is required for Date Standardization.", "Modify Data"
+            GoTo CleanExit
+        End If
+        
+        Dim patternLower As String
+        patternLower = LCase$(datePattern)
+        If InStr(1, patternLower, "d") = 0 Or InStr(1, patternLower, "m") = 0 Or InStr(1, patternLower, "y") = 0 Then
+            Infra_Interaction.ShowWarning "Invalid date pattern. The pattern must specify Day (d), Month (m), and Year (y).", "Modify Data"
+            GoTo CleanExit
+        End If
+
+    ElseIf selectedTool = "Case Fixer" Then
+        Dim caseOptions As Variant
+        caseOptions = Array("UPPERCASE", "lowercase", "Proper Case")
+        
+        Dim selectedCase As String
+        If Not Infra_Interaction.PromptOption( _
+            "Select the text casing standard to apply:", _
+            "Case Fixer Options", _
+            "UPPERCASE", _
+            caseOptions, _
+            selectedCase) Then
+            GoTo CleanExit
+        End If
+        
+        Select Case selectedCase
+            Case "UPPERCASE"
+                selectedOp = "Case: UPPERCASE"
+            Case "lowercase"
+                selectedOp = "Case: lowercase"
+            Case "Proper Case"
+                selectedOp = "Case: Proper Case"
+            Case Else
+                GoTo CleanExit
+        End Select
+    End If
+
+    Set request = New Infra_ModifyDataRequest
+    Set request.Context = ctx
+    request.Operation = selectedOp
+    request.DatePattern = datePattern
+
+    Set ShowModifyDataDialog = request
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "ShowModifyDataDialog", Err
+    Resume CleanExit
+End Function
+
+' Shows the Highlight Data options via UserForm picker and returns a populated Request object.
+Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext) As Infra_HighlightDataRequest
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ShowHighlightDataDialog")
+    On Error GoTo ErrHandler
+    
+    Dim promptMsg As String
+    Dim normalizedChoice As String
+    Dim request As Infra_HighlightDataRequest
+    Dim options As Variant
+    Dim defaultChoice As String
+    Dim hasSelection As Boolean
+    Dim confirmMsg As String
+    Dim bypassScopePrompt As Boolean
+
+    hasSelection = HasUsableSelection(ctx)
+    bypassScopePrompt = False
+
+    If hasSelection Then
+        If ctx.SelectionRange.Cells.CountLarge > 1 Then
+            normalizedChoice = "RANGE"
+            bypassScopePrompt = True
+        Else
+            options = BuildChoiceArray("Sheet", "Workbook")
+            defaultChoice = "Sheet"
+        End If
+    Else
+        options = BuildChoiceArray("Sheet", "Workbook")
+        defaultChoice = "Sheet"
+    End If
+
+    promptMsg = "Highlight key data patterns (Inconsistent Formulas, Duplicates)." & vbCrLf & vbCrLf & _
+                BuildCompactContextSummary(ctx, hasSelection) & vbCrLf & vbCrLf & _
+                "Scope:" & vbCrLf & _
+                "Sheet - Active sheet" & vbCrLf & _
+                "Workbook - All sheets"
+    If hasSelection And Not bypassScopePrompt Then
+        promptMsg = promptMsg & vbCrLf & vbCrLf & "Note: The active selection is a single cell. Choose Sheet or Workbook scope to proceed."
+    ElseIf Not hasSelection Then
+        promptMsg = promptMsg & vbCrLf & vbCrLf & "No selection is required for Sheet or Workbook scope."
+    End If
+
+    confirmMsg = "Workbook-wide Highlight Data updates every sheet and cannot be restored as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
+                 "Continue with workbook-wide highlighting?"
+
+    If Not bypassScopePrompt Then
+        If Not PromptForScopeSelection(ctx, "Highlight Data", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
+    End If
+
+    If normalizedChoice = "R" Or normalizedChoice = "RANGE" Or normalizedChoice = "SELECTED" Or normalizedChoice = "SELECTION" Then
+        If Not hasSelection Then
+            Infra_Interaction.ShowWarning "Select a range first if you want to highlight only the current selection.", BuildDialogTitle("Highlight Data")
+            GoTo CleanExit
+        End If
+    End If
+
+    Set request = CreateHighlightDataRequest(ctx, normalizedChoice)
+    If request Is Nothing Then GoTo CleanExit
+
+    Dim highlightOptionsList As Variant
+    Dim chosenOption As String
+
+    highlightOptionsList = Array( _
+        "Highlight Inconsistent Formulas (yellow)", _
+        "Highlight Duplicates (soft red)" _
+    )
+
+    If Not Infra_Interaction.PromptOption( _
+        "Select the data highlighting option to apply:", _
+        "Highlight Data Option", _
+        "Highlight Inconsistent Formulas (yellow)", _
+        highlightOptionsList, _
+        chosenOption) Then
+        GoTo CleanExit
+    End If
+
+    request.HighlightInconsistentFormulas = False
+    request.HighlightDuplicates = False
+
+    If chosenOption = "Highlight Inconsistent Formulas (yellow)" Then
+        request.HighlightInconsistentFormulas = True
+    ElseIf chosenOption = "Highlight Duplicates (soft red)" Then
+        request.HighlightDuplicates = True
+    End If
+
+    Set ShowHighlightDataDialog = request
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "ShowHighlightDataDialog", Err
     Resume CleanExit
 End Function
 
@@ -671,12 +877,12 @@ Private Function ActiveSheetHasBreakableItems(ByVal ctx As Infra_ActionContext) 
     If Not formulaCells Is Nothing Then
         For Each area In formulaCells.Areas
             If area.Cells.CountLarge = 1 Then
-                If InStr(1, area.Formula, "[", vbTextCompare) > 0 Then
+                If InStr(1, area.Formula2, "[", vbTextCompare) > 0 Then
                     ActiveSheetHasBreakableItems = True
                     Exit Function
                 End If
             Else
-                formulaArr = area.Formula
+                formulaArr = area.Formula2
                 For r = 1 To UBound(formulaArr, 1)
                     For c = 1 To UBound(formulaArr, 2)
                         If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then
@@ -783,4 +989,21 @@ Private Function CreateCleanDataRequest(ByVal ctx As Infra_ActionContext, ByVal 
             Exit Function
     End Select
     Set CreateCleanDataRequest = request
+End Function
+
+Private Function CreateHighlightDataRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_HighlightDataRequest
+    Dim request As New Infra_HighlightDataRequest
+    Set request.Context = ctx
+    Select Case NormalizeChoiceText(choiceText)
+        Case "R", "RANGE", "SELECTED", "SELECTION"
+            request.Scope = TargetScopeSelection
+        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
+            request.Scope = TargetScopeActiveSheet
+        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
+            request.Scope = TargetScopeWorkbook
+        Case Else
+            Set CreateHighlightDataRequest = Nothing
+            Exit Function
+    End Select
+    Set CreateHighlightDataRequest = request
 End Function

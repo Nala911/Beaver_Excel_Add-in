@@ -65,7 +65,6 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Dim stateInfo As Collection
     Dim cleanedCount As Long
     Dim scopeLabel As String
-    Dim highlightedAny As Boolean
     Dim originalScreenUpdating As Boolean
 
     Set stateInfo = Infra_Error.NewStateInfo()
@@ -103,17 +102,11 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Select Case request.Scope
         Case TargetScopeSelection
             cleanedCount = ProcessRangeForClean(request.Context.SelectionRange, request)
-            If request.CleanInconsistentFormulas Then
-                highlightedAny = HighlightInconsistentFormulas(request.Context.SelectionRange)
-            End If
             Infra_Progress.UpdateProgress 1, True
         Case TargetScopeActiveSheet
             cleanedCount = ProcessRangeForClean(request.Context.WorksheetRef.UsedRange, request)
             If request.CleanBrokenNames Then
                 CleanNamedRanges request.Context.WorkbookRef, request.Context.WorksheetRef
-            End If
-            If request.CleanInconsistentFormulas Then
-                highlightedAny = HighlightInconsistentFormulas(request.Context.WorksheetRef.UsedRange)
             End If
             Infra_Progress.UpdateProgress 1, True
         Case TargetScopeWorkbook
@@ -125,19 +118,13 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
             For i = 1 To count
                 Set ws = request.Context.WorkbookRef.Worksheets(i)
                 cleanedCount = cleanedCount + ProcessRangeForClean(ws.UsedRange, request)
-                If request.CleanInconsistentFormulas Then
-                    If HighlightInconsistentFormulas(ws.UsedRange) Then highlightedAny = True
-                End If
                 Infra_Progress.UpdateProgress i, True
                 If Infra_Progress.UserCancelled Then Exit For
             Next i
     End Select
     
     Dim msg As String
-    msg = "Done! Cleaned text, fixed text-numbers, and removed broken names in the " & scopeLabel & "."
-    If highlightedAny Then
-        msg = msg & " Inconsistent formulas were highlighted in yellow."
-    End If
+    msg = "Done! Cleaned text and removed broken names in the " & scopeLabel & "."
     
     Infra_Interaction.ShowInfo msg
 
@@ -159,6 +146,22 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     ' Note: No tracker here for performance; this is a core processing loop.
     If targetRange Is Nothing Then Exit Function
 
+    Dim ws As Worksheet
+    Set ws = targetRange.Worksheet
+    
+    ' Intersect with UsedRange if targetRange is large to prevent scanning millions of empty cells
+    If targetRange.Cells.CountLarge > 100000 Then
+        Dim usedRange As Range
+        On Error Resume Next
+        Set usedRange = Application.Intersect(targetRange, ws.UsedRange)
+        On Error GoTo 0
+        If Not usedRange Is Nothing Then
+            Set targetRange = usedRange
+        Else
+            Exit Function
+        End If
+    End If
+
     Dim textCells As Range
     Dim area As Range
     Dim dataArr As Variant
@@ -176,15 +179,6 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     End If
 
     If textCells Is Nothing Then Exit Function
-
-    ' Convert Text format to General so text-numbers can become real numbers
-    If request.CleanTextNumbers Then
-        On Error Resume Next
-        For Each area In textCells.Areas
-            If area.NumberFormat = "@" Then area.NumberFormat = "General"
-        Next area
-        On Error GoTo 0
-    End If
 
     Const CHUNK_ROW_SIZE As Long = 20000
     Dim r As Long, chunkRowsCount As Long
@@ -266,20 +260,72 @@ Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infr
     Dim textValue As String
     textValue = CStr(rawValue)
     
-    ' Quick check for common cleaning targets to potentially skip overhead
     If textValue = vbNullString Then
         CleanTextValue = textValue
         Exit Function
     End If
     
-    ' Replace non-breaking space (Chr 160)
+    ' --- 1. Standardize Invisible Characters ---
+    If request.CleanInvisibleChars Then
+        ' Zero-width characters & BOM -> remove
+        If InStr(1, textValue, ChrW$(8203)) > 0 Then textValue = Replace(textValue, ChrW$(8203), vbNullString)
+        If InStr(1, textValue, ChrW$(8204)) > 0 Then textValue = Replace(textValue, ChrW$(8204), vbNullString)
+        If InStr(1, textValue, ChrW$(8205)) > 0 Then textValue = Replace(textValue, ChrW$(8205), vbNullString)
+        If InStr(1, textValue, ChrW$(65279)) > 0 Then textValue = Replace(textValue, ChrW$(65279), vbNullString)
+        
+        ' Unicode spaces -> replace with standard space
+        If InStr(1, textValue, ChrW$(8201)) > 0 Then textValue = Replace(textValue, ChrW$(8201), " ") ' U+2009 thin space
+        If InStr(1, textValue, ChrW$(8239)) > 0 Then textValue = Replace(textValue, ChrW$(8239), " ") ' U+202F narrow no-break space
+        If InStr(1, textValue, ChrW$(8194)) > 0 Then textValue = Replace(textValue, ChrW$(8194), " ") ' U+2002 en space
+        If InStr(1, textValue, ChrW$(8195)) > 0 Then textValue = Replace(textValue, ChrW$(8195), " ") ' U+2003 em space
+    End If
+
+    ' --- 2. Replace Non-Breaking Spaces (Chr 160) ---
     If request.CleanTrimSpaces Then
         If InStr(1, textValue, ChrW$(160)) > 0 Then
             textValue = Replace(textValue, ChrW$(160), " ")
         End If
     End If
-    
-    ' Application.Trim handles internal double spaces; Application.Clean handles non-printables.
+
+    ' --- 3. Line Breaks Processing ---
+    Dim hasLineBreaks As Boolean
+    Dim containsLF As Boolean, containsCR As Boolean
+    containsLF = (InStr(1, textValue, vbLf) > 0)
+    containsCR = (InStr(1, textValue, vbCr) > 0)
+    hasLineBreaks = containsLF Or containsCR
+
+    ' Temporary placeholder for LF to protect it from Application.Clean if needed
+    Const LF_PLACEHOLDER As String = "" ' Private Use Area character U+E000
+    Dim lineBreaksProtected As Boolean
+    lineBreaksProtected = False
+
+    If hasLineBreaks Then
+        If request.CleanReplaceLineBreaksWithSpace Then
+            textValue = Replace(textValue, vbCrLf, " ")
+            textValue = Replace(textValue, vbCr, " ")
+            textValue = Replace(textValue, vbLf, " ")
+            hasLineBreaks = False
+        ElseIf request.CleanRemoveLineBreaks Then
+            textValue = Replace(textValue, vbCrLf, vbNullString)
+            textValue = Replace(textValue, vbCr, vbNullString)
+            textValue = Replace(textValue, vbLf, vbNullString)
+            hasLineBreaks = False
+        ElseIf request.CleanStandardizeLineBreaks Then
+            textValue = Replace(textValue, vbCrLf, vbLf)
+            textValue = Replace(textValue, vbCr, vbLf)
+            
+            Do While InStr(1, textValue, vbLf & vbLf) > 0
+                textValue = Replace(textValue, vbLf & vbLf, vbLf)
+            Loop
+            
+            If request.CleanNonPrintables Then
+                textValue = Replace(textValue, vbLf, LF_PLACEHOLDER)
+                lineBreaksProtected = True
+            End If
+        End If
+    End If
+
+    ' --- 4. Application.Clean & Application.Trim ---
     If request.CleanTrimSpaces And request.CleanNonPrintables Then
         textValue = Application.Trim(Application.Clean(textValue))
     ElseIf request.CleanTrimSpaces Then
@@ -287,21 +333,32 @@ Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infr
     ElseIf request.CleanNonPrintables Then
         textValue = Application.Clean(textValue)
     End If
-    
-    ' Fix numbers stored as text
-    If request.CleanTextNumbers Then
+
+    ' --- 5. Restore Line Breaks ---
+    If lineBreaksProtected Then
+        textValue = Replace(textValue, LF_PLACEHOLDER, vbLf)
+    End If
+
+    ' --- 6. Convert Numeric Text ---
+    If request.CleanConvertNumbers Then
         If IsNumeric(textValue) Then
-            On Error Resume Next
-            Dim dblVal As Double
-            dblVal = CDbl(textValue)
-            If Err.Number = 0 Then
-                CleanTextValue = dblVal
-                Exit Function
+            Dim cleanedTrimmed As String
+            cleanedTrimmed = Trim$(textValue)
+            If Not (Left$(cleanedTrimmed, 2) = "&H" Or Left$(cleanedTrimmed, 2) = "&h" Or _
+                    Left$(cleanedTrimmed, 2) = "&O" Or Left$(cleanedTrimmed, 2) = "&o") Then
+                On Error Resume Next
+                Dim numericVal As Double
+                numericVal = CDbl(textValue)
+                If Err.Number = 0 Then
+                    CleanTextValue = numericVal
+                    Exit Function
+                End If
+                Err.Clear
+                On Error GoTo 0
             End If
-            On Error GoTo 0
         End If
     End If
-    
+
     CleanTextValue = textValue
 End Function
 
@@ -328,34 +385,6 @@ Private Sub CleanNamedRanges(ByVal wb As Workbook, ByVal ws As Worksheet)
     On Error GoTo 0
 End Sub
 
-Private Function HighlightInconsistentFormulas(ByVal targetRange As Range) As Boolean
-    If targetRange Is Nothing Then Exit Function
-    
-    Dim formulaCells As Range
-    Dim cell As Range
-    
-    On Error Resume Next
-    Set formulaCells = targetRange.SpecialCells(xlCellTypeFormulas)
-    On Error GoTo 0
-    
-    If formulaCells Is Nothing Then Exit Function
-    
-    ' Safety limit to prevent freezing on large worksheets
-    If formulaCells.Cells.CountLarge > Infra_Config.MAX_FORMULA_CHECK_CELLS Then
-        Debug.Print "BEAVER [CLEAN]: Too many formula cells (" & formulaCells.Cells.CountLarge & "). Skipping inconsistent formula highlighting."
-        Exit Function
-    End If
-    
-    On Error Resume Next
-    For Each cell In formulaCells
-        If cell.Errors(xlInconsistentFormula).Value = True Then
-            cell.Interior.Color = vbYellow
-        End If
-    Next cell
-    On Error GoTo 0
-    
-    HighlightInconsistentFormulas = True
-End Function
 
 ' --- Testing Entry Points ---
 ' Allows headless automated testing of the range cleaning logic.

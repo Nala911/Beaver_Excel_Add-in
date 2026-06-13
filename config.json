@@ -24,7 +24,7 @@
                       },
     "FeatureFlags":  {
                          "ManifestFile":  "features.json",
-                         "GeneratedFeatureCount":  8
+                         "GeneratedFeatureCount":  10
                      },
     "Hotkeys":  [
                     {
@@ -86,6 +86,8 @@
                   "BtnWrap":  "FunctionWizard",
                   "BtnStaticSheetWorkbook":  "CalculateNow",
                   "BtnCleanData":  "Clear",
+                  "BtnModifyData":  "ChangeCase",
+                  "BtnHighlightData":  "ConditionalFormattingMenu",
                   "BtnBreakLinks":  "WorkbookLinks",
                   "BtnDuplicate":  "FileSaveAs",
                   "BtnExport":  "Export",

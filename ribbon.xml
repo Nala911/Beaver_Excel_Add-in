@@ -15,6 +15,8 @@
         </group>
         <group id="GrpCleanup" label="Data Tools">
           <button id="BtnCleanData" label="Clean Data" imageMso="Clear" size="large" onAction="Ribbon_OnCleanData" keytip="CD" screentip="Clean Data" supertip="Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook)." />
+          <button id="BtnModifyData" label="Modify Data" imageMso="ChangeCase" size="large" onAction="Ribbon_OnModifyData" keytip="MD" screentip="Modify Data" supertip="Modifies text and dates in the selection (casing or date standardization)." />
+          <button id="BtnHighlightData" label="Highlight Data" imageMso="ConditionalFormattingMenu" size="large" onAction="Ribbon_OnHighlightData" keytip="HD" screentip="Highlight Data" supertip="Highlights inconsistent formulas (yellow) and duplicate values (soft red) in the selected scope (Range, Sheet, or Workbook)." />
           <button id="BtnBreakLinks" label="Break Links" imageMso="WorkbookLinks" size="large" onAction="Ribbon_OnBreakExternalLinks" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />
         </group>
         <group id="GrpExport" label="File Actions">

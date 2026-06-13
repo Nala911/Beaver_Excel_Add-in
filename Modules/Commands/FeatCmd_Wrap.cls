@@ -74,8 +74,8 @@ Private Sub ExecuteWrapperCellMode(ByVal targetRange As Range)
 
     Dim wrapperCell As Range
     Dim wrapperFormula As String
-    Dim area As Range
-    Dim cell As Range
+    Dim formulaCells As Range
+    Dim constantCells As Range
     Dim totalErrors As Long
 
     Set wrapperCell = Infra_UIFactory.PromptForRelatedCell(targetRange.Cells(1, 1))
@@ -101,15 +101,21 @@ Private Sub ExecuteWrapperCellMode(ByVal targetRange As Range)
     If Not Infra_Undo.SaveStateOrConfirm(targetRange, COMMAND_NAME) Then GoTo CleanExit
     Application.StatusBar = "Wrapping " & Format(targetRange.CountLarge, "#,##0") & " cells using the selected wrapper cell..."
 
-    For Each area In targetRange.Areas
-        If area.CountLarge = 1 Then
-            ApplyWrapperCellToCell area.Cells(1, 1), wrapperFormula, totalErrors
-        Else
-            For Each cell In area.Cells
-                ApplyWrapperCellToCell cell, wrapperFormula, totalErrors
-            Next cell
+    If targetRange.CountLarge = 1 Then
+        If targetRange.HasFormula Then
+            ApplyWrapperCellToRange targetRange, wrapperFormula, True, totalErrors
+        ElseIf Not IsEmpty(targetRange.Value) Then
+            ApplyWrapperCellToRange targetRange, wrapperFormula, False, totalErrors
         End If
-    Next area
+    Else
+        On Error Resume Next
+        Set formulaCells = targetRange.SpecialCells(xlCellTypeFormulas)
+        Set constantCells = targetRange.SpecialCells(xlCellTypeConstants)
+        On Error GoTo ErrHandler
+
+        If Not formulaCells Is Nothing Then ApplyWrapperCellToRange formulaCells, wrapperFormula, True, totalErrors
+        If Not constantCells Is Nothing Then ApplyWrapperCellToRange constantCells, wrapperFormula, False, totalErrors
+    End If
 
     If totalErrors > 0 Then
         Infra_Interaction.ShowWarning "Completed with " & totalErrors & " error(s). Some cells could not be updated."
@@ -465,5 +471,102 @@ CleanExit:
     Exit Sub
 ErrHandler:
     Infra_Error.HandleError "TestApplyWrapperCellDirect", Err
+    Resume CleanExit
+End Sub
+
+Private Sub ApplyWrapperCellToRange(ByVal targetCells As Range, ByVal wrapperFormula As String, ByVal isFormulaRange As Boolean, ByRef errorCount As Long)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ApplyWrapperCellToRange")
+    On Error GoTo ErrHandler
+
+    Dim area As Range
+    Dim formulas As Variant
+    Dim values As Variant
+    Dim r As Long
+    Dim c As Long
+    Dim replacementText As String
+    Dim finalFormula As String
+    Dim cell As Range
+
+    For Each area In targetCells.Areas
+        If area.CountLarge = 1 Then
+            ApplyWrapperCellToCell area.Cells(1, 1), wrapperFormula, errorCount
+        Else
+            formulas = area.Formula2
+            values = area.Value2
+
+            For r = 1 To UBound(formulas, 1)
+                For c = 1 To UBound(formulas, 2)
+                    If isFormulaRange Then
+                        Dim formulaStr As String
+                        formulaStr = CStr(formulas(r, c))
+                        If Left$(formulaStr, 1) = "=" Then
+                            replacementText = Mid$(formulaStr, 2)
+                        Else
+                            replacementText = formulaStr
+                        End If
+                    Else
+                        Dim v As Variant
+                        v = values(r, c)
+                        If IsError(v) Then
+                            replacementText = GetErrorString(v)
+                        ElseIf VarType(v) = vbString Then
+                            replacementText = """" & Replace(CStr(v), """", """""") & """"
+                        ElseIf VarType(v) = vbBoolean Then
+                            replacementText = IIf(CBool(v), "TRUE", "FALSE")
+                        ElseIf IsEmpty(v) Then
+                            replacementText = vbNullString
+                        Else
+                            replacementText = CStr(v)
+                        End If
+                    End If
+
+                    finalFormula = ReplaceFirstCellReference(wrapperFormula, replacementText)
+                    formulas(r, c) = finalFormula
+                Next c
+            Next r
+
+            On Error Resume Next
+            area.Formula2 = formulas
+            If Err.Number <> 0 Then
+                Err.Clear
+                For Each cell In area.Cells
+                    ApplyWrapperCellToCell cell, wrapperFormula, errorCount
+                Next cell
+            End If
+            On Error GoTo ErrHandler
+        End If
+    Next area
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "ApplyWrapperCellToRange", Err
+    Resume CleanExit
+End Sub
+
+Private Function GetErrorString(ByVal errVal As Variant) As String
+    Select Case errVal
+        Case CVErr(xlErrDiv0): GetErrorString = "#DIV/0!"
+        Case CVErr(xlErrNull): GetErrorString = "#NULL!"
+        Case CVErr(xlErrNA): GetErrorString = "#N/A"
+        Case CVErr(xlErrName): GetErrorString = "#NAME?"
+        Case CVErr(xlErrNum): GetErrorString = "#NUM!"
+        Case CVErr(xlErrRef): GetErrorString = "#REF!"
+        Case CVErr(xlErrValue): GetErrorString = "#VALUE!"
+        Case Else: GetErrorString = "#ERROR!"
+    End Select
+End Function
+
+Public Sub TestApplyWrapperCellRangeDirect(ByVal targetCells As Range, ByVal wrapperFormula As String, ByVal isFormulaRange As Boolean, ByRef errorCount As Long)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("TestApplyWrapperCellRangeDirect")
+    On Error GoTo ErrHandler
+
+    ApplyWrapperCellToRange targetCells, wrapperFormula, isFormulaRange, errorCount
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "TestApplyWrapperCellRangeDirect", Err
     Resume CleanExit
 End Sub

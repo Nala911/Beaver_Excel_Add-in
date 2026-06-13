@@ -22,15 +22,23 @@ Public Sub RunGeneratedTests()
     Lib_Tests_Features.Test_Backspace_LargeRange_Undo
     Lib_Tests_Features.Test_BreakExternalLinks_Execution
     Lib_Tests_Features.Test_CleanData_CheckboxOptions
+    Lib_Tests_Features.Test_CleanData_LargeSelectionSafety
+    Lib_Tests_Features.Test_CleanData_NewEnhancements
     Lib_Tests_Features.Test_CleanData_TrimmingAndNumericalFixing
     Lib_Tests_Features.Test_CreateSheet_PlacementAndNaming
     Lib_Tests_Features.Test_Delete_Execution_And_Undo
     Lib_Tests_Features.Test_FillDown_Features
     Lib_Tests_Features.Test_FilterByCell_Execution
     Lib_Tests_Features.Test_FormatRange_Execution
+    Lib_Tests_Features.Test_FormatRange_WholeSheetSafety
     Lib_Tests_Features.Test_HelloWorld_Execution_And_Undo
+    Lib_Tests_Features.Test_HighlightData_FormulaLimitSafety
+    Lib_Tests_Features.Test_HighlightData_InconsistentFormulasAndDuplicates
     Lib_Tests_Features.Test_MakePermanent_LegacyArray_And_Undo
     Lib_Tests_Features.Test_MakePermanent_SpillHandling_And_Undo
+    Lib_Tests_Features.Test_ModifyData_Casing
+    Lib_Tests_Features.Test_ModifyData_DateStandardization
+    Lib_Tests_Features.Test_ModifyData_Undo
     Lib_Tests_Features.Test_PasteFormat_Execution
     Lib_Tests_Features.Test_StaticSheetWorkbook_Execution
     Lib_Tests_Features.Test_UdfRegistry_And_HelpCenter

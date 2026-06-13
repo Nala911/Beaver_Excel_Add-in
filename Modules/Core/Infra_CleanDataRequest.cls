@@ -20,14 +20,20 @@ Public Scope As TargetScope
 
 Public CleanTrimSpaces As Boolean
 Public CleanNonPrintables As Boolean
-Public CleanTextNumbers As Boolean
+Public CleanInvisibleChars As Boolean
+Public CleanReplaceLineBreaksWithSpace As Boolean
+Public CleanRemoveLineBreaks As Boolean
+Public CleanStandardizeLineBreaks As Boolean
+Public CleanConvertNumbers As Boolean
 Public CleanBrokenNames As Boolean
-Public CleanInconsistentFormulas As Boolean
 
 Private Sub Class_Initialize()
     CleanTrimSpaces = True
     CleanNonPrintables = True
-    CleanTextNumbers = True
+    CleanInvisibleChars = True
+    CleanReplaceLineBreaksWithSpace = False
+    CleanRemoveLineBreaks = False
+    CleanStandardizeLineBreaks = False
+    CleanConvertNumbers = False
     CleanBrokenNames = True
-    CleanInconsistentFormulas = True
 End Sub

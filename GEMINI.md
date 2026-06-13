@@ -371,6 +371,7 @@ graph TD
 - Use `Infra_Undo.SaveStateOrConfirm` before mutating worksheet ranges to check and register undo buffers. This unified helper automatically verifies if the range size is within safety limits and prompts/warns the user if it is not.
 - Flexible linter checks inside `Update.ps1` scan the entire procedure body to verify `Infra_Error.Track` is used, supporting descriptive comments at the top of public procedures.
 - Do not manually edit generated files (`UI_Ribbon.bas`, `UI_Hotkeys.bas`, `Infra_CommandRegistry.bas`, `Lib_TestManifest.bas`).
+- Always check `Application.Visible` or use standardized `Infra_Interaction` wrappers when displaying warning or information message boxes, to prevent automated/headless test suites or background processes from hanging on modal dialog prompts.
 
 ### Error Handling Pattern
 All public entry points, UI callbacks, and workbook events must use the centralized error pattern:

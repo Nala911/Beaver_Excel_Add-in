@@ -76,11 +76,11 @@ Public Function ConvertRangeToValues(ByVal targetRange As Range) As Long
         End If
     Else
         ' Spill-aware case: convert formulas to static first, then flatten the range
-        For Each cell In targetRange.Cells
-            If cell.HasFormula Then
+        If Not formulaCells Is Nothing Then
+            For Each cell In formulaCells.Cells
                 processedCount = processedCount + ConvertCellToStatic(cell)
-            End If
-        Next cell
+            Next cell
+        End If
         
         targetRange.Value = targetRange.Value
         ConvertRangeToValues = processedCount

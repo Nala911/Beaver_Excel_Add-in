@@ -118,12 +118,27 @@ Public Sub FormatRangeDirect(ByVal selRange As Range, ByVal ws As Worksheet)
 
     If ws Is Nothing Or selRange Is Nothing Then GoTo CleanExit
 
+    ' Restrict selection to UsedRange for very large ranges to prevent freezing Excel
+    If selRange.Cells.CountLarge > 50000 Then
+        Dim usedRange As Range
+        On Error Resume Next
+        Set usedRange = Application.Intersect(selRange, ws.UsedRange)
+        On Error GoTo 0
+        If Not usedRange Is Nothing Then
+            Set selRange = usedRange
+        Else
+            Set selRange = selRange.Cells(1, 1)
+        End If
+    End If
+
     ' --- Step 4: Convert overlapping tables to plain ranges (Optimized) ---
-    For Each tbl In ws.ListObjects
+    Dim tblIndex As Long
+    For tblIndex = ws.ListObjects.Count To 1 Step -1
+        Set tbl = ws.ListObjects(tblIndex)
         If Not Intersect(tbl.Range, selRange) Is Nothing Then
             tbl.Unlist
         End If
-    Next tbl
+    Next tblIndex
     Infra_Progress.UpdateProgress 20
 
     ' --- Step 5: Handle empty selection ---
