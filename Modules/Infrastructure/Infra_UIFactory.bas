@@ -78,9 +78,12 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
         "Line breaks: Remove entirely", _
         "Line breaks: Standardize to single LF", _
         "Convert numeric text to numbers", _
-        "Delete broken named ranges (#REF!)" _
+        "Delete broken named ranges (#REF!)", _
+        "Remove special symbols (tabs, bullets, ™, ®, ©)", _
+        "Standardize dashes (convert – — − to -)", _
+        "Remove accents (convert diacritics to standard letters)" _
     )
-    cleanDefaultsChecked = Array(True, True, True, False, False, False, False, True)
+    cleanDefaultsChecked = Array(True, True, True, False, False, False, False, True, False, False, False)
 
     If Not Infra_Interaction.PromptMultiOption( _
         "Select the data cleaning options to apply:", _
@@ -99,6 +102,9 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
     request.CleanStandardizeLineBreaks = False
     request.CleanConvertNumbers = False
     request.CleanBrokenNames = False
+    request.CleanSpecialSymbols = False
+    request.CleanStandardizeDashes = False
+    request.CleanRemoveAccents = False
 
     For Each idx In selectedIndices
         Select Case idx
@@ -110,6 +116,9 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
             Case 5: request.CleanStandardizeLineBreaks = True
             Case 6: request.CleanConvertNumbers = True
             Case 7: request.CleanBrokenNames = True
+            Case 8: request.CleanSpecialSymbols = True
+            Case 9: request.CleanStandardizeDashes = True
+            Case 10: request.CleanRemoveAccents = True
         End Select
     Next idx
 
@@ -279,7 +288,8 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext) As Inf
 
     highlightOptionsList = Array( _
         "Highlight Inconsistent Formulas (yellow)", _
-        "Highlight Duplicates (soft red)" _
+        "Highlight Duplicates (soft red)", _
+        "Highlight Errors (orange)" _
     )
 
     If Not Infra_Interaction.PromptOption( _
@@ -293,11 +303,14 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext) As Inf
 
     request.HighlightInconsistentFormulas = False
     request.HighlightDuplicates = False
+    request.HighlightErrors = False
 
     If chosenOption = "Highlight Inconsistent Formulas (yellow)" Then
         request.HighlightInconsistentFormulas = True
     ElseIf chosenOption = "Highlight Duplicates (soft red)" Then
         request.HighlightDuplicates = True
+    ElseIf chosenOption = "Highlight Errors (orange)" Then
+        request.HighlightErrors = True
     End If
 
     Set ShowHighlightDataDialog = request

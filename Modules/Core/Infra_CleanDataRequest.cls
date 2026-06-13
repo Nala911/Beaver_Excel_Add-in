@@ -26,6 +26,9 @@ Public CleanRemoveLineBreaks As Boolean
 Public CleanStandardizeLineBreaks As Boolean
 Public CleanConvertNumbers As Boolean
 Public CleanBrokenNames As Boolean
+Public CleanSpecialSymbols As Boolean
+Public CleanStandardizeDashes As Boolean
+Public CleanRemoveAccents As Boolean
 
 Private Sub Class_Initialize()
     CleanTrimSpaces = True
@@ -36,4 +39,7 @@ Private Sub Class_Initialize()
     CleanStandardizeLineBreaks = False
     CleanConvertNumbers = False
     CleanBrokenNames = True
+    CleanSpecialSymbols = False
+    CleanStandardizeDashes = False
+    CleanRemoveAccents = False
 End Sub

@@ -329,9 +329,14 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
     If ws.PivotTables.Count > 0 Then
         For pvtIndex = ws.PivotTables.Count To 1 Step -1
             Set pvt = ws.PivotTables(pvtIndex)
+            On Error Resume Next
             pvt.TableRange2.Copy
             pvt.TableRange2.PasteSpecial xlPasteValues
-            pCount = pCount + 1
+            If Err.Number = 0 Then
+                pCount = pCount + 1
+            End If
+            Err.Clear
+            On Error GoTo 0
         Next pvtIndex
     End If
 
@@ -339,9 +344,14 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
         For loIndex = ws.ListObjects.Count To 1 Step -1
             Set lo = ws.ListObjects(loIndex)
             If lo.SourceType <> xlSrcRange Then
+                On Error Resume Next
                 lo.Range.Copy
                 lo.Range.PasteSpecial xlPasteValues
-                tCount = tCount + 1
+                If Err.Number = 0 Then
+                    tCount = tCount + 1
+                End If
+                Err.Clear
+                On Error GoTo 0
             End If
         Next loIndex
     End If

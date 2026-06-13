@@ -25,13 +25,16 @@ Public Sub RunGeneratedTests()
     Lib_Tests_Features.Test_CleanData_LargeSelectionSafety
     Lib_Tests_Features.Test_CleanData_NewEnhancements
     Lib_Tests_Features.Test_CleanData_TrimmingAndNumericalFixing
+    Lib_Tests_Features.Test_CleanData_UserRequestedEnhancements
     Lib_Tests_Features.Test_CreateSheet_PlacementAndNaming
     Lib_Tests_Features.Test_Delete_Execution_And_Undo
     Lib_Tests_Features.Test_FillDown_Features
     Lib_Tests_Features.Test_FilterByCell_Execution
     Lib_Tests_Features.Test_FormatRange_Execution
     Lib_Tests_Features.Test_FormatRange_WholeSheetSafety
+    Lib_Tests_Features.Test_GetChunkedRanges_And_SpillExpansion
     Lib_Tests_Features.Test_HelloWorld_Execution_And_Undo
+    Lib_Tests_Features.Test_HighlightData_Errors
     Lib_Tests_Features.Test_HighlightData_FormulaLimitSafety
     Lib_Tests_Features.Test_HighlightData_InconsistentFormulasAndDuplicates
     Lib_Tests_Features.Test_MakePermanent_LegacyArray_And_Undo

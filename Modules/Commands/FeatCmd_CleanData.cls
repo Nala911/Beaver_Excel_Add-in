@@ -163,10 +163,8 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     End If
 
     Dim textCells As Range
-    Dim area As Range
-    Dim dataArr As Variant
-    Dim i As Long, totalAreas As Long
     Dim changeCount As Long
+    Dim dataArr As Variant
 
     If targetRange.CountLarge = 1 Then
         If Not targetRange.HasFormula And VarType(targetRange.Value) = vbString Then
@@ -180,50 +178,28 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
 
     If textCells Is Nothing Then Exit Function
 
-    Const CHUNK_ROW_SIZE As Long = 20000
-    Dim r As Long, chunkRowsCount As Long
+    Dim chunks As Collection
+    Set chunks = Infra_CommandSupport.GetChunkedRanges(textCells, 20000)
+    
     Dim chunkRange As Range
-
-    totalAreas = textCells.Areas.Count
-    For i = 1 To totalAreas
-        Set area = textCells.Areas(i)
-        
-        If area.Cells.CountLarge = 1 Then
+    For Each chunkRange In chunks
+        If chunkRange.Cells.CountLarge = 1 Then
             Dim oldVal As Variant, newVal As Variant
-            oldVal = area.Value
+            oldVal = chunkRange.Value
             newVal = CleanTextValue(oldVal, request)
             If CStr(newVal) <> CStr(oldVal) Or TypeName(newVal) <> TypeName(oldVal) Then
-                area.Value = newVal
+                chunkRange.Value = newVal
                 changeCount = changeCount + 1
             End If
         Else
-            ' Check if area is large enough to segment into chunks
-            If area.Rows.Count > CHUNK_ROW_SIZE Then
-                For r = 1 To area.Rows.Count Step CHUNK_ROW_SIZE
-                    chunkRowsCount = CHUNK_ROW_SIZE
-                    If r + chunkRowsCount - 1 > area.Rows.Count Then
-                        chunkRowsCount = area.Rows.Count - r + 1
-                    End If
-                    
-                    Set chunkRange = area.Rows(r).Resize(chunkRowsCount)
-                    
-                    dataArr = chunkRange.Value
-                    changeCount = changeCount + CleanTextArray(dataArr, request)
-                    chunkRange.Value = dataArr
-                    
-                    DoEvents
-                    If Infra_Progress.UserCancelled Then Exit For
-                Next r
-            Else
-                dataArr = area.Value
-                changeCount = changeCount + CleanTextArray(dataArr, request)
-                area.Value = dataArr
-            End If
+            dataArr = chunkRange.Value
+            changeCount = changeCount + CleanTextArray(dataArr, request)
+            chunkRange.Value = dataArr
         End If
         
         DoEvents
         If Infra_Progress.UserCancelled Then Exit For
-    Next i
+    Next chunkRange
     
     ProcessRangeForClean = changeCount
 End Function
@@ -339,6 +315,29 @@ Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infr
         textValue = Replace(textValue, LF_PLACEHOLDER, vbLf)
     End If
 
+    ' --- 5b. Remove Special Symbols ---
+    If request.CleanSpecialSymbols Then
+        If InStr(1, textValue, Chr$(9)) > 0 Then textValue = Replace(textValue, Chr$(9), vbNullString)
+        If InStr(1, textValue, ChrW$(8226)) > 0 Then textValue = Replace(textValue, ChrW$(8226), vbNullString)
+        If InStr(1, textValue, ChrW$(8482)) > 0 Then textValue = Replace(textValue, ChrW$(8482), vbNullString)
+        If InStr(1, textValue, ChrW$(174)) > 0 Then textValue = Replace(textValue, ChrW$(174), vbNullString)
+        If InStr(1, textValue, ChrW$(169)) > 0 Then textValue = Replace(textValue, ChrW$(169), vbNullString)
+    End If
+
+    ' --- 5c. Standardize Dashes ---
+    If request.CleanStandardizeDashes Then
+        If InStr(1, textValue, ChrW$(8211)) > 0 Then textValue = Replace(textValue, ChrW$(8211), "-")
+        If InStr(1, textValue, ChrW$(8212)) > 0 Then textValue = Replace(textValue, ChrW$(8212), "-")
+        If InStr(1, textValue, ChrW$(8722)) > 0 Then textValue = Replace(textValue, ChrW$(8722), "-")
+    End If
+
+    ' --- 5d. Remove Accents ---
+    If request.CleanRemoveAccents Then
+        If HasNonAscii(textValue) Then
+            textValue = RemoveAccents(textValue)
+        End If
+    End If
+
     ' --- 6. Convert Numeric Text ---
     If request.CleanConvertNumbers Then
         If IsNumeric(textValue) Then
@@ -360,6 +359,89 @@ Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infr
     End If
 
     CleanTextValue = textValue
+End Function
+
+Private Function HasNonAscii(ByRef text As String) As Boolean
+    Dim i As Long, charCode As Long
+    For i = 1 To Len(text)
+        charCode = AscW(Mid$(text, i, 1))
+        If charCode < 0 Or charCode > 127 Then
+            HasNonAscii = True
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function RemoveAccents(ByVal text As String) As String
+    Dim accentedChars As String
+    accentedChars = GetAccentedChars()
+    
+    Const NORMAL_CHARS   As String = "AAAAAACEEEEIIIINOOOOOOUUUUYaaaaaaceeeeiiiinoooooouuuuyySsZzCcDdEeNnRrTtUu"
+    
+    Dim i As Long, pos As Long
+    Dim char As String * 1
+    Dim result As String
+    
+    result = text
+    For i = 1 To Len(result)
+        char = Mid$(result, i, 1)
+        pos = InStr(1, accentedChars, char, vbBinaryCompare)
+        If pos > 0 Then
+            Mid$(result, i, 1) = Mid$(NORMAL_CHARS, pos, 1)
+        End If
+    Next i
+    
+    ' Handle multi-character replacements (like Æ -> AE, æ -> ae, ß -> ss, Œ -> OE, œ -> oe)
+    If InStr(1, result, ChrW$(198), vbBinaryCompare) > 0 Then result = Replace(result, ChrW$(198), "AE")
+    If InStr(1, result, ChrW$(230), vbBinaryCompare) > 0 Then result = Replace(result, ChrW$(230), "ae")
+    If InStr(1, result, ChrW$(223), vbBinaryCompare) > 0 Then result = Replace(result, ChrW$(223), "ss")
+    If InStr(1, result, ChrW$(338), vbBinaryCompare) > 0 Then result = Replace(result, ChrW$(338), "OE")
+    If InStr(1, result, ChrW$(339), vbBinaryCompare) > 0 Then result = Replace(result, ChrW$(339), "oe")
+    
+    RemoveAccents = result
+End Function
+
+Private Function GetAccentedChars() As String
+    Dim chars As String
+    ' ÀÁÂÃÄÅ
+    chars = chars & ChrW$(192) & ChrW$(193) & ChrW$(194) & ChrW$(195) & ChrW$(196) & ChrW$(197)
+    ' Ç
+    chars = chars & ChrW$(199)
+    ' ÈÉÊË
+    chars = chars & ChrW$(200) & ChrW$(201) & ChrW$(202) & ChrW$(203)
+    ' ÌÍÎÏ
+    chars = chars & ChrW$(204) & ChrW$(205) & ChrW$(206) & ChrW$(207)
+    ' Ñ
+    chars = chars & ChrW$(209)
+    ' ÒÓÔÕÖØ
+    chars = chars & ChrW$(210) & ChrW$(211) & ChrW$(212) & ChrW$(213) & ChrW$(214) & ChrW$(216)
+    ' ÙÚÛÜ
+    chars = chars & ChrW$(217) & ChrW$(218) & ChrW$(219) & ChrW$(220)
+    ' Ý
+    chars = chars & ChrW$(221)
+    ' àáâãäå
+    chars = chars & ChrW$(224) & ChrW$(225) & ChrW$(226) & ChrW$(227) & ChrW$(228) & ChrW$(229)
+    ' ç
+    chars = chars & ChrW$(231)
+    ' èéêë
+    chars = chars & ChrW$(232) & ChrW$(233) & ChrW$(234) & ChrW$(235)
+    ' ìíîï
+    chars = chars & ChrW$(236) & ChrW$(237) & ChrW$(238) & ChrW$(239)
+    ' ñ
+    chars = chars & ChrW$(241)
+    ' òóôõöø
+    chars = chars & ChrW$(242) & ChrW$(243) & ChrW$(244) & ChrW$(245) & ChrW$(246) & ChrW$(248)
+    ' ùúûü
+    chars = chars & ChrW$(249) & ChrW$(250) & ChrW$(251) & ChrW$(252)
+    ' ýÿ
+    chars = chars & ChrW$(253) & ChrW$(255)
+    ' ŠšŽž
+    chars = chars & ChrW$(352) & ChrW$(353) & ChrW$(381) & ChrW$(382)
+    ' ČčĎďĚěŇňŘřŤťŮů
+    chars = chars & ChrW$(268) & ChrW$(269) & ChrW$(270) & ChrW$(271) & ChrW$(282) & ChrW$(283)
+    chars = chars & ChrW$(327) & ChrW$(328) & ChrW$(344) & ChrW$(345) & ChrW$(356) & ChrW$(357)
+    chars = chars & ChrW$(366) & ChrW$(367)
+    GetAccentedChars = chars
 End Function
 
 Private Sub CleanNamedRanges(ByVal wb As Workbook, ByVal ws As Worksheet)

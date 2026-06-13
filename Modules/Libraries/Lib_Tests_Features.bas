@@ -415,6 +415,90 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_CleanData_UserRequestedEnhancements()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CleanData_UserRequestedEnhancements")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_CleanUser"
+    Dim cleanedCount As Long
+    Dim cmd As New FeatCmd_CleanData
+
+    ' 1. Test Remove Special Symbols (Tabs, Bullets, Trademark, Registered, Copyright)
+    ws.Range("A1").Value2 = "hello" & Chr$(9) & "world"
+    ws.Range("A2").Value2 = "Bullet" & ChrW$(8226) & "Text"
+    ws.Range("A3").Value2 = "Company" & ChrW$(8482)
+    ws.Range("A4").Value2 = "Brand" & ChrW$(174)
+    ws.Range("A5").Value2 = "Copyright" & ChrW$(169) & "2026"
+
+    Dim req As New Infra_CleanDataRequest
+    req.CleanTrimSpaces = False
+    req.CleanNonPrintables = False
+    req.CleanInvisibleChars = False
+    req.CleanConvertNumbers = False
+    req.CleanBrokenNames = False
+    req.CleanSpecialSymbols = True
+
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A1:A5"), req)
+
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "helloworld", "Should remove tabs"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, "BulletText", "Should remove bullets"
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, "Company", "Should remove trademark"
+    Lib_Tests.AssertEqual ws.Range("A4").Value2, "Brand", "Should remove registered"
+    Lib_Tests.AssertEqual ws.Range("A5").Value2, "Copyright2026", "Should remove copyright"
+
+    ' 2. Test Standardize Dashes (convert en-dash, em-dash, unicode minus sign to standard hyphen)
+    ws.Range("B1").Value2 = "a" & ChrW$(8211) & "b"
+    ws.Range("B2").Value2 = "c" & ChrW$(8212) & "d"
+    ws.Range("B3").Value2 = ChrW$(8722) & "15.2"
+
+    req.CleanSpecialSymbols = False
+    req.CleanStandardizeDashes = True
+    req.CleanConvertNumbers = True
+
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("B1:B3"), req)
+
+    Lib_Tests.AssertEqual ws.Range("B1").Value2, "a-b", "Should convert en dash to hyphen"
+    Lib_Tests.AssertEqual ws.Range("B2").Value2, "c-d", "Should convert em dash to hyphen"
+    Lib_Tests.AssertEqual ws.Range("B3").Value2, -15.2, "Should convert minus sign to hyphen and parse as numeric"
+    Lib_Tests.AssertEqual VarType(ws.Range("B3").Value2), vbDouble, "Minus sign converted numeric should be a Double"
+
+    ' 3. Test Remove Accents (José -> Jose, François -> Francois, Müller -> Muller)
+    ws.Range("C1").Value2 = "Jos" & ChrW$(233)
+    ws.Range("C2").Value2 = "Fran" & ChrW$(231) & "ois"
+    ws.Range("C3").Value2 = "M" & ChrW$(252) & "ller"
+    ws.Range("C4").Value2 = "Stra" & ChrW$(223) & "e & " & ChrW$(198) & "ther & " & ChrW$(339) & "uf"
+
+    req.CleanStandardizeDashes = False
+    req.CleanConvertNumbers = False
+    req.CleanRemoveAccents = True
+
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("C1:C4"), req)
+
+    Lib_Tests.AssertEqual ws.Range("C1").Value2, "Jose", "Should remove accent from Jose"
+    Lib_Tests.AssertEqual ws.Range("C2").Value2, "Francois", "Should remove cedilla from Francois"
+    Lib_Tests.AssertEqual ws.Range("C3").Value2, "Muller", "Should remove umlaut from Muller"
+    Lib_Tests.AssertEqual ws.Range("C4").Value2, "Strasse & AEther & oeuf", "Should replace multi-character accents"
+
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_CleanData_UserRequestedEnhancements", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_BreakExternalLinks_Execution()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_BreakExternalLinks_Execution")
     On Error GoTo ErrHandler
@@ -1542,6 +1626,64 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_HighlightData_Errors()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HighlightData_Errors")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_HighErr"
+
+    ' Set up standard Excel errors
+    ' 1. Constant errors
+    ws.Range("A1").Value = CVErr(xlErrNA)
+    ws.Range("A2").Value = CVErr(xlErrValue)
+    
+    ' 2. Formula errors
+    ws.Range("A3").Formula2 = "=1/0"
+    ws.Range("A4").Formula2 = "=VLOOKUP(""nonexistent"", B10:C11, 2, FALSE)"
+    
+    ' 3. Normal values
+    ws.Range("A5").Value2 = "normal text"
+    ws.Range("A6").Value2 = 42
+
+    ' Reset colors
+    ws.Range("A1:A6").Interior.ColorIndex = xlNone
+
+    Dim req As New Infra_HighlightDataRequest
+    req.HighlightInconsistentFormulas = False
+    req.HighlightDuplicates = False
+    req.HighlightErrors = True
+
+    Dim cmd As New FeatCmd_HighlightData
+    cmd.HighlightRangeWithOptionsDirect ws.Range("A1:A6"), req
+
+    ' Check assertions
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, RGB(255, 204, 153), "A1 constant error should be highlighted orange"
+    Lib_Tests.AssertEqual ws.Range("A2").Interior.Color, RGB(255, 204, 153), "A2 constant error should be highlighted orange"
+    Lib_Tests.AssertEqual ws.Range("A3").Interior.Color, RGB(255, 204, 153), "A3 formula error should be highlighted orange"
+    Lib_Tests.AssertEqual ws.Range("A4").Interior.Color, RGB(255, 204, 153), "A4 formula error should be highlighted orange"
+    Lib_Tests.AssertEqual ws.Range("A5").Interior.ColorIndex, xlNone, "A5 normal text should not be highlighted"
+    Lib_Tests.AssertEqual ws.Range("A6").Interior.ColorIndex, xlNone, "A6 normal number should not be highlighted"
+
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_HighlightData_Errors", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_FormatRange_WholeSheetSafety()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FormatRange_WholeSheetSafety")
     Dim guard As New Infra_AppStateGuard
@@ -1624,6 +1766,51 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_CleanData_LargeSelectionSafety", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_GetChunkedRanges_And_SpillExpansion()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_GetChunkedRanges_And_SpillExpansion")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_Chunk"
+
+    ' 1. Test GetChunkedRanges
+    ' Create a multi-area range: A1:A50 and C1:C10
+    Dim multiAreaRange As Range
+    Set multiAreaRange = Application.Union(ws.Range("A1:A50"), ws.Range("C1:C10"))
+    
+    ' Chunk with limit of 20 rows
+    Dim chunks As Collection
+    Set chunks = Infra_CommandSupport.GetChunkedRanges(multiAreaRange, 20)
+    
+    ' A1:A50 (50 rows) -> should split into 3 chunks: A1:A20, A21:A40, A41:A50
+    ' C1:C10 (10 rows) -> should be 1 chunk: C1:C10
+    ' Total expected chunks = 4
+    Lib_Tests.AssertEqual chunks.Count, 4, "Should divide ranges into 4 chunks total"
+    
+    Lib_Tests.AssertEqual chunks(1).Address(False, False), "A1:A20", "First chunk should be A1:A20"
+    Lib_Tests.AssertEqual chunks(2).Address(False, False), "A21:A40", "Second chunk should be A21:A40"
+    Lib_Tests.AssertEqual chunks(3).Address(False, False), "A41:A50", "Third chunk should be A41:A50"
+    Lib_Tests.AssertEqual chunks(4).Address(False, False), "C1:C10", "Fourth chunk should be C1:C10"
+
+    ' Cleanup temporary sheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_GetChunkedRanges_And_SpillExpansion", Err
     Resume CleanExit
 End Sub
 

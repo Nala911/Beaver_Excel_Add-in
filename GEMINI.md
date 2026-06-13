@@ -232,6 +232,8 @@ graph TD
 - `Wrap` -> `FeatCmd_Wrap` (Supports formula reuse and pattern typing)
 - `StaticSheetWorkbook` -> `FeatCmd_StaticSheetWorkbook`
 - `CleanData` -> `FeatCmd_CleanData`
+- `ModifyData` -> `FeatCmd_ModifyData`
+- `HighlightData` -> `FeatCmd_HighlightData`
 - `BreakExternalLinks` -> `FeatCmd_BreakExternalLinks`
 - `Duplicate` -> `FeatCmd_Duplicate`
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf`
@@ -261,7 +263,7 @@ graph TD
 
 #### Ribbon Groups
 - **Formatting**: Wrap (mode picked in a `UserForm`), static sheet/workbook.
-- **Data Tools**: Clean data, break links.
+- **Data Tools**: Clean data, modify data, highlight data, break links.
 - **File Actions**: Duplicate workbook, export range.
 - **Support**: Help center.
 
@@ -271,7 +273,7 @@ graph TD
 - **Save destinations** (e.g. duplicate/export flows) must use a shared Save As picker with Desktop-based defaults and overwrite confirmation.
 
 #### Ribbon controls in `features.json`
-- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`.
+- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`.
 
 #### Hotkeys in `config.json`
 - `^+4` -> `UI_Hotkeys.Hotkey_ApplyCustomNumberFormat`
@@ -317,7 +319,7 @@ graph TD
   },
   "FeatureFlags": {
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 8
+    "GeneratedFeatureCount": 10
   },
   "Hotkeys": [
     {
@@ -331,6 +333,8 @@ graph TD
     "BtnWrap": "FunctionWizard",
     "BtnStaticSheetWorkbook": "CalculateNow",
     "BtnCleanData": "Clear",
+    "BtnModifyData": "ChangeCase",
+    "BtnHighlightData": "ConditionalFormattingMenu",
     "BtnBreakLinks": "WorkbookLinks",
     "BtnDuplicate": "FileSaveAs",
     "BtnExport": "Export",

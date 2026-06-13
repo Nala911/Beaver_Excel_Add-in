@@ -294,3 +294,39 @@ ErrHandler:
     Infra_Error.HandleError "ResolveWorksheetsToProcess", Err
     Resume CleanExit
 End Function
+
+' Returns a Collection of Range objects, representing chunked sub-ranges of a large range.
+' If targetRange is small, returns targetRange as the single element in the collection.
+' Otherwise, splits targetRange areas into chunks of up to maxRowsPerChunk rows.
+Public Function GetChunkedRanges(ByVal targetRange As Range, Optional ByVal maxRowsPerChunk As Long = 20000) As Collection
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetChunkedRanges")
+    Dim result As New Collection
+    On Error GoTo ErrHandler
+
+    If targetRange Is Nothing Then GoTo CleanExit
+
+    Dim area As Range
+    Dim r As Long, chunkRowsCount As Long
+
+    For Each area In targetRange.Areas
+        If area.Rows.Count > maxRowsPerChunk Then
+            For r = 1 To area.Rows.Count Step maxRowsPerChunk
+                chunkRowsCount = maxRowsPerChunk
+                If r + chunkRowsCount - 1 > area.Rows.Count Then
+                    chunkRowsCount = area.Rows.Count - r + 1
+                End If
+                result.Add area.Rows(r).Resize(chunkRowsCount)
+            Next r
+        Else
+            result.Add area
+        End If
+    Next area
+
+CleanExit:
+    Set GetChunkedRanges = result
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "GetChunkedRanges", Err
+    Resume CleanExit
+End Function

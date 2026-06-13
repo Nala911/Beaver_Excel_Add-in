@@ -110,9 +110,6 @@ Private Function ProcessRangeForModify(ByRef targetRange As Range, ByVal request
     If targetRange Is Nothing Then Exit Function
 
     Dim targetCells As Range
-    Dim area As Range
-    Dim dataArr As Variant
-    Dim i As Long, totalAreas As Long
     Dim changeCount As Long
 
     If targetRange.CountLarge = 1 Then
@@ -131,53 +128,34 @@ Private Function ProcessRangeForModify(ByRef targetRange As Range, ByVal request
 
     If targetCells Is Nothing Then Exit Function
 
-    Const CHUNK_ROW_SIZE As Long = 20000
-    Dim r As Long, chunkRowsCount As Long
+    Dim chunks As Collection
+    Set chunks = Infra_CommandSupport.GetChunkedRanges(targetCells, 20000)
+    
     Dim chunkRange As Range
-
-    totalAreas = targetCells.Areas.Count
-    For i = 1 To totalAreas
-        Set area = targetCells.Areas(i)
-        
-        If area.Cells.CountLarge = 1 Then
+    For Each chunkRange In chunks
+        If chunkRange.Cells.CountLarge = 1 Then
             Dim oldVal As Variant, newVal As Variant
             Dim oldFormat As String, newFormat As String
-            oldVal = area.Value
-            oldFormat = area.NumberFormat
+            oldVal = chunkRange.Value
+            oldFormat = chunkRange.NumberFormat
             
             Dim isModified As Boolean
             isModified = ModifyTextValue(oldVal, oldFormat, request, newVal, newFormat)
             
             If isModified Then
                 If newFormat <> vbNullString Then
-                    area.NumberFormat = newFormat
+                    chunkRange.NumberFormat = newFormat
                 End If
-                area.Value = newVal
+                chunkRange.Value = newVal
                 changeCount = changeCount + 1
             End If
         Else
-            ' Check if area is large enough to segment into chunks
-            If area.Rows.Count > CHUNK_ROW_SIZE Then
-                For r = 1 To area.Rows.Count Step CHUNK_ROW_SIZE
-                    chunkRowsCount = CHUNK_ROW_SIZE
-                    If r + chunkRowsCount - 1 > area.Rows.Count Then
-                        chunkRowsCount = area.Rows.Count - r + 1
-                    End If
-                    
-                    Set chunkRange = area.Rows(r).Resize(chunkRowsCount)
-                    changeCount = changeCount + ModifyAreaValues(chunkRange, request)
-                    
-                    DoEvents
-                    If Infra_Progress.UserCancelled Then Exit For
-                Next r
-            Else
-                changeCount = changeCount + ModifyAreaValues(area, request)
-            End If
+            changeCount = changeCount + ModifyAreaValues(chunkRange, request)
         End If
         
         DoEvents
         If Infra_Progress.UserCancelled Then Exit For
-    Next i
+    Next chunkRange
     
     ProcessRangeForModify = changeCount
 End Function

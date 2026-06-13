@@ -174,6 +174,11 @@ Private Sub ProcessRangeForHighlight(ByRef targetRange As Range, ByVal request A
             HighlightDuplicatesInArea area
         End If
         
+        ' 3. Highlight Errors
+        If request.HighlightErrors Then
+            HighlightErrorsInArea area
+        End If
+        
         DoEvents
         If Infra_Progress.UserCancelled Then Exit For
     Next i
@@ -291,6 +296,47 @@ Private Sub HighlightDuplicatesInArea(ByVal area As Range)
     End If
 End Sub
 
+Private Sub HighlightErrorsInArea(ByVal area As Range)
+    Dim formulaErrors As Range
+    Dim constantErrors As Range
+    Dim errorCells As Range
+    
+    On Error Resume Next
+    Set formulaErrors = area.SpecialCells(xlCellTypeFormulas, xlErrors)
+    Set constantErrors = area.SpecialCells(xlCellTypeConstants, xlErrors)
+    On Error GoTo 0
+    
+    If Not formulaErrors Is Nothing And Not constantErrors Is Nothing Then
+        Set errorCells = Application.Union(formulaErrors, constantErrors)
+    ElseIf Not formulaErrors Is Nothing Then
+        Set errorCells = formulaErrors
+    ElseIf Not constantErrors Is Nothing Then
+        Set errorCells = constantErrors
+    End If
+    
+    If errorCells Is Nothing Then Exit Sub
+    
+    Dim subArea As Range
+    Dim unionRange As Range
+    
+    For Each subArea In errorCells.Areas
+        If unionRange Is Nothing Then
+            Set unionRange = subArea
+        Else
+            Set unionRange = Application.Union(unionRange, subArea)
+        End If
+        
+        If unionRange.Areas.Count >= 500 Then
+            unionRange.Interior.Color = RGB(255, 204, 153) ' Soft Orange
+            Set unionRange = Nothing
+        End If
+    Next subArea
+    
+    If Not unionRange Is Nothing Then
+        unionRange.Interior.Color = RGB(255, 204, 153) ' Soft Orange
+    End If
+End Sub
+
 ' --- Testing Entry Points ---
 Public Sub HighlightRangeDirect(ByVal targetRange As Range)
     Dim tracker As Object: Set tracker = Infra_Error.Track("HighlightRangeDirect")
@@ -303,5 +349,18 @@ CleanExit:
     Exit Sub
 ErrHandler:
     Infra_Error.HandleError "HighlightRangeDirect", Err
+    Resume CleanExit
+End Sub
+
+Public Sub HighlightRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As Infra_HighlightDataRequest)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("HighlightRangeWithOptionsDirect")
+    On Error GoTo ErrHandler
+    
+    ProcessRangeForHighlight targetRange, request
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "HighlightRangeWithOptionsDirect", Err
     Resume CleanExit
 End Sub
