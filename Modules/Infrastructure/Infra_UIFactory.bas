@@ -38,7 +38,6 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
     End If
 
     promptMsg = "Clean text with TRIM and CLEAN." & vbCrLf & vbCrLf & _
-                BuildCompactContextSummary(ctx, hasSelection) & vbCrLf & vbCrLf & _
                 "Scope:" & vbCrLf & _
                 "Sheet - Active sheet" & vbCrLf & _
                 "Workbook - All sheets"
@@ -256,7 +255,6 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext) As Inf
     End If
 
     promptMsg = "Highlight key data patterns (Inconsistent Formulas, Duplicates)." & vbCrLf & vbCrLf & _
-                BuildCompactContextSummary(ctx, hasSelection) & vbCrLf & vbCrLf & _
                 "Scope:" & vbCrLf & _
                 "Sheet - Active sheet" & vbCrLf & _
                 "Workbook - All sheets"
@@ -397,7 +395,6 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
     Dim normalizedChoice As String
 
     promptMsg = "Convert formulas to values." & vbCrLf & vbCrLf & _
-                BuildCompactContextSummary(ctx, False) & vbCrLf & vbCrLf & _
                 "Scope:" & vbCrLf & _
                 "Sheet - Active sheet" & vbCrLf & _
                 "Workbook - All sheets"
@@ -439,7 +436,6 @@ Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal lin
     End If
 
     promptMsg = "External links were found and can be permanently converted to values." & vbCrLf & vbCrLf & _
-                BuildContextSummary(ctx, False) & vbCrLf & vbCrLf & _
                 "Detected items:" & vbCrLf & linkInfo & vbCrLf & vbCrLf & _
                 "Choose a scope:" & vbCrLf & _
                 "Sheet     - Converts linked formulas, pivot tables, and external tables only on the active sheet" & vbCrLf & _
@@ -537,7 +533,6 @@ Public Function PromptForWrapFormulaPattern(ByVal ctx As Infra_ActionContext, By
     Do
         If Not ShowInputBox( _
             "Wrap selected formulas or values with a new formula pattern." & vbCrLf & vbCrLf & _
-            BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
             "Use " & placeholder & " where the existing cell content should go." & vbCrLf & _
             "Example: =ROUND(" & placeholder & ", 0)", _
             BuildDialogTitle("Wrap Formula"), placeholder, userInput) Then GoTo CleanExit
@@ -624,33 +619,6 @@ Private Function BuildDialogTitle(ByVal dialogName As String) As String
     BuildDialogTitle = Infra_Interaction.FormatTitle(dialogName)
 End Function
 
-Private Function BuildContextSummary(ByVal ctx As Infra_ActionContext, Optional ByVal includeSelection As Boolean = True) As String
-    Dim summary As String
-
-    If ctx Is Nothing Then Exit Function
-
-    summary = "Workbook: " & SafeWorkbookName(ctx) & vbCrLf & _
-              "Sheet: " & SafeWorksheetName(ctx)
-
-    If includeSelection Then
-        summary = summary & vbCrLf & "Selection: " & SafeSelectionAddress(ctx)
-    End If
-
-    BuildContextSummary = summary
-End Function
-
-Private Function BuildCompactContextSummary(ByVal ctx As Infra_ActionContext, Optional ByVal includeSelection As Boolean = True) As String
-    Dim summary As String
-
-    summary = "Book: " & SafeWorkbookName(ctx) & vbCrLf & _
-              "Sheet: " & SafeWorksheetName(ctx)
-
-    If includeSelection Then
-        summary = summary & vbCrLf & "Selection: " & SafeSelectionAddress(ctx)
-    End If
-
-    BuildCompactContextSummary = summary
-End Function
 
 Private Function BuildExportSummary(ByVal sourceRange As Range) As String
     Dim summary As String
@@ -755,7 +723,6 @@ Public Function PromptForWrapMode(ByVal ctx As Infra_ActionContext) As Long
     Do
         If Not ShowOptionPicker( _
             "Choose how you want to wrap the current selection." & vbCrLf & vbCrLf & _
-            BuildContextSummary(ctx, True) & vbCrLf & vbCrLf & _
             "Choose one of these options:" & vbCrLf & _
             "Cell  - Reuse a wrapper formula from another cell" & vbCrLf & _
             "Type  - Enter a formula pattern manually using [value]" & vbCrLf & vbCrLf & _

@@ -1815,4 +1815,149 @@ ErrHandler:
 End Sub
 
 
+Public Sub Test_UI_OptionPicker_DynamicLayout()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_UI_OptionPicker_DynamicLayout")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim frm As Object
+    On Error Resume Next
+    Set frm = VBA.UserForms.Add("UI_OptionPicker")
+    On Error GoTo ErrHandler
+
+    Lib_Tests.AssertTrue Not frm Is Nothing, "UI_OptionPicker form should be loadable"
+
+    ' Configure single select option picker
+    frm.ConfigureOptionPicker "Test Title", "Select an option from the list below:", "Option 2", Array("Option 1", "Option 2", "Option 3 With a Very Long Text to Test Sizing")
+
+    ' Check layout size properties of the form and controls
+    Dim lst As Object: Set lst = frm.Controls("lstHotkeys")
+    Dim lblPrompt As Object: Set lblPrompt = frm.Controls("lblPrompt")
+    Dim btnOK As Object: Set btnOK = frm.Controls("btnOK")
+    Dim btnCancel As Object: Set btnCancel = frm.Controls("btnCancel")
+
+    Lib_Tests.AssertTrue Not lst Is Nothing, "ListBox control lstHotkeys should exist"
+    Lib_Tests.AssertTrue Not lblPrompt Is Nothing, "Label control lblPrompt should exist"
+    Lib_Tests.AssertTrue Not btnOK Is Nothing, "Button control btnOK should exist"
+    Lib_Tests.AssertTrue Not btnCancel Is Nothing, "Button control btnCancel should exist"
+
+    ' Assertions on visibility
+    Lib_Tests.AssertTrue lblPrompt.Visible = False, "Label control lblPrompt should be invisible"
+    Lib_Tests.AssertTrue btnOK.Visible = False, "Button control btnOK should be invisible"
+    Lib_Tests.AssertTrue btnCancel.Visible = False, "Button control btnCancel should be invisible"
+
+    ' Assertions on dimensions
+    Lib_Tests.AssertTrue frm.Width > 200, "Form width should be scaled dynamically"
+    Lib_Tests.AssertTrue frm.Height > 50, "Form height should be scaled dynamically"
+    Lib_Tests.AssertTrue lst.Width > 180, "ListBox width should be scaled to fit options"
+
+    ' Test multi-select option picker configuration
+    frm.ConfigureMultiOptionPicker "Test Multi Title", "Check the options:", Array("Opt A", "Opt B"), Array(True, False)
+
+    Lib_Tests.AssertTrue lst.MultiSelect = 1, "ListBox should be set to multi-select checkbox mode"
+
+CleanExit:
+    On Error Resume Next
+    If Not frm Is Nothing Then Unload frm
+    On Error GoTo 0
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "Test_UI_OptionPicker_DynamicLayout", Err
+    Resume CleanExit
+End Sub
+
+
+Public Sub Test_ModifyData_MixedFormats()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ModifyData_MixedFormats")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_ModMixedFmts"
+
+    ' Setup cells with different number formats
+    ws.Range("A1").NumberFormat = "General"
+    ws.Range("A2").NumberFormat = "$#,##0"
+    ws.Range("A3").NumberFormat = "@"
+
+    ws.Range("A1").Value2 = "apple"
+    ws.Range("A2").Value2 = "banana"
+    ws.Range("A3").Value2 = "cherry"
+
+    Dim cmd As New FeatCmd_ModifyData
+    Dim req As New Infra_ModifyDataRequest
+    Set req.Context = New Infra_ActionContext
+    
+    req.Operation = "Case: UPPERCASE"
+    
+    Dim changes As Long
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A1:A3"), req)
+    
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "APPLE", "A1 should be uppercase"
+    Lib_Tests.AssertEqual ws.Range("A2").Value2, "BANANA", "A2 should be uppercase"
+    Lib_Tests.AssertEqual ws.Range("A3").Value2, "CHERRY", "A3 should be uppercase"
+    Lib_Tests.AssertEqual changes, 3, "Should report 3 changes"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ModifyData_MixedFormats", Err
+    Resume CleanExit
+End Sub
+
+
+Public Sub Test_FormatRange_ErrorSafety()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FormatRange_ErrorSafety")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_FmtErr"
+
+    ' Setup header and data containing errors
+    ws.Range("A1").Value2 = "HeaderA"
+    ws.Range("A2").Value2 = CVErr(xlErrValue) ' #VALUE! error in first data row
+    
+    ws.Range("B1").Value2 = "HeaderB"
+    ws.Range("B2").Value2 = "Hello" ' valid string
+
+    Dim cmd As New FeatCmd_FormatRange
+    
+    ' Call format range direct. This should not throw type mismatch error 13
+    cmd.FormatRangeDirect ws.Range("A1:B2"), ws
+
+    ' A1 and B1 should be formatted as headers (bold, font size 11)
+    Lib_Tests.AssertEqual ws.Range("A1").Font.Bold, True, "A1 should be bold"
+    Lib_Tests.AssertEqual ws.Range("B1").Font.Bold, True, "B1 should be bold"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_FormatRange_ErrorSafety", Err
+    Resume CleanExit
+End Sub
+
+
+
 

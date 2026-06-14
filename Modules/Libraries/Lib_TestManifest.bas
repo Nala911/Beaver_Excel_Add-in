@@ -30,6 +30,7 @@ Public Sub RunGeneratedTests()
     Lib_Tests_Features.Test_Delete_Execution_And_Undo
     Lib_Tests_Features.Test_FillDown_Features
     Lib_Tests_Features.Test_FilterByCell_Execution
+    Lib_Tests_Features.Test_FormatRange_ErrorSafety
     Lib_Tests_Features.Test_FormatRange_Execution
     Lib_Tests_Features.Test_FormatRange_WholeSheetSafety
     Lib_Tests_Features.Test_GetChunkedRanges_And_SpillExpansion
@@ -41,10 +42,12 @@ Public Sub RunGeneratedTests()
     Lib_Tests_Features.Test_MakePermanent_SpillHandling_And_Undo
     Lib_Tests_Features.Test_ModifyData_Casing
     Lib_Tests_Features.Test_ModifyData_DateStandardization
+    Lib_Tests_Features.Test_ModifyData_MixedFormats
     Lib_Tests_Features.Test_ModifyData_Undo
     Lib_Tests_Features.Test_PasteFormat_Execution
     Lib_Tests_Features.Test_StaticSheetWorkbook_Execution
     Lib_Tests_Features.Test_UdfRegistry_And_HelpCenter
+    Lib_Tests_Features.Test_UI_OptionPicker_DynamicLayout
     Lib_Tests_Features.Test_ValueConversion_ResolveSpillExpandedRange
     Lib_Tests_Features.Test_Wrap_CellAndPatternModes
     Lib_Tests_Features.Test_XFilter_Features

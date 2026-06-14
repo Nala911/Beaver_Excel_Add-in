@@ -25,11 +25,17 @@ Option Explicit
 
 Private mConfirmed As Boolean
 Private mSelectedValue As String
-Private mPromptText As String
 
 Private Sub UserForm_Initialize()
     mConfirmed = False
     mSelectedValue = vbNullString
+    
+    ' Hide controls so they do not show in the option picker window
+    On Error Resume Next
+    lblPrompt.Visible = False
+    btnOK.Visible = False
+    btnCancel.Visible = False
+    On Error GoTo 0
 End Sub
 
 Public Sub ConfigureOptionPicker(ByVal dialogTitle As String, ByVal promptText As String, ByVal defaultChoice As String, ByVal options As Variant)
@@ -38,21 +44,18 @@ Public Sub ConfigureOptionPicker(ByVal dialogTitle As String, ByVal promptText A
 
     mConfirmed = False
     mSelectedValue = vbNullString
-    mPromptText = promptText
 
     Me.Caption = dialogTitle
-    btnOK.Caption = "Select"
     
     ' Reset list style to default single-select
     Me.lstHotkeys.MultiSelect = 0 ' fmMultiSelectSingle
     Me.lstHotkeys.ListStyle = 0 ' fmListStylePlain
     
-    LoadOptionList promptText, defaultChoice, options
-    ResizeOptionPickerLayout promptText
+    LoadOptionList defaultChoice, options
+    ResizeOptionPickerLayout
 
 CleanExit:
     Exit Sub
-
 ErrHandler:
     Infra_Error.HandleError "ConfigureOptionPicker", Err
     Resume CleanExit
@@ -64,27 +67,24 @@ Public Sub ConfigureMultiOptionPicker(ByVal dialogTitle As String, ByVal promptT
 
     mConfirmed = False
     mSelectedValue = vbNullString
-    mPromptText = promptText
 
     Me.Caption = dialogTitle
-    btnOK.Caption = "Select"
     
     ' Configure list box for multi-select checkboxes
     Me.lstHotkeys.MultiSelect = 1 ' fmMultiSimple
     Me.lstHotkeys.ListStyle = 1 ' fmListStyleOption
     
-    LoadMultiOptionList promptText, options, defaultChecked
-    ResizeOptionPickerLayout promptText
+    LoadMultiOptionList options, defaultChecked
+    ResizeOptionPickerLayout
 
 CleanExit:
     Exit Sub
-
 ErrHandler:
     Infra_Error.HandleError "ConfigureMultiOptionPicker", Err
     Resume CleanExit
 End Sub
 
-Private Sub LoadMultiOptionList(ByVal promptText As String, ByVal options As Variant, ByVal defaultChecked As Variant)
+Private Sub LoadMultiOptionList(ByVal options As Variant, ByVal defaultChecked As Variant)
     Dim i As Long
     Dim candidateValue As String
     Dim isChecked As Boolean
@@ -94,8 +94,6 @@ Private Sub LoadMultiOptionList(ByVal promptText As String, ByVal options As Var
     With Me.lstHotkeys
         .Clear
         .ColumnCount = 1
-
-        ConfigurePromptLabel promptText
 
         If IsArray(options) Then
             For i = LBound(options) To UBound(options)
@@ -158,9 +156,7 @@ Public Property Get SelectedIndices() As Variant
     End If
 End Property
 
-
-
-Private Sub LoadOptionList(ByVal promptText As String, ByVal defaultChoice As String, ByVal options As Variant)
+Private Sub LoadOptionList(ByVal defaultChoice As String, ByVal options As Variant)
     Dim i As Long
     Dim defaultIndex As Long
     Dim candidateValue As String
@@ -170,8 +166,6 @@ Private Sub LoadOptionList(ByVal promptText As String, ByVal defaultChoice As St
     With Me.lstHotkeys
         .Clear
         .ColumnCount = 1
-
-        ConfigurePromptLabel promptText
 
         If IsArray(options) Then
             For i = LBound(options) To UBound(options)
@@ -192,141 +186,103 @@ Private Sub LoadOptionList(ByVal promptText As String, ByVal defaultChoice As St
     End With
 End Sub
 
-Private Sub ResizeOptionPickerLayout(ByVal promptText As String)
-    Const MIN_FORM_HEIGHT As Double = 150
-    Const FORM_BOTTOM_PADDING As Double = 18
-    Const CONTROL_GAP As Double = 6
-    Const BUTTON_GAP As Double = 8
-    Const LABEL_LINE_HEIGHT As Double = 13
-    Const LABEL_MIN_HEIGHT As Double = 18
-    Const MIN_FORM_WIDTH As Double = 320
-    Const MAX_FORM_WIDTH As Double = 380
-    Const CHARS_PER_LINE As Long = 54
+Private Sub ResizeOptionPickerLayout()
+    Const MARGIN_LEFT As Double = 12
+    Const MARGIN_RIGHT As Double = 12
+    Const MARGIN_TOP As Double = 12
+    Const MARGIN_BOTTOM As Double = 12
+    Const MIN_LISTBOX_WIDTH As Double = 220
+    Const MAX_LISTBOX_WIDTH As Double = 420
 
-    Dim promptLabel As Object
-    Dim promptLines As Long
-    Dim estimatedLabelHeight As Double
-    Dim listHeight As Double
-    Dim targetWidth As Double
+    ' Calculate ListBox and form width based on maximum option length
+    Dim maxOptionChars As Long
+    Dim i As Long
+    Dim optionText As String
+    maxOptionChars = 0
+    For i = 0 To lstHotkeys.ListCount - 1
+        optionText = lstHotkeys.List(i)
+        If Len(optionText) > maxOptionChars Then
+            maxOptionChars = Len(optionText)
+        End If
+    Next i
+
+    Dim listPadding As Double
+    If lstHotkeys.MultiSelect = 0 Then
+        listPadding = 24
+    Else
+        listPadding = 38
+    End If
+
+    ' If the list is long, add width for vertical scrollbar
+    Dim isLongList As Boolean
     Dim rowHeight As Double
     Dim maxListHeight As Double
     Dim minListHeight As Double
-
-    Set promptLabel = GetPromptLabel()
-
-    targetWidth = Me.Width
-    If targetWidth < MIN_FORM_WIDTH Then targetWidth = MIN_FORM_WIDTH
-    If targetWidth > MAX_FORM_WIDTH Then targetWidth = MAX_FORM_WIDTH
-    Me.Width = targetWidth
-
-    If Not promptLabel Is Nothing Then
-        promptLabel.Left = lstHotkeys.Left
-        promptLabel.Width = lstHotkeys.Width
-        promptLabel.WordWrap = True
-
-        promptLines = EstimatePromptLineCount(promptText, CHARS_PER_LINE)
-        estimatedLabelHeight = LABEL_LINE_HEIGHT * promptLines
-        If estimatedLabelHeight < LABEL_MIN_HEIGHT Then estimatedLabelHeight = LABEL_MIN_HEIGHT
-        promptLabel.Height = estimatedLabelHeight
-
-        lstHotkeys.Top = promptLabel.Top + promptLabel.Height + CONTROL_GAP
-    End If
-
-    If Me.lstHotkeys.MultiSelect = 0 Then
-        rowHeight = 15
-        minListHeight = 30
-        maxListHeight = 120
+    
+    If lstHotkeys.MultiSelect = 0 Then
+        rowHeight = lstHotkeys.Font.Size + 5
+        minListHeight = rowHeight * 2
+        maxListHeight = rowHeight * 8
     Else
-        rowHeight = 18
-        minListHeight = 36
-        maxListHeight = 180
+        rowHeight = lstHotkeys.Font.Size + 8
+        minListHeight = rowHeight * 2
+        maxListHeight = rowHeight * 10
     End If
 
+    Dim listHeight As Double
     listHeight = (lstHotkeys.ListCount * rowHeight) + 4
+    
+    If listHeight > maxListHeight Then
+        isLongList = True
+        listPadding = listPadding + 16
+    End If
+
+    Dim targetWidth As Double
+    targetWidth = (maxOptionChars * 6.2) + listPadding
+    
+    Dim listBoxWidth As Double
+    listBoxWidth = Application.Max(MIN_LISTBOX_WIDTH, targetWidth)
+    If listBoxWidth > MAX_LISTBOX_WIDTH Then listBoxWidth = MAX_LISTBOX_WIDTH
+
+    ' Lay out ListBox
+    lstHotkeys.Left = MARGIN_LEFT
+    lstHotkeys.Top = MARGIN_TOP
+    lstHotkeys.Width = listBoxWidth
+    
     If listHeight < minListHeight Then listHeight = minListHeight
     If listHeight > maxListHeight Then listHeight = maxListHeight
     lstHotkeys.Height = listHeight
 
-    btnOK.Top = lstHotkeys.Top + lstHotkeys.Height + BUTTON_GAP
-    SetFormInsideHeight btnOK.Top + btnOK.Height + FORM_BOTTOM_PADDING, MIN_FORM_HEIGHT
-End Sub
+    ' Set Form Inside dimensions
+    Dim desiredInsideWidth As Double
+    desiredInsideWidth = listBoxWidth + MARGIN_LEFT + MARGIN_RIGHT
+    
+    Dim desiredInsideHeight As Double
+    desiredInsideHeight = lstHotkeys.Top + lstHotkeys.Height + MARGIN_BOTTOM
 
-
-
-Private Sub ConfigurePromptLabel(ByVal promptText As String)
-    Dim ctrl As Object
-    Dim fallbackText As String
-
-    fallbackText = Trim$(Replace(promptText, vbCrLf, " "))
-    If fallbackText = vbNullString Then fallbackText = "Choose an option"
-
-    For Each ctrl In Me.Controls
-        If TypeName(ctrl) = "Label" Then
-            ctrl.Caption = promptText
-            ctrl.Visible = True
-            Exit Sub
-        End If
-    Next ctrl
-
-    Me.Caption = Me.Caption & " - " & fallbackText
-End Sub
-
-Private Function GetPromptLabel() As Object
-    Dim ctrl As Object
-
-    For Each ctrl In Me.Controls
-        If TypeName(ctrl) = "Label" Then
-            Set GetPromptLabel = ctrl
-            Exit Function
-        End If
-    Next ctrl
-End Function
-
-Private Function EstimatePromptLineCount(ByVal promptText As String, ByVal approxCharsPerLine As Long) As Long
-    Dim segments() As String
-    Dim i As Long
-    Dim segmentLength As Long
-    Dim totalLines As Long
-
-    If approxCharsPerLine < 1 Then approxCharsPerLine = 1
-
-    segments = Split(promptText, vbCrLf)
-    totalLines = 0
-
-    For i = LBound(segments) To UBound(segments)
-        segmentLength = Len(Trim$(segments(i)))
-        If segmentLength = 0 Then
-            totalLines = totalLines + 1
-        Else
-            totalLines = totalLines + ((segmentLength - 1) \ approxCharsPerLine) + 1
-        End If
-    Next i
-
-    If totalLines < 1 Then totalLines = 1
-    EstimatePromptLineCount = totalLines
-End Function
-
-Private Sub SetFormInsideHeight(ByVal desiredInsideHeight As Double, Optional ByVal minimumOverallHeight As Double = 0)
+    ' Set actual window dimensions
+    Dim frameWidth As Double
     Dim frameHeight As Double
-    Dim targetHeight As Double
-
+    
+    frameWidth = Me.Width - Me.InsideWidth
     frameHeight = Me.Height - Me.InsideHeight
-    ' Fall back to standard title bar + border height of 28 points if calculation returns 0 or negative (due to form not shown yet) or unreasonably large
-    If frameHeight <= 0 Or frameHeight > 40 Then
-        frameHeight = 28
-    End If
-
-    targetHeight = desiredInsideHeight + frameHeight
-    If targetHeight < minimumOverallHeight Then targetHeight = minimumOverallHeight
-
-    Me.Height = targetHeight
+    
+    If frameWidth <= 0 Or frameWidth > 30 Then frameWidth = 10
+    If frameHeight <= 0 Or frameHeight > 50 Then frameHeight = 28
+    
+    Me.Width = desiredInsideWidth + frameWidth
+    Me.Height = desiredInsideHeight + frameHeight
 End Sub
 
 Private Sub UserForm_Activate()
     Dim tracker As Object: Set tracker = Infra_Error.Track("UserForm_Activate")
     On Error GoTo ErrHandler
 
-    ResizeOptionPickerLayout mPromptText
+    ResizeOptionPickerLayout
+    
+    On Error Resume Next
+    lstHotkeys.SetFocus
+    On Error GoTo 0
 
 CleanExit:
     Exit Sub
@@ -336,16 +292,13 @@ ErrHandler:
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
-
     If CloseMode = vbFormControlMenu Then
         Cancel = True
-        mConfirmed = False
-        mSelectedValue = vbNullString
-        Me.Hide
+        CancelSelection
     End If
 End Sub
 
-Private Sub btnOK_Click()
+Private Sub ConfirmSelection()
     Dim i As Long
     Dim hasSelection As Boolean
     Dim regKey As String
@@ -384,8 +337,39 @@ Private Sub btnOK_Click()
     Me.Hide
 End Sub
 
-Private Sub lstHotkeys_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
+Private Sub CancelSelection()
+    mConfirmed = False
+    mSelectedValue = vbNullString
+    Me.Hide
+End Sub
 
+Private Sub lstHotkeys_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
     Cancel = True
-    btnOK_Click
+    ConfirmSelection
+End Sub
+
+Private Sub lstHotkeys_Click()
+    If Me.lstHotkeys.MultiSelect = 0 Then
+        ConfirmSelection
+    End If
+End Sub
+
+Private Sub lstHotkeys_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If KeyCode = 13 Then ' vbKeyReturn (Enter)
+        ConfirmSelection
+        KeyCode = 0
+    ElseIf KeyCode = 27 Then ' vbKeyEscape (Escape)
+        CancelSelection
+        KeyCode = 0
+    End If
+End Sub
+
+Private Sub UserForm_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If KeyCode = 13 Then ' vbKeyReturn (Enter)
+        ConfirmSelection
+        KeyCode = 0
+    ElseIf KeyCode = 27 Then ' vbKeyEscape (Escape)
+        CancelSelection
+        KeyCode = 0
+    End If
 End Sub

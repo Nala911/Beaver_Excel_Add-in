@@ -268,7 +268,11 @@ graph TD
 - **Support**: Help center.
 
 *UI Interaction Design Rules:*
-- **Fixed-choice and multi-select checkbox flows** (e.g. Clean Data options, Export format, Make Static scope, Break Links scope, Wrap mode, and sheet placement) must use a reusable `UserForm` option picker (configured for single-select or multi-select).
+- **Fixed-choice and multi-select checkbox flows** (e.g. Clean Data options, Export format, Make Static scope, Break Links scope, Wrap mode, and sheet placement) must use the reusable `UI_OptionPicker` UserForm:
+  - **Dynamic Sizing**: The layout and window size of the picker are calculated dynamically (via `ResizeOptionPickerLayout`) based on the length of the longest option text and option count. Standard form elements like title prompts, OK, and Cancel buttons are hidden (`Visible = False`) to prevent extra empty space.
+  - **Single-Select Behavior**: In single-select mode, clicking or double-clicking any list option immediately confirms the selection and hides the picker. It uses a row height based on font size + 5, and is capped at a maximum height of 8 visible options.
+  - **Multi-Select Behavior**: In multi-select mode, options display with checkboxes. It uses a row height of font size + 8, and is capped at a maximum height of 10 visible options. Confirming is done via pressing Enter, and cancelling is done via pressing Escape or closing the window.
+  - **Keyboard Navigation**: Active focus is programmatically set to the list box control (`lstHotkeys.SetFocus`) on form activation. Pressing Enter (`vbKeyReturn`) confirms the selection, and Escape (`vbKeyEscape`) cancels.
 - **Free-form inputs** (e.g. formula patterns) must use text prompts.
 - **Save destinations** (e.g. duplicate/export flows) must use a shared Save As picker with Desktop-based defaults and overwrite confirmation.
 
@@ -366,6 +370,7 @@ graph TD
 - Prefer command classes (`FeatCmd_*`) implementing the `ICommand` interface (`CanExecute` and `Execute`) for feature implementations.
 - Use `Infra_CommandSupport.ActionContextFromCommandContext` instead of reading globals.
 - Use array-based range processing over cell-by-cell loops for bulk performance.
+- Use the unified `AreaHasSpill` helper in `Infra_ValueConversion` to verify the presence of dynamic array spills within ranges, avoiding redundant and slow cell-by-cell loops.
 - Use `.Formula2` for modern, spill-safe formulas. Never use `.Formula`.
 - Preserve user-facing constants in `config.json`.
 - Iterate backwards using an index countdown (`For i = Collection.Count To 1 Step -1`) when mutating or deleting elements inside collections (such as `PivotTables`, `ListObjects`, or `Names`) to avoid dynamic re-indexing skip bugs.

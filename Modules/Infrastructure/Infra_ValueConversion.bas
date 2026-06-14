@@ -29,31 +29,7 @@ Public Function ConvertRangeToValues(ByVal targetRange As Range) As Long
         On Error GoTo ErrHandler
     End If
 
-    If Not formulaCells Is Nothing Then
-        For Each cell In formulaCells.Cells
-            Dim hasSpillVal As Boolean
-            On Error Resume Next
-            hasSpillVal = cell.HasSpill
-            On Error GoTo ErrHandler
-            If hasSpillVal Then
-                hasSpills = True
-                Exit For
-            End If
-        Next cell
-    End If
-
-    If Not hasSpills Then
-        For Each cell In targetRange.Cells
-            Dim spillAnchor As Range
-            On Error Resume Next
-            Set spillAnchor = cell.SpillParent
-            On Error GoTo ErrHandler
-            If Not spillAnchor Is Nothing Then
-                hasSpills = True
-                Exit For
-            End If
-        Next cell
-    End If
+    hasSpills = AreaHasSpill(targetRange)
 
     If Not hasSpills Then
         ' Simple case: no dynamic arrays or spills involved

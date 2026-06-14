@@ -181,7 +181,7 @@ Public Sub FormatRangeDirect(ByVal selRange As Range, ByVal ws As Worksheet)
             Set col = selRange.Columns(i)
             Set firstDataCell = Intersect(dataRange, col).Cells(1, 1)
 
-            If Not IsEmpty(firstDataCell.Value) Then
+            If Not IsEmpty(firstDataCell.Value) And Not IsError(firstDataCell.Value) Then
                 If IsDate(firstDataCell.Value) Then
                     Intersect(dataRange, col).NumberFormat = Infra_Config.Model.DisplayDateFormat
                 ElseIf IsNumeric(firstDataCell.Value) Then

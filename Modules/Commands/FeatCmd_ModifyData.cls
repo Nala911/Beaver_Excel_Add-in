@@ -169,6 +169,9 @@ Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_Mo
     Dim isFmtsArray As Boolean
     isFmtsArray = IsArray(fmts)
     
+    Dim isFmtsNull As Boolean
+    isFmtsNull = IsNull(fmts)
+    
     Dim hasChanged As Boolean
     Dim changeCount As Long
     
@@ -192,6 +195,8 @@ Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_Mo
             
             If isFmtsArray Then
                 oldFormat = CStr(fmts(r, c))
+            ElseIf isFmtsNull Then
+                oldFormat = CStr(area.Cells(r, c).NumberFormat)
             Else
                 oldFormat = CStr(fmts)
             End If
