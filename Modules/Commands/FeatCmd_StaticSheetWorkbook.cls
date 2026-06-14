@@ -10,10 +10,13 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Implements ICommand
+Implements IBatchProcessor
 
 ' @Module: FeatCmd_StaticSheetWorkbook
 ' @Category: Feature
 ' @Description: Converts formulas (including spills) to static values across active sheet or whole workbook.
+
+Private m_CurrentRequest As Infra_ScopedRequest
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -23,19 +26,22 @@ Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandV
     Dim tracker As Object: Set tracker = Infra_Error.Track("StaticSheetWorkbook.Validate")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
-    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
-
-    If ctx Is Nothing Then
-        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("There is no active workbook available for this command.")
-    ElseIf ctx.WorkbookRef Is Nothing Or ctx.WorksheetRef Is Nothing Then
-        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("There is no active worksheet available for this command.")
-    ElseIf ctx.WorkbookRef Is ThisWorkbook Then
-        Set ICommand_Validate = Infra_CommandSupport.ValidationFailure( _
-            "Make Static cannot run while the Beaver add-in workbook is active. Switch to the workbook you want to convert and try again.")
-    Else
-        Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
+    Dim result As CommandValidationResult
+    Set result = Infra_CommandSupport.ValidateHasWorksheet(context)
+    If Not result.IsExecutable Then
+        Set ICommand_Validate = result
+        Exit Function
     End If
+
+    Set result = Infra_CommandSupport.ValidateActiveWorkbookNotAddin(context, "Make Static")
+    If Not result.IsExecutable Then
+        ' Match the original warning message
+        result.Message = "Make Static cannot run while the Beaver add-in workbook is active. Switch to the workbook you want to convert and try again."
+        Set ICommand_Validate = result
+        Exit Function
+    End If
+
+    Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
 
 CleanExit:
     Exit Function
@@ -73,56 +79,36 @@ Private Sub ExecuteStaticConversion(ByVal request As Infra_ScopedRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteStaticConversion")
     On Error GoTo ErrHandler
 
-    Dim sheetsToProcess As Collection
-    Dim wsItem As Variant
-    Dim ws As Worksheet
-    Dim convertedCount As Long
-    Dim index As Long
-    Dim scopeLabel As String
-    Dim originalScreenUpdating As Boolean
-
     If request Is Nothing Then GoTo CleanExit
     If request.Context Is Nothing Then GoTo CleanExit
 
-    Set sheetsToProcess = Infra_CommandSupport.ResolveWorksheetsToProcess(request.Context, request.Scope)
-    If sheetsToProcess Is Nothing Then GoTo CleanExit
+    Set m_CurrentRequest = request
 
-    If request.Scope = TargetScopeActiveSheet Then
-        If Not Infra_Undo.SaveStateOrConfirm(request.Context.WorksheetRef.UsedRange, "Static Sheet") Then GoTo CleanExit
-    End If
+    Dim totalConverted As Long
+    totalConverted = Infra_BatchProcessor.Execute(request.Context, request.Scope, Me, "Make Static", False)
 
-    originalScreenUpdating = Application.ScreenUpdating
-    If request.Scope = TargetScopeWorkbook Then
-        Application.ScreenUpdating = False
-    End If
-
-    Infra_Progress.StartProgress "Converting Formulas to Values", sheetsToProcess.Count
-    For Each wsItem In sheetsToProcess
-        index = index + 1
-        Set ws = wsItem
-        convertedCount = convertedCount + ConvertSheetToValues(ws)
-        Infra_Progress.UpdateProgress index, True
-        If Infra_Progress.UserCancelled Then Exit For
-    Next wsItem
-
+    Dim scopeLabel As String
     scopeLabel = IIf(request.Scope = TargetScopeWorkbook, "Whole Workbook", "Active Sheet")
-    Infra_Interaction.ShowInfo "Done! Converted " & convertedCount & " formula cell(s) - " & scopeLabel & ".", _
+    Infra_Interaction.ShowInfo "Done! Converted " & totalConverted & " formula cell(s) - " & scopeLabel & ".", _
                                Infra_Config.ADDIN_NAME & " - Process Complete"
 
 CleanExit:
-    If Not request Is Nothing Then
-        If request.Scope = TargetScopeWorkbook Then
-            Application.ScreenUpdating = originalScreenUpdating
-        End If
-    End If
-    Infra_Progress.EndProgress
+    Set m_CurrentRequest = Nothing
     Exit Sub
 
 ErrHandler:
-    Infra_Progress.EndProgress
+    Set m_CurrentRequest = Nothing
     Infra_Error.HandleError "ExecuteStaticConversion", Err
     Resume CleanExit
 End Sub
+
+Private Function IBatchProcessor_ProcessRange(ByVal targetRange As Range) As Long
+    IBatchProcessor_ProcessRange = 0
+End Function
+
+Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
+    IBatchProcessor_ProcessWorksheet = ConvertSheetToValues(ws)
+End Function
 
 
 

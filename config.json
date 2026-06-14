@@ -24,7 +24,7 @@
                       },
     "FeatureFlags":  {
                          "ManifestFile":  "features.json",
-                         "GeneratedFeatureCount":  10
+                         "GeneratedFeatureCount":  22
                      },
     "Hotkeys":  [
                     {
@@ -87,11 +87,23 @@
                   "BtnStaticSheetWorkbook":  "CalculateNow",
                   "BtnCleanData":  "Clear",
                   "BtnModifyData":  "ChangeCase",
+                  "BtnDateFixer":  "CalculateNow",
+                  "BtnCaseFixer":  "ChangeCase",
                   "BtnHighlightData":  "ConditionalFormattingMenu",
+                  "BtnHighlightInconsistentFormulas":  "CalculateNow",
+                  "BtnHighlightDuplicates":  "ConditionalFormattingMenu",
+                  "BtnHighlightErrors":  "ErrorChecking",
+                  "BtnHighlightHardcodedValues":  "FunctionWizard",
                   "BtnBreakLinks":  "WorkbookLinks",
                   "BtnDuplicate":  "FileSaveAs",
                   "BtnExport":  "Export",
+                  "BtnExportPng":  "FileSaveAs",
+                  "BtnExportPdf":  "Export",
                   "BtnHelpCenter":  "Help",
-                  "BtnHelloWorld":  "HappyFace"
+                  "BtnHelloWorld":  "HappyFace",
+                  "BtnReportGenerator":  "TableProperties",
+                  "BtnTableOfContents":  "TableOfContentsDialog",
+                  "BtnUnmergeFill":  "TableProperties",
+                  "BtnForceNumber":  "CalculateNow"
               }
 }

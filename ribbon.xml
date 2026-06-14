@@ -15,13 +15,31 @@
         </group>
         <group id="GrpCleanup" label="Data Tools">
           <button id="BtnCleanData" label="Clean Data" imageMso="Clear" size="large" onAction="Ribbon_OnCleanData" keytip="CD" screentip="Clean Data" supertip="Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook)." />
-          <button id="BtnModifyData" label="Modify Data" imageMso="ChangeCase" size="large" onAction="Ribbon_OnModifyData" keytip="MD" screentip="Modify Data" supertip="Modifies text and dates in the selection (casing or date standardization)." />
-          <button id="BtnHighlightData" label="Highlight Data" imageMso="ConditionalFormattingMenu" size="large" onAction="Ribbon_OnHighlightData" keytip="HD" screentip="Highlight Data" supertip="Highlights inconsistent formulas (yellow) and duplicate values (soft red) in the selected scope (Range, Sheet, or Workbook)." />
+          <menu id="BtnModifyData" label="Modify Data" imageMso="ChangeCase" size="large" keytip="MD" screentip="Modify Data" supertip="Modifies text and dates in the selection (casing or date standardization).">
+            <button id="BtnDateFixer" label="Date Fixer" imageMso="CalculateNow" onAction="Ribbon_OnDateFixer" keytip="DF" screentip="Date Fixer" supertip="Standardizes dates in the selection." />
+            <button id="BtnCaseFixer" label="Case Fixer" imageMso="ChangeCase" onAction="Ribbon_OnCaseFixer" keytip="CF" screentip="Case Fixer" supertip="Standardizes casing of text in the selection." />
+            <button id="BtnUnmergeFill" label="Unmerge &amp; Fill Down" imageMso="TableProperties" onAction="Ribbon_OnUnmergeFill" keytip="UF" screentip="Unmerge &amp; Fill Down" supertip="Unmerges the selected cells and fills the parent value to all unmerged cells." />
+            <button id="BtnForceNumber" label="Convert Text to Number" imageMso="CalculateNow" onAction="Ribbon_OnForceNumber" keytip="FN" screentip="Convert Text to Number" supertip="Forces text-formatted numbers in the selection to become actual numeric values." />
+          </menu>
+          <menu id="BtnHighlightData" label="Highlight Data" imageMso="ConditionalFormattingMenu" size="large" keytip="HD" screentip="Highlight Data" supertip="Highlights key data patterns and duplicates.">
+            <button id="BtnHighlightInconsistentFormulas" label="Inconsistent Formulas" imageMso="CalculateNow" onAction="Ribbon_OnHighlightInconsistentFormulas" keytip="HI" screentip="Inconsistent Formulas" supertip="Highlights inconsistent formulas in yellow." />
+            <button id="BtnHighlightDuplicates" label="Duplicates" imageMso="ConditionalFormattingMenu" onAction="Ribbon_OnHighlightDuplicates" keytip="HD" screentip="Duplicates" supertip="Highlights duplicate values in soft red." />
+            <button id="BtnHighlightErrors" label="Errors" imageMso="ErrorChecking" onAction="Ribbon_OnHighlightErrors" keytip="HE" screentip="Errors" supertip="Highlights cells with errors in orange." />
+            <button id="BtnHighlightHardcodedValues" label="Hardcoded Values" imageMso="FunctionWizard" onAction="Ribbon_OnHighlightHardcodedValues" keytip="HH" screentip="Hardcoded Values" supertip="Highlights formulas containing hardcoded values in lavender." />
+          </menu>
           <button id="BtnBreakLinks" label="Break Links" imageMso="WorkbookLinks" size="large" onAction="Ribbon_OnBreakExternalLinks" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />
         </group>
         <group id="GrpExport" label="File Actions">
           <button id="BtnDuplicate" label="Duplicate Workbook" imageMso="FileSaveAs" size="large" onAction="Ribbon_OnDuplicate" keytip="DP" screentip="Save a Macro-Free Copy" supertip="Creates a macro-free copy of the current workbook and lets you choose where to save it." />
-          <button id="BtnExport" label="Export" imageMso="Export" size="large" onAction="Ribbon_OnExport" keytip="EX" screentip="Export as Image or PDF" supertip="Exports the selected range (or the full used range if nothing is selected) and lets you choose where to save it as PNG or PDF." />
+          <menu id="BtnExport" label="Export" imageMso="Export" size="large" keytip="EX" screentip="Export" supertip="Exports the selected range as a PNG image or a PDF document.">
+            <button id="BtnExportPng" label="Export as PNG" imageMso="FileSaveAs" onAction="Ribbon_OnExportPng" keytip="EP" screentip="Export as PNG" supertip="Exports the selected range as a PNG image." />
+            <button id="BtnExportPdf" label="Export as PDF" imageMso="Export" onAction="Ribbon_OnExportPdf" keytip="ED" screentip="Export as PDF" supertip="Exports the selected range as a PDF document." />
+          </menu>
+        </group>
+        <group id="GrpReports" label="Reports">
+          <menu id="BtnReportGenerator" label="Report Generator" imageMso="TableProperties" size="large" keytip="RG" screentip="Report Generator" supertip="Generate structured Table of Contents.">
+            <button id="BtnTableOfContents" label="Table of Contents" imageMso="TableOfContentsDialog" onAction="Ribbon_OnTableOfContents" keytip="TC" screentip="Table of Contents" supertip="Creates a hyperlinked index sheet at the beginning of the workbook." />
+          </menu>
         </group>
         <group id="BeaverHelpGroup" label="Support">
           <button id="BtnHelpCenter" label="Help Center" imageMso="Help" size="large" onAction="Ribbon_OnShowHelpCenter" keytip="H" screentip="Show Help Center" supertip="Opens the Beaver Help Center, listing all registered hotkeys, user-defined functions, and their descriptions." />

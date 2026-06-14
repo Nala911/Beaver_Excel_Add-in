@@ -10,12 +10,15 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Implements ICommand
+Implements IBatchProcessor
 
 ' @Module: FeatCmd_ModifyData
 ' @Category: Feature
 ' @Description: Modification tools for selected ranges (Casing: UPPER/lower/Proper, Date Standardization using custom patterns).
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: ICommand, Infra_ActionContext, Infra_ModifyDataRequest, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction, Infra_Config
+
+Private m_CurrentRequest As Infra_ModifyDataRequest
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -45,7 +48,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         Infra_Error.AddState stateInfo, "Selection", ctx.SelectionRange.Address(False, False)
     End If
 
-    Set request = Infra_UIFactory.ShowModifyDataDialog(ctx)
+    Set request = Infra_UIFactory.ShowModifyDataDialog(ctx, context.CommandName)
     If request Is Nothing Then GoTo CleanExit
     
     ExecuteModifyData request
@@ -62,49 +65,35 @@ Private Sub ExecuteModifyData(ByVal request As Infra_ModifyDataRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteModifyData")
     On Error GoTo ErrHandler
     
-    Dim targetRange As Range
-    Dim stateInfo As Collection
-    Dim modifiedCount As Long
-    Dim originalScreenUpdating As Boolean
-
-    Set stateInfo = Infra_Error.NewStateInfo()
-    
     If request Is Nothing Then GoTo CleanExit
     If request.Context Is Nothing Then GoTo CleanExit
-    Infra_Error.AddState stateInfo, "Operation", request.Operation
     
-    Set targetRange = request.Context.SelectionRange
-    If targetRange Is Nothing Then GoTo CleanExit
-
-    ' --- 1. Save State for Undo ---
-    If Not Infra_Undo.SaveStateOrConfirm(targetRange, "Modify Data") Then GoTo CleanExit
+    Set m_CurrentRequest = request
     
-    ' --- 2. Initialize Screen Updating & Progress Bar ---
-    originalScreenUpdating = Application.ScreenUpdating
-    Application.ScreenUpdating = False
-    Infra_Progress.StartProgress "Modifying Data", 1
-    
-    ' --- 3. Execute modification ---
-    modifiedCount = ProcessRangeForModify(targetRange, request)
-    
-    Infra_Progress.UpdateProgress 1, True
-    Application.ScreenUpdating = originalScreenUpdating
+    Dim totalModified As Long
+    totalModified = Infra_BatchProcessor.Execute(request.Context, TargetScopeSelection, Me, "Modify Data", False)
     
     Dim msg As String
-    msg = "Done! Modified " & modifiedCount & " cells in the selected range."
+    msg = "Done! Modified " & totalModified & " cells in the selected range."
     Infra_Interaction.ShowInfo msg, "Modify Data"
 
 CleanExit:
-    Infra_Progress.EndProgress
+    Set m_CurrentRequest = Nothing
     Exit Sub
 
 ErrHandler:
-    If Not request Is Nothing Then
-        Application.ScreenUpdating = originalScreenUpdating
-    End If
-    Infra_Error.HandleError "ExecuteModifyData", Err, stateInfo
+    Set m_CurrentRequest = Nothing
+    Infra_Error.HandleError "ExecuteModifyData", Err
     Resume CleanExit
 End Sub
+
+Private Function IBatchProcessor_ProcessRange(ByVal targetRange As Range) As Long
+    IBatchProcessor_ProcessRange = ProcessRangeForModify(targetRange, m_CurrentRequest)
+End Function
+
+Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
+    IBatchProcessor_ProcessWorksheet = 0
+End Function
 
 Private Function ProcessRangeForModify(ByRef targetRange As Range, ByVal request As Infra_ModifyDataRequest) As Long
     If targetRange Is Nothing Then Exit Function
@@ -187,13 +176,18 @@ Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_Mo
     Dim changedCells As Collection
     Set changedCells = New Collection
     
+    Dim needsFormats As Boolean
+    needsFormats = (request.Operation = "Date Standardization")
+
     For r = rowMin To rowMax
         For c = colMin To colMax
             Dim oldVal As Variant
             Dim oldFormat As String
             oldVal = vals(r, c)
             
-            If isFmtsArray Then
+            If Not needsFormats And VarType(oldVal) <> vbDate Then
+                oldFormat = vbNullString
+            ElseIf isFmtsArray Then
                 oldFormat = CStr(fmts(r, c))
             ElseIf isFmtsNull Then
                 oldFormat = CStr(area.Cells(r, c).NumberFormat)

@@ -10,12 +10,15 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Implements ICommand
+Implements IBatchProcessor
 
 ' @Module: FeatCmd_HighlightData
 ' @Category: Feature
 ' @Description: Advanced data highlighting tools (Inconsistent Formulas, Duplicates).
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: ICommand, Infra_ActionContext, Infra_HighlightDataRequest, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction
+
+Private m_CurrentRequest As Infra_HighlightDataRequest
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -45,7 +48,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         Infra_Error.AddState stateInfo, "Selection", ctx.SelectionRange.Address(False, False)
     End If
 
-    Set request = Infra_UIFactory.ShowHighlightDataDialog(ctx)
+    Set request = Infra_UIFactory.ShowHighlightDataDialog(ctx, context.CommandName)
     If request Is Nothing Then GoTo CleanExit
     
     ExecuteHighlightData request
@@ -62,80 +65,43 @@ Private Sub ExecuteHighlightData(ByVal request As Infra_HighlightDataRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteHighlightData")
     On Error GoTo ErrHandler
     
-    Dim ws As Worksheet
-    Dim targetRange As Range
-    Dim stateInfo As Collection
-    Dim scopeLabel As String
-    Dim originalScreenUpdating As Boolean
-
-    Set stateInfo = Infra_Error.NewStateInfo()
-    
     If request Is Nothing Then GoTo CleanExit
     If request.Context Is Nothing Then GoTo CleanExit
-    Infra_Error.AddState stateInfo, "Scope", request.Scope
     
-    ' --- 1. Save State for Undo ---
+    Set m_CurrentRequest = request
+    
+    Dim totalProcessed As Long
+    totalProcessed = Infra_BatchProcessor.Execute(request.Context, request.Scope, Me, "Highlight Data", False)
+    
+    Dim scopeLabel As String
     Select Case request.Scope
-        Case TargetScopeSelection
-            Set targetRange = request.Context.SelectionRange
-            scopeLabel = "selection"
-        Case TargetScopeActiveSheet
-            Set targetRange = request.Context.WorksheetRef.UsedRange
-            scopeLabel = "active sheet"
-        Case TargetScopeWorkbook
-            Set targetRange = Nothing
-            scopeLabel = "workbook"
-    End Select
-    
-    If Not targetRange Is Nothing Then
-        If Not Infra_Undo.SaveStateOrConfirm(targetRange, "Highlight Data") Then GoTo CleanExit
-    End If
-    
-    ' --- 2. Initialize Progress & Dynamic Screen Updating ---
-    originalScreenUpdating = Application.ScreenUpdating
-    If request.Scope = TargetScopeWorkbook Then
-        Application.ScreenUpdating = False
-        Infra_Progress.StartProgress "Highlighting Data", request.Context.WorkbookRef.Worksheets.Count
-    Else
-        Infra_Progress.StartProgress "Highlighting Data", 1
-    End If
-    
-    Select Case request.Scope
-        Case TargetScopeSelection
-            ProcessRangeForHighlight request.Context.SelectionRange, request
-            Infra_Progress.UpdateProgress 1, True
-        Case TargetScopeActiveSheet
-            ProcessRangeForHighlight request.Context.WorksheetRef.UsedRange, request
-            Infra_Progress.UpdateProgress 1, True
-        Case TargetScopeWorkbook
-            Dim i As Long, count As Long
-            count = request.Context.WorkbookRef.Worksheets.Count
-            For i = 1 To count
-                Set ws = request.Context.WorkbookRef.Worksheets(i)
-                ProcessRangeForHighlight ws.UsedRange, request
-                Infra_Progress.UpdateProgress i, True
-                If Infra_Progress.UserCancelled Then Exit For
-            Next i
+        Case TargetScopeSelection: scopeLabel = "selection"
+        Case TargetScopeActiveSheet: scopeLabel = "active sheet"
+        Case TargetScopeWorkbook: scopeLabel = "workbook"
     End Select
     
     Dim msg As String
     msg = "Done! Highlighted patterns and duplicates in the " & scopeLabel & "."
-    
-    Infra_Interaction.ShowInfo msg
+    Infra_Interaction.ShowInfo msg, "Highlight Data"
 
 CleanExit:
-    If Not request Is Nothing Then
-        If request.Scope = TargetScopeWorkbook Then
-            Application.ScreenUpdating = originalScreenUpdating
-        End If
-    End If
-    Infra_Progress.EndProgress
+    Set m_CurrentRequest = Nothing
     Exit Sub
 
 ErrHandler:
-    Infra_Error.HandleError "ExecuteHighlightData", Err, stateInfo
+    Set m_CurrentRequest = Nothing
+    Infra_Error.HandleError "ExecuteHighlightData", Err
     Resume CleanExit
 End Sub
+
+Private Function IBatchProcessor_ProcessRange(ByVal targetRange As Range) As Long
+    ProcessRangeForHighlight targetRange, m_CurrentRequest
+    IBatchProcessor_ProcessRange = 0
+End Function
+
+Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
+    IBatchProcessor_ProcessWorksheet = 0
+End Function
 
 Private Sub ProcessRangeForHighlight(ByRef targetRange As Range, ByVal request As Infra_HighlightDataRequest)
     If targetRange Is Nothing Then Exit Sub
@@ -144,17 +110,8 @@ Private Sub ProcessRangeForHighlight(ByRef targetRange As Range, ByVal request A
     Set ws = targetRange.Worksheet
     
     ' Intersect with UsedRange if targetRange is large to prevent scanning millions of empty cells
-    If targetRange.Cells.CountLarge > 100000 Then
-        Dim usedRange As Range
-        On Error Resume Next
-        Set usedRange = Application.Intersect(targetRange, ws.UsedRange)
-        On Error GoTo 0
-        If Not usedRange Is Nothing Then
-            Set targetRange = usedRange
-        Else
-            Exit Sub
-        End If
-    End If
+    Set targetRange = Infra_CommandSupport.GetSafeProcessingRange(targetRange, 100000, False)
+    If targetRange Is Nothing Then Exit Sub
     
     Dim area As Range
     Dim totalAreas As Long
@@ -177,6 +134,11 @@ Private Sub ProcessRangeForHighlight(ByRef targetRange As Range, ByVal request A
         ' 3. Highlight Errors
         If request.HighlightErrors Then
             HighlightErrorsInArea area
+        End If
+        
+        ' 4. Highlight Hardcoded Values
+        If request.HighlightHardcodedValues Then
+            HighlightHardcodedValuesInArea area
         End If
         
         DoEvents
@@ -336,6 +298,123 @@ Private Sub HighlightErrorsInArea(ByVal area As Range)
         unionRange.Interior.Color = RGB(255, 204, 153) ' Soft Orange
     End If
 End Sub
+
+Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
+    Dim formulaCells As Range
+    On Error Resume Next
+    Set formulaCells = area.SpecialCells(xlCellTypeFormulas)
+    On Error GoTo 0
+    
+    If formulaCells Is Nothing Then Exit Sub
+    
+    ' Enforce MaxFormulaCheckCells safety threshold
+    Dim maxCells As Long
+    maxCells = Infra_Config.MAX_FORMULA_CHECK_CELLS
+    If formulaCells.Cells.CountLarge > maxCells Then
+        Dim msg As String
+        msg = "The number of formula cells in the area (" & formulaCells.Cells.CountLarge & _
+              ") exceeds the safety limit of " & maxCells & " cells. " & _
+              "Hardcoded value checking was skipped to avoid freezing Excel."
+        Infra_Interaction.ShowWarning msg, "Highlight Data"
+        Exit Sub
+    End If
+    
+    Dim cell As Range
+    Dim unionRange As Range
+    
+    For Each cell In formulaCells.Cells
+        Dim hasHardcoded As Boolean
+        hasHardcoded = False
+        On Error Resume Next
+        hasHardcoded = HasHardcodedValue(CStr(cell.Formula2))
+        On Error GoTo 0
+        
+        If hasHardcoded Then
+            If unionRange Is Nothing Then
+                Set unionRange = cell
+            Else
+                Set unionRange = Application.Union(unionRange, cell)
+            End If
+            
+            If unionRange.Areas.Count >= 500 Then
+                unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
+                Set unionRange = Nothing
+            End If
+        End If
+    Next cell
+    
+    If Not unionRange Is Nothing Then
+        unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
+    End If
+End Sub
+
+Public Function HasHardcodedValue(ByVal formula As String) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("HasHardcodedValue")
+    On Error GoTo ErrHandler
+
+    ' Remove any leading "=" sign
+    If Left$(formula, 1) = "=" Then formula = Mid$(formula, 2)
+    
+    Dim re As Object
+    Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.IgnoreCase = True
+    
+    ' 1. Check for non-empty text literals: "[^"]+" (excluding empty string "")
+    re.Pattern = """([^""]+)"""
+    If re.Test(formula) Then
+        HasHardcodedValue = True
+        GoTo CleanExit
+    End If
+    
+    ' Replace all string literals with empty string to avoid parsing numbers/references in strings
+    re.Pattern = """[^""]*"""
+    formula = re.Replace(formula, "")
+    
+    ' 2. Strip table column/field references [ColumnName] or [[Header],[ColumnName]]
+    re.Pattern = "\[[^\]]*\]"
+    formula = re.Replace(formula, "")
+    
+    ' 3. Strip sheet references: 'Sheet Name'! or SheetName!
+    re.Pattern = "'[^']*'!|[A-Za-z0-9_\.]+!"
+    formula = re.Replace(formula, "")
+    
+    ' 4. Strip standard cell references: e.g. A1, $B$10, AA100, A1:B10, A:B, 1:2
+    re.Pattern = "\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)?"
+    formula = re.Replace(formula, "")
+    re.Pattern = "\$?[A-Z]{1,3}:\$?[A-Z]{1,3}"
+    formula = re.Replace(formula, "")
+    re.Pattern = "\$?\d+:\$?\d+"
+    formula = re.Replace(formula, "")
+    
+    ' 5. Look for standalone numbers.
+    ' Word boundary \b ensures it's a standalone token.
+    re.Pattern = "\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b"
+    
+    Dim matches As Object
+    Set matches = re.Execute(formula)
+    If matches.Count > 0 Then
+        ' Exclude 0 and 1 as they are common offsets/flags in MATCH, LEFT, VLOOKUP, etc.
+        Dim match As Object
+        For Each match In matches
+            Dim val As String
+            val = match.Value
+            If val <> "0" And val <> "1" Then
+                HasHardcodedValue = True
+                GoTo CleanExit
+            End If
+        Next match
+    End If
+    
+    HasHardcodedValue = False
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "HasHardcodedValue", Err
+    Resume CleanExit
+End Function
 
 ' --- Testing Entry Points ---
 Public Sub HighlightRangeDirect(ByVal targetRange As Range)

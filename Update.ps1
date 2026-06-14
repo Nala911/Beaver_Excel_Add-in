@@ -338,14 +338,39 @@ function Sync-FeatureManifest {
             if ($groupFeatures.Count -eq 0) { continue }
 
             $buttonXml = foreach ($feature in $groupFeatures) {
-                '          <button id="{0}" label="{1}" imageMso="{2}" size="large" onAction="{3}" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
-                    $feature.ControlId,
-                    [System.Security.SecurityElement]::Escape($feature.Label),
-                    [System.Security.SecurityElement]::Escape($feature.Icon),
-                    $feature.OnAction,
-                    $feature.Keytip,
-                    [System.Security.SecurityElement]::Escape($feature.Screentip),
-                    [System.Security.SecurityElement]::Escape($feature.Supertip)
+                if ($null -ne $feature.PSObject.Properties['Type'] -and $feature.Type -eq "Menu") {
+                    $menuItemsXml = [System.Collections.Generic.List[string]]::new()
+                    foreach ($subId in $feature.MenuItems) {
+                        $subFeature = $enabledFeatures | Where-Object { $_.ControlId -eq $subId }
+                        if ($null -ne $subFeature) {
+                            $menuItemsXml.Add(('            <button id="{0}" label="{1}" imageMso="{2}" onAction="{3}" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
+                                $subFeature.ControlId,
+                                [System.Security.SecurityElement]::Escape($subFeature.Label),
+                                [System.Security.SecurityElement]::Escape($subFeature.Icon),
+                                $subFeature.OnAction,
+                                $subFeature.Keytip,
+                                [System.Security.SecurityElement]::Escape($subFeature.Screentip),
+                                [System.Security.SecurityElement]::Escape($subFeature.Supertip)))
+                        }
+                    }
+                    "          <menu id=`"{0}`" label=`"{1}`" imageMso=`"{2}`" size=`"large`" keytip=`"{3}`" screentip=`"{4}`" supertip=`"{5}`">`r`n{6}`r`n          </menu>" -f `
+                        $feature.ControlId,
+                        [System.Security.SecurityElement]::Escape($feature.Label),
+                        [System.Security.SecurityElement]::Escape($feature.Icon),
+                        $feature.Keytip,
+                        [System.Security.SecurityElement]::Escape($feature.Screentip),
+                        [System.Security.SecurityElement]::Escape($feature.Supertip),
+                        ($menuItemsXml -join "`r`n")
+                } else {
+                    '          <button id="{0}" label="{1}" imageMso="{2}" size="large" onAction="{3}" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
+                        $feature.ControlId,
+                        [System.Security.SecurityElement]::Escape($feature.Label),
+                        [System.Security.SecurityElement]::Escape($feature.Icon),
+                        $feature.OnAction,
+                        $feature.Keytip,
+                        [System.Security.SecurityElement]::Escape($feature.Screentip),
+                        [System.Security.SecurityElement]::Escape($feature.Supertip)
+                }
             }
 
             $groupXmls.Add(@"
@@ -471,10 +496,12 @@ function Sync-CommandRegistry {
     $commandMap = [ordered]@{}
 
     foreach ($feature in @($manifest.Features)) {
-        if (-not [string]::IsNullOrWhiteSpace($feature.Macro) -and -not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
+        $hasMacro = $feature.PSObject.Properties.Name -contains "Macro"
+        $hasCommandName = $feature.PSObject.Properties.Name -contains "CommandName"
+        if ($hasMacro -and $hasCommandName -and -not [string]::IsNullOrWhiteSpace($feature.Macro) -and -not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
             $entryMap[$feature.Macro.Trim().ToUpperInvariant()] = $feature.CommandName.Trim()
         }
-        if (-not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
+        if ($hasCommandName -and -not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
             $commandName = $feature.CommandName.Trim()
             $commandClass = if ($feature.PSObject.Properties.Name -contains "CommandClass" -and -not [string]::IsNullOrWhiteSpace($feature.CommandClass)) { $feature.CommandClass.Trim() } else { "FeatCmd_$commandName" }
             $commandMap[$commandName.ToUpperInvariant()] = [pscustomobject]@{
@@ -607,7 +634,9 @@ function Sync-UiRibbonModule {
     )
 
     foreach ($feature in @($manifest.Features)) {
-        if ([string]::IsNullOrWhiteSpace($feature.OnAction) -or [string]::IsNullOrWhiteSpace($feature.Macro)) {
+        $hasOnAction = $feature.PSObject.Properties.Name -contains "OnAction"
+        $hasMacro = $feature.PSObject.Properties.Name -contains "Macro"
+        if (-not $hasOnAction -or -not $hasMacro -or [string]::IsNullOrWhiteSpace($feature.OnAction) -or [string]::IsNullOrWhiteSpace($feature.Macro)) {
             continue
         }
 
@@ -723,7 +752,7 @@ function Get-EnabledHeadlessCallbacks {
 
     $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
     return @($manifest.Features | Where-Object {
-        $_.RuntimeTestMode -eq "headless"
+        $_.PSObject.Properties.Name -contains "RuntimeTestMode" -and $_.RuntimeTestMode -eq "headless"
     })
 }
 

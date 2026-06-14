@@ -38,28 +38,10 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Infra_Error.AddState stateInfo, "Worksheet", ctx.WorksheetRef.Name
     
     ' IMPROVED WORKFLOW: Use UI Factory for decentralized request building.
-    Set request = Infra_UIFactory.ShowExportDialog(ctx)
+    Set request = Infra_UIFactory.ShowExportDialog(ctx, context.CommandName)
     If request Is Nothing Then GoTo CleanExit
     
-    ExecuteExport request
-
-CleanExit:
-    Application.StatusBar = False
-    Exit Sub
-
-ErrHandler:
-    Application.StatusBar = False
-    Infra_Error.HandleError "Export.Execute", Err, stateInfo
-    Resume CleanExit
-End Sub
-
-Private Sub ExecuteExport(ByVal request As Infra_ExportRequest)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteExport")
-    On Error GoTo ErrHandler
-    
-    If request Is Nothing Then GoTo CleanExit
     If request.SourceRange Is Nothing Then GoTo CleanExit
-    
     If request.OutputPath = vbNullString Then GoTo CleanExit
 
     If request.ExportAsPng Then
@@ -73,10 +55,12 @@ Private Sub ExecuteExport(ByVal request As Infra_ExportRequest)
     Infra_Interaction.ShowInfo "Export saved:" & vbCrLf & request.OutputPath, Infra_Config.ADDIN_NAME & " - Export"
 
 CleanExit:
+    Application.StatusBar = False
     Exit Sub
 
 ErrHandler:
-    Infra_Error.HandleError "ExecuteExport", Err
+    Application.StatusBar = False
+    Infra_Error.HandleError "Export.Execute", Err, stateInfo
     Resume CleanExit
 End Sub
 

@@ -25,10 +25,16 @@ Option Explicit
 
 Private mConfirmed As Boolean
 Private mSelectedValue As String
+Private mIgnoreClick As Boolean
+
+Public Property Get IsIgnoringClick() As Boolean
+    IsIgnoringClick = mIgnoreClick
+End Property
 
 Private Sub UserForm_Initialize()
     mConfirmed = False
     mSelectedValue = vbNullString
+    mIgnoreClick = False
     
     ' Hide controls so they do not show in the option picker window
     On Error Resume Next
@@ -44,6 +50,7 @@ Public Sub ConfigureOptionPicker(ByVal dialogTitle As String, ByVal promptText A
 
     mConfirmed = False
     mSelectedValue = vbNullString
+    mIgnoreClick = False
 
     Me.Caption = dialogTitle
     
@@ -51,7 +58,10 @@ Public Sub ConfigureOptionPicker(ByVal dialogTitle As String, ByVal promptText A
     Me.lstHotkeys.MultiSelect = 0 ' fmMultiSelectSingle
     Me.lstHotkeys.ListStyle = 0 ' fmListStylePlain
     
+    mIgnoreClick = True
     LoadOptionList defaultChoice, options
+    mIgnoreClick = False
+    
     ResizeOptionPickerLayout
 
 CleanExit:
@@ -67,6 +77,7 @@ Public Sub ConfigureMultiOptionPicker(ByVal dialogTitle As String, ByVal promptT
 
     mConfirmed = False
     mSelectedValue = vbNullString
+    mIgnoreClick = False
 
     Me.Caption = dialogTitle
     
@@ -349,19 +360,52 @@ Private Sub lstHotkeys_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
 End Sub
 
 Private Sub lstHotkeys_Click()
+    If mIgnoreClick Then Exit Sub
     If Me.lstHotkeys.MultiSelect = 0 Then
         ConfirmSelection
     End If
 End Sub
 
-Private Sub lstHotkeys_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
-    If KeyCode = 13 Then ' vbKeyReturn (Enter)
+Public Sub HandleKeyDown(ByVal KeyVal As Long, ByVal Shift As Integer, Optional ByRef KeyCodeObj As Object = Nothing)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("HandleKeyDown")
+    On Error GoTo ErrHandler
+
+    If KeyVal = 13 Then ' vbKeyReturn (Enter)
         ConfirmSelection
-        KeyCode = 0
-    ElseIf KeyCode = 27 Then ' vbKeyEscape (Escape)
+        If Not KeyCodeObj Is Nothing Then KeyCodeObj.Value = 0
+    ElseIf KeyVal = 27 Then ' vbKeyEscape (Escape)
         CancelSelection
-        KeyCode = 0
+        If Not KeyCodeObj Is Nothing Then KeyCodeObj.Value = 0
+    Else
+        mIgnoreClick = True
     End If
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "HandleKeyDown", Err
+    Resume CleanExit
+End Sub
+
+Public Sub HandleKeyUp(ByVal KeyVal As Long, ByVal Shift As Integer)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("HandleKeyUp")
+    On Error GoTo ErrHandler
+
+    mIgnoreClick = False
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "HandleKeyUp", Err
+    Resume CleanExit
+End Sub
+
+Private Sub lstHotkeys_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    HandleKeyDown KeyCode.Value, Shift, KeyCode
+End Sub
+
+Private Sub lstHotkeys_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    HandleKeyUp KeyCode.Value, Shift
 End Sub
 
 Private Sub UserForm_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)

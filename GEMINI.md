@@ -194,7 +194,7 @@ graph TD
    - Those bindings point to `UI_Hotkeys.bas`, which forwards to `AppContainer.ExecuteEntryPoint`.
 
 ### Bootstrap & Container
-- `Infra_Bootstrap.Startup` initializes `AppContainer` with `Infra_Config`, `Infra_Error`, and `StateStore`, registers hotkeys, and registers worksheet UDFs (via `Lib_UdfRegistry`) in the Function Wizard.
+- `Infra_Bootstrap.Startup` initializes `AppContainer` with `Infra_Config`, `Infra_Error`, and `ExcelContextProvider`, registers hotkeys, and registers worksheet UDFs (via `Lib_UdfRegistry`) in the Function Wizard.
 - `Infra_Bootstrap.Shutdown` unregisters hotkeys.
 - `Infra_Bootstrap.EnsureStarted` ensures container initialization for late-entry scenarios.
 - `AppContainer` is the central dependency container and command resolver.
@@ -220,7 +220,7 @@ graph TD
 - `Infra_Undo`: Provides custom undo support for range mutations, securely buffered inside `ThisWorkbook`'s private sheet to protect user data from being saved or leaked inside external target workbooks.
 - `Infra_Progress`: Provides status-bar progress reporting for slow-running tasks.
 - `Infra_Diagnostics` & `Infra_ErrorContext`: Support environment capture and troubleshooting (contains a trace logging toggle to avoid log file bloating).
-- `StateStore` & `AppContainer`: Provide shared process-level state and dependency access.
+- `AppContainer`: Provides shared process-level state and dependency access (holding references to Config, ErrorTracker, and ContextProvider).
 
 ---
 
@@ -275,6 +275,7 @@ graph TD
   - **Keyboard Navigation**: Active focus is programmatically set to the list box control (`lstHotkeys.SetFocus`) on form activation. Pressing Enter (`vbKeyReturn`) confirms the selection, and Escape (`vbKeyEscape`) cancels.
 - **Free-form inputs** (e.g. formula patterns) must use text prompts.
 - **Save destinations** (e.g. duplicate/export flows) must use a shared Save As picker with Desktop-based defaults and overwrite confirmation.
+- **Ribbon Icon Selection**: When choosing or modifying icons (`imageMso`) in `features.json`, you must only use identifiers that are natively verified and loaded in Microsoft Excel (e.g., `TableProperties`, `TableOfContentsDialog`, `ErrorChecking`, `FunctionWizard`, `CalculateNow`, `Clear`, `ChangeCase`, `ConditionalFormattingMenu`, `WorkbookLinks`, `FileSaveAs`, `Export`, `Help`, `HappyFace`). Do not use Access-only, Word-only, or custom application-specific icons (like `ReportInsert`, `InsertTableOfContents`, `StatusSpreadsheet`, or `DocumentInspector`) as they will throw runtime Custom UI XML errors when Excel loads the add-in.
 
 #### Ribbon controls in `features.json`
 - `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`.
@@ -379,6 +380,8 @@ graph TD
 - Limit expensive cell-by-cell COM operations on large ranges (e.g., formula checks) to a safety cell count limit (e.g., 5,000 cells) to avoid freezing Excel. Always load safety thresholds dynamically from `Infra_Config` instead of hardcoding limits.
 - Use `Infra_ValueConversion.Ensure2DArray` to convert variant inputs (Range, Array, or Scalar) into 1-based 2D arrays rather than implementing duplicate array-handling helpers.
 - Use `Infra_Undo.SaveStateOrConfirm` before mutating worksheet ranges to check and register undo buffers. This unified helper automatically verifies if the range size is within safety limits and prompts/warns the user if it is not.
+- Use `Infra_CommandSupport.GetSafeProcessingRange` to limit active selection/target processing ranges to the worksheet's active `UsedRange` based on config-defined safety thresholds, preventing performance degradation on whole column/row selections.
+- Use `Infra_CommandSupport.GetSheetBreakableCounts` to count external formulas, links, pivot tables, and query tables on a sheet, preventing duplicate cell scanning logic across features.
 - Flexible linter checks inside `Update.ps1` scan the entire procedure body to verify `Infra_Error.Track` is used, supporting descriptive comments at the top of public procedures.
 - Do not manually edit generated files (`UI_Ribbon.bas`, `UI_Hotkeys.bas`, `Infra_CommandRegistry.bas`, `Lib_TestManifest.bas`).
 - Always check `Application.Visible` or use standardized `Infra_Interaction` wrappers when displaying warning or information message boxes, to prevent automated/headless test suites or background processes from hanging on modal dialog prompts.

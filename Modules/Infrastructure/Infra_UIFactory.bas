@@ -37,18 +37,8 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
         defaultChoice = "Sheet"
     End If
 
-    promptMsg = "Clean text with TRIM and CLEAN." & vbCrLf & vbCrLf & _
-                "Scope:" & vbCrLf & _
-                "Sheet - Active sheet" & vbCrLf & _
-                "Workbook - All sheets"
-    If hasSelection And Not bypassScopePrompt Then
-        promptMsg = promptMsg & vbCrLf & vbCrLf & "Note: The active selection is a single cell. Choose Sheet or Workbook scope to proceed."
-    ElseIf Not hasSelection Then
-        promptMsg = promptMsg & vbCrLf & vbCrLf & "No selection is required for Sheet or Workbook scope."
-    End If
-
-    confirmMsg = "Workbook-wide Clean Data updates every sheet and cannot be restored as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
-                 "Continue with workbook-wide cleaning?"
+    promptMsg = BuildScopePromptMsg("Clean text with TRIM and CLEAN.", hasSelection, bypassScopePrompt)
+    confirmMsg = BuildScopeConfirmMsg("Clean Data", SafeWorkbookName(ctx))
 
     If Not bypassScopePrompt Then
         If Not PromptForScopeSelection(ctx, "Clean Data", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
@@ -131,7 +121,7 @@ ErrHandler:
 End Function
 
 ' Shows the Modify Data options via UserForm picker and returns a populated Request object.
-Public Function ShowModifyDataDialog(ByVal ctx As Infra_ActionContext) As Infra_ModifyDataRequest
+Public Function ShowModifyDataDialog(ByVal ctx As Infra_ActionContext, Optional ByVal commandName As String = vbNullString) As Infra_ModifyDataRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowModifyDataDialog")
     On Error GoTo ErrHandler
 
@@ -144,17 +134,23 @@ Public Function ShowModifyDataDialog(ByVal ctx As Infra_ActionContext) As Infra_
         GoTo CleanExit
     End If
 
-    Dim toolOptions As Variant
-    toolOptions = Array("Date Fixer", "Case Fixer")
-
     Dim selectedTool As String
-    If Not Infra_Interaction.PromptOption( _
-        "Select the modification tool to apply to the selection:", _
-        "Modify Data Options", _
-        "Date Fixer", _
-        toolOptions, _
-        selectedTool) Then
-        GoTo CleanExit
+    If LCase$(commandName) = "datefixer" Then
+        selectedTool = "Date Fixer"
+    ElseIf LCase$(commandName) = "casefixer" Then
+        selectedTool = "Case Fixer"
+    Else
+        Dim toolOptions As Variant
+        toolOptions = Array("Date Fixer", "Case Fixer")
+
+        If Not Infra_Interaction.PromptOption( _
+            "Select the modification tool to apply to the selection:", _
+            "Modify Data Options", _
+            "Date Fixer", _
+            toolOptions, _
+            selectedTool) Then
+            GoTo CleanExit
+        End If
     End If
 
     Dim selectedOp As String
@@ -225,7 +221,7 @@ ErrHandler:
 End Function
 
 ' Shows the Highlight Data options via UserForm picker and returns a populated Request object.
-Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext) As Infra_HighlightDataRequest
+Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext, Optional ByVal commandName As String = vbNullString) As Infra_HighlightDataRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowHighlightDataDialog")
     On Error GoTo ErrHandler
     
@@ -254,18 +250,8 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext) As Inf
         defaultChoice = "Sheet"
     End If
 
-    promptMsg = "Highlight key data patterns (Inconsistent Formulas, Duplicates)." & vbCrLf & vbCrLf & _
-                "Scope:" & vbCrLf & _
-                "Sheet - Active sheet" & vbCrLf & _
-                "Workbook - All sheets"
-    If hasSelection And Not bypassScopePrompt Then
-        promptMsg = promptMsg & vbCrLf & vbCrLf & "Note: The active selection is a single cell. Choose Sheet or Workbook scope to proceed."
-    ElseIf Not hasSelection Then
-        promptMsg = promptMsg & vbCrLf & vbCrLf & "No selection is required for Sheet or Workbook scope."
-    End If
-
-    confirmMsg = "Workbook-wide Highlight Data updates every sheet and cannot be restored as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
-                 "Continue with workbook-wide highlighting?"
+    promptMsg = BuildScopePromptMsg("Highlight key data patterns (Inconsistent Formulas, Duplicates, Errors, Hardcoded Values).", hasSelection, bypassScopePrompt)
+    confirmMsg = BuildScopeConfirmMsg("Highlight Data", SafeWorkbookName(ctx))
 
     If Not bypassScopePrompt Then
         If Not PromptForScopeSelection(ctx, "Highlight Data", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
@@ -281,27 +267,39 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext) As Inf
     Set request = CreateHighlightDataRequest(ctx, normalizedChoice)
     If request Is Nothing Then GoTo CleanExit
 
-    Dim highlightOptionsList As Variant
     Dim chosenOption As String
+    Select Case LCase$(commandName)
+        Case "highlightinconsistentformulas"
+            chosenOption = "Highlight Inconsistent Formulas (yellow)"
+        Case "highlightduplicates"
+            chosenOption = "Highlight Duplicates (soft red)"
+        Case "highlighterrors"
+            chosenOption = "Highlight Errors (orange)"
+        Case "highlighthardcodedvalues"
+            chosenOption = "Highlight Hardcoded Values in Formulas (lavender)"
+        Case Else
+            Dim highlightOptionsList As Variant
+            highlightOptionsList = Array( _
+                "Highlight Inconsistent Formulas (yellow)", _
+                "Highlight Duplicates (soft red)", _
+                "Highlight Errors (orange)", _
+                "Highlight Hardcoded Values in Formulas (lavender)" _
+            )
 
-    highlightOptionsList = Array( _
-        "Highlight Inconsistent Formulas (yellow)", _
-        "Highlight Duplicates (soft red)", _
-        "Highlight Errors (orange)" _
-    )
-
-    If Not Infra_Interaction.PromptOption( _
-        "Select the data highlighting option to apply:", _
-        "Highlight Data Option", _
-        "Highlight Inconsistent Formulas (yellow)", _
-        highlightOptionsList, _
-        chosenOption) Then
-        GoTo CleanExit
-    End If
+            If Not Infra_Interaction.PromptOption( _
+                "Select the data highlighting option to apply:", _
+                "Highlight Data Option", _
+                "Highlight Inconsistent Formulas (yellow)", _
+                highlightOptionsList, _
+                chosenOption) Then
+                GoTo CleanExit
+            End If
+    End Select
 
     request.HighlightInconsistentFormulas = False
     request.HighlightDuplicates = False
     request.HighlightErrors = False
+    request.HighlightHardcodedValues = False
 
     If chosenOption = "Highlight Inconsistent Formulas (yellow)" Then
         request.HighlightInconsistentFormulas = True
@@ -309,6 +307,8 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext) As Inf
         request.HighlightDuplicates = True
     ElseIf chosenOption = "Highlight Errors (orange)" Then
         request.HighlightErrors = True
+    ElseIf chosenOption = "Highlight Hardcoded Values in Formulas (lavender)" Then
+        request.HighlightHardcodedValues = True
     End If
 
     Set ShowHighlightDataDialog = request
@@ -321,7 +321,7 @@ ErrHandler:
 End Function
 
 ' Shows the Export options via UserForm picker and returns a populated Request object.
-Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_ExportRequest
+Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext, Optional ByVal commandName As String = vbNullString) As Infra_ExportRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowExportDialog")
     On Error GoTo ErrHandler
     
@@ -339,28 +339,41 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext) As Infra_Expo
         GoTo CleanExit
     End If
 
-    Do
-        If Not ShowOptionPicker( _
-            "Export the selected content and choose where to save it." & vbCrLf & vbCrLf & _
-            BuildExportSummary(request.SourceRange) & vbCrLf & vbCrLf & _
-            "Choose a format:" & vbCrLf & _
-            "PNG - High-resolution image" & vbCrLf & _
-            "PDF - Print-ready document" & vbCrLf & vbCrLf & _
-            "Choose PNG or PDF.", _
-            BuildDialogTitle("Export"), "PNG", Array("PNG", "PDF"), exportChoice) Then GoTo CleanExit
+    Dim skipFormatPrompt As Boolean
+    skipFormatPrompt = False
+    
+    If LCase$(commandName) = "exportpng" Then
+        request.ExportAsPng = True
+        skipFormatPrompt = True
+    ElseIf LCase$(commandName) = "exportpdf" Then
+        request.ExportAsPng = False
+        skipFormatPrompt = True
+    End If
 
-        normalizedChoice = NormalizeChoiceText(exportChoice)
-        Select Case normalizedChoice
-            Case "", "PNG", "IMAGE"
-                request.ExportAsPng = True
-                Exit Do
-            Case "PDF"
-                request.ExportAsPng = False
-                Exit Do
-            Case Else
-                Infra_Interaction.ShowWarning "Please choose PNG or PDF.", BuildDialogTitle("Export")
-        End Select
-    Loop
+    If Not skipFormatPrompt Then
+        Do
+            If Not ShowOptionPicker( _
+                "Export the selected content and choose where to save it." & vbCrLf & vbCrLf & _
+                BuildExportSummary(request.SourceRange) & vbCrLf & vbCrLf & _
+                "Choose a format:" & vbCrLf & _
+                "PNG - High-resolution image" & vbCrLf & _
+                "PDF - Print-ready document" & vbCrLf & vbCrLf & _
+                "Choose PNG or PDF.", _
+                BuildDialogTitle("Export"), "PNG", Array("PNG", "PDF"), exportChoice) Then GoTo CleanExit
+
+            normalizedChoice = NormalizeChoiceText(exportChoice)
+            Select Case normalizedChoice
+                Case "", "PNG", "IMAGE"
+                    request.ExportAsPng = True
+                    Exit Do
+                Case "PDF"
+                    request.ExportAsPng = False
+                    Exit Do
+                Case Else
+                    Infra_Interaction.ShowWarning "Please choose PNG or PDF.", BuildDialogTitle("Export")
+            End Select
+        Loop
+    End If
 
     If request.ExportAsPng Then
         request.ScaleFactor = PromptForExportScale(request.ScaleFactor)
@@ -394,14 +407,8 @@ Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As 
     Dim confirmMsg As String
     Dim normalizedChoice As String
 
-    promptMsg = "Convert formulas to values." & vbCrLf & vbCrLf & _
-                "Scope:" & vbCrLf & _
-                "Sheet - Active sheet" & vbCrLf & _
-                "Workbook - All sheets"
-
-    confirmMsg = "You are about to convert formulas on every worksheet in " & SafeWorkbookName(ctx) & "." & vbCrLf & vbCrLf & _
-                 "This is not reversible as a single workbook-wide undo action." & vbCrLf & vbCrLf & _
-                 "Continue with workbook-wide conversion?"
+    promptMsg = BuildScopePromptMsg("Convert formulas to values.", HasUsableSelection(ctx), False)
+    confirmMsg = BuildScopeConfirmMsg("Make Static", SafeWorkbookName(ctx), "You are about to convert formulas on every worksheet in " & SafeWorkbookName(ctx) & "." & vbCrLf & vbCrLf & "This is not reversible as a single workbook-wide undo action.")
 
     If Not PromptForScopeSelection(ctx, "Make Static", promptMsg, "Sheet", Array("Sheet", "Workbook"), confirmMsg, normalizedChoice) Then GoTo CleanExit
 
@@ -436,14 +443,11 @@ Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal lin
     End If
 
     promptMsg = "External links were found and can be permanently converted to values." & vbCrLf & vbCrLf & _
-                "Detected items:" & vbCrLf & linkInfo & vbCrLf & vbCrLf & _
-                "Choose a scope:" & vbCrLf & _
-                "Sheet     - Converts linked formulas, pivot tables, and external tables only on the active sheet" & vbCrLf & _
-                "Workbook  - Also removes workbook-level links, connections, and external names" & vbCrLf & vbCrLf & _
-                IIf(allowSheetScope, "Choose Sheet or Workbook.", "Only Workbook scope can remove the detected workbook-level items from this context.")
+                "Detected items:" & vbCrLf & linkInfo
+    promptMsg = BuildScopePromptMsg(promptMsg, HasUsableSelection(ctx), False)
 
-    confirmMsg = "This will remove workbook-level links and connections and flatten external content." & vbCrLf & vbCrLf & _
-                 "Continue with whole-workbook processing?"
+    confirmMsg = BuildScopeConfirmMsg("Break External Links", SafeWorkbookName(ctx), _
+        "This will remove workbook-level links and connections and flatten external content.")
 
     If Not PromptForScopeSelection(ctx, "Break External Links", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
 
@@ -837,12 +841,9 @@ End Function
 
 Private Function ActiveSheetHasBreakableItems(ByVal ctx As Infra_ActionContext) As Boolean
     Dim ws As Worksheet
-    Dim formulaCells As Range
-    Dim area As Range
-    Dim lo As ListObject
-    Dim pvt As PivotTable
-    Dim formulaArr As Variant
-    Dim r As Long, c As Long
+    Dim formulaCount As Long
+    Dim pivotCount As Long
+    Dim tableCount As Long
 
     On Error GoTo CleanExit
 
@@ -850,45 +851,35 @@ Private Function ActiveSheetHasBreakableItems(ByVal ctx As Infra_ActionContext) 
     Set ws = ctx.WorksheetRef
     If ws Is Nothing Then GoTo CleanExit
 
-    On Error Resume Next
-    Set formulaCells = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
-    On Error GoTo CleanExit
-
-    If Not formulaCells Is Nothing Then
-        For Each area In formulaCells.Areas
-            If area.Cells.CountLarge = 1 Then
-                If InStr(1, area.Formula2, "[", vbTextCompare) > 0 Then
-                    ActiveSheetHasBreakableItems = True
-                    Exit Function
-                End If
-            Else
-                formulaArr = area.Formula2
-                For r = 1 To UBound(formulaArr, 1)
-                    For c = 1 To UBound(formulaArr, 2)
-                        If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then
-                            ActiveSheetHasBreakableItems = True
-                            Exit Function
-                        End If
-                    Next c
-                Next r
-            End If
-        Next area
-    End If
-
-    For Each pvt In ws.PivotTables
-        ActiveSheetHasBreakableItems = True
-        Exit Function
-    Next pvt
-
-    For Each lo In ws.ListObjects
-        If lo.SourceType <> xlSrcRange Then
-            ActiveSheetHasBreakableItems = True
-            Exit Function
-        End If
-    Next lo
+    Infra_CommandSupport.GetSheetBreakableCounts ws, formulaCount, pivotCount, tableCount
+    ActiveSheetHasBreakableItems = (formulaCount > 0 Or pivotCount > 0 Or tableCount > 0)
 
 CleanExit:
     Exit Function
+End Function
+
+Private Function BuildScopePromptMsg(ByVal description As String, ByVal hasSelection As Boolean, ByVal bypassScopePrompt As Boolean) As String
+    Dim msg As String
+    msg = description & vbCrLf & vbCrLf & _
+          "Scope:" & vbCrLf & _
+          "Sheet - Active sheet" & vbCrLf & _
+          "Workbook - All sheets"
+    If hasSelection And Not bypassScopePrompt Then
+        msg = msg & vbCrLf & vbCrLf & "Note: The active selection is a single cell. Choose Sheet or Workbook scope to proceed."
+    ElseIf Not hasSelection Then
+        msg = msg & vbCrLf & vbCrLf & "No selection is required for Sheet or Workbook scope."
+    End If
+    BuildScopePromptMsg = msg
+End Function
+
+Private Function BuildScopeConfirmMsg(ByVal taskName As String, ByVal workbookName As String, Optional ByVal customDetail As String = vbNullString) As String
+    Dim detail As String
+    If customDetail <> vbNullString Then
+        detail = customDetail
+    Else
+        detail = "Workbook-wide " & taskName & " updates every sheet in '" & workbookName & "' and cannot be restored as a single workbook-wide undo action."
+    End If
+    BuildScopeConfirmMsg = detail & vbCrLf & vbCrLf & "Continue with workbook-wide processing?"
 End Function
 
 Private Function PromptForScopeSelection( _
@@ -937,53 +928,55 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Private Function CreateScopedRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_ScopedRequest
-    Dim request As New Infra_ScopedRequest
-    Set request.Context = ctx
+Private Function ResolveScopeFromText(ByVal choiceText As String, ByRef outScope As TargetScope) As Boolean
+    ResolveScopeFromText = True
     Select Case NormalizeChoiceText(choiceText)
         Case "R", "RANGE", "SELECTED", "SELECTION"
-            request.Scope = TargetScopeSelection
+            outScope = TargetScopeSelection
         Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-            request.Scope = TargetScopeActiveSheet
+            outScope = TargetScopeActiveSheet
         Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-            request.Scope = TargetScopeWorkbook
+            outScope = TargetScopeWorkbook
         Case Else
-            Set CreateScopedRequest = Nothing
-            Exit Function
+            ResolveScopeFromText = False
     End Select
+End Function
+
+Private Function CreateScopedRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_ScopedRequest
+    Dim scopeVal As TargetScope
+    If Not ResolveScopeFromText(choiceText, scopeVal) Then
+        Set CreateScopedRequest = Nothing
+        Exit Function
+    End If
+
+    Dim request As New Infra_ScopedRequest
+    Set request.Context = ctx
+    request.Scope = scopeVal
     Set CreateScopedRequest = request
 End Function
 
 Private Function CreateCleanDataRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_CleanDataRequest
+    Dim scopeVal As TargetScope
+    If Not ResolveScopeFromText(choiceText, scopeVal) Then
+        Set CreateCleanDataRequest = Nothing
+        Exit Function
+    End If
+
     Dim request As New Infra_CleanDataRequest
     Set request.Context = ctx
-    Select Case NormalizeChoiceText(choiceText)
-        Case "R", "RANGE", "SELECTED", "SELECTION"
-            request.Scope = TargetScopeSelection
-        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-            request.Scope = TargetScopeActiveSheet
-        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-            request.Scope = TargetScopeWorkbook
-        Case Else
-            Set CreateCleanDataRequest = Nothing
-            Exit Function
-    End Select
+    request.Scope = scopeVal
     Set CreateCleanDataRequest = request
 End Function
 
 Private Function CreateHighlightDataRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_HighlightDataRequest
+    Dim scopeVal As TargetScope
+    If Not ResolveScopeFromText(choiceText, scopeVal) Then
+        Set CreateHighlightDataRequest = Nothing
+        Exit Function
+    End If
+
     Dim request As New Infra_HighlightDataRequest
     Set request.Context = ctx
-    Select Case NormalizeChoiceText(choiceText)
-        Case "R", "RANGE", "SELECTED", "SELECTION"
-            request.Scope = TargetScopeSelection
-        Case "S", "SHEET", "ACTIVE SHEET", "ACTIVESHEET"
-            request.Scope = TargetScopeActiveSheet
-        Case "W", "WB", "WORKBOOK", "WHOLE WORKBOOK", "WHOLEWORKBOOK"
-            request.Scope = TargetScopeWorkbook
-        Case Else
-            Set CreateHighlightDataRequest = Nothing
-            Exit Function
-    End Select
+    request.Scope = scopeVal
     Set CreateHighlightDataRequest = request
 End Function

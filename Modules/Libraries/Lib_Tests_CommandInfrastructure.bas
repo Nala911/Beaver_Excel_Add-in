@@ -11,7 +11,8 @@ Public Sub Test_CommandRegistryResolvesRibbonEntries()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandRegistryResolvesRibbonEntries")
     On Error GoTo ErrHandler
 
-    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnExport"), "ExportImageOrPdf", "Ribbon export callback should resolve to ExportImageOrPdf"
+    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnExportPng"), "ExportPng", "Ribbon export PNG callback should resolve to ExportPng"
+    AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnExportPdf"), "ExportPdf", "Ribbon export PDF callback should resolve to ExportPdf"
     AssertEqual Infra_CommandRegistry.ResolveCommandName("UI_Ribbon.Ribbon_OnShowHelpCenter"), "ShowHelpCenter", "Hotkeys help callback should resolve to ShowHelpCenter"
 
 CleanExit:

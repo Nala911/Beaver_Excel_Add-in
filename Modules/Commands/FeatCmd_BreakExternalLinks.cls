@@ -10,10 +10,20 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Implements ICommand
+Implements IBatchProcessor
 
 ' @Module: FeatCmd_BreakExternalLinks
 ' @Category: Feature
 ' @Description: Detects and breaks external Excel links, connections, and external named ranges.
+
+Private m_CurrentRequest As Infra_ScopedRequest
+Private m_LinkArr As Variant
+Private m_BrokenLinks As Long
+Private m_ConnectionsRemoved As Long
+Private m_NamesRemoved As Long
+Private m_ConvertedFormulas As Long
+Private m_PivotsConverted As Long
+Private m_TablesConverted As Long
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -106,7 +116,7 @@ Private Function GetExternalElementsSummary(ByVal wb As Workbook, ByVal activeSh
         Next nm
     End If
 
-    GetSheetBreakableCounts activeSheetRef, sheetFormulaCount, sheetPivotCount, sheetTableCount
+    Infra_CommandSupport.GetSheetBreakableCounts activeSheetRef, sheetFormulaCount, sheetPivotCount, sheetTableCount
 
     hasWorkbookLevelItems = (extCount > 0 Or connCount > 0 Or nameCount > 0)
     hasSheetLevelItems = (sheetFormulaCount > 0 Or sheetPivotCount > 0 Or sheetTableCount > 0)
@@ -139,120 +149,91 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Private Sub GetSheetBreakableCounts(ByVal ws As Worksheet, ByRef formulaCount As Long, ByRef pivotCount As Long, ByRef tableCount As Long)
-    ' No tracker here; internal optimized call
-    Dim fCells As Range
-    Dim area As Range
-    Dim formulaArr As Variant
-    Dim r As Long, c As Long
-
-    If ws Is Nothing Then Exit Sub
-
-    On Error Resume Next
-    Set fCells = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
-    On Error GoTo 0
-
-    If Not fCells Is Nothing Then
-        For Each area In fCells.Areas
-            If area.Cells.CountLarge = 1 Then
-                If InStr(1, area.Formula2, "[", vbTextCompare) > 0 Then formulaCount = formulaCount + 1
-            Else
-                formulaArr = area.Formula2
-                For r = 1 To UBound(formulaArr, 1)
-                    For c = 1 To UBound(formulaArr, 2)
-                        If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then formulaCount = formulaCount + 1
-                    Next c
-                Next r
-            End If
-        Next area
-    End If
-
-    pivotCount = ws.PivotTables.Count
-    tableCount = 0
-    Dim lo As ListObject
-    For Each lo In ws.ListObjects
-        If lo.SourceType <> xlSrcRange Then tableCount = tableCount + 1
-    Next lo
-End Sub
 
 Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_ScopedRequest, ByVal linkArr As Variant) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteBreakLinks")
     On Error GoTo ErrHandler
-    
-    Dim brokenLinks As Long, convertedFormulas As Long, pivotsConverted As Long, tablesConverted As Long
-    Dim connectionsRemoved As Long, namesRemoved As Long
-    Dim ws As Worksheet, wsToProcess As New Collection
-    Dim conn As WorkbookConnection
+
+    ' Reset accumulators
+    m_BrokenLinks = 0
+    m_ConnectionsRemoved = 0
+    m_NamesRemoved = 0
+    m_ConvertedFormulas = 0
+    m_PivotsConverted = 0
+    m_TablesConverted = 0
+
+    Set m_CurrentRequest = request
+    m_LinkArr = linkArr
+
     Dim processWholeWorkbook As Boolean
-    Dim index As Long
-    Dim originalScreenUpdating As Boolean
- 
-    If request Is Nothing Then GoTo CleanExit
     processWholeWorkbook = (request.Scope = TargetScopeWorkbook)
-    
-    ' Global breaks
+
+    ' Global workbook-level breaks
     If processWholeWorkbook Then
         If Not IsEmpty(linkArr) Then
             Dim i As Long
             For i = LBound(linkArr) To UBound(linkArr)
                 On Error Resume Next
                 wb.BreakLink Name:=linkArr(i), Type:=xlLinkTypeExcelLinks
-                If Err.Number = 0 Then brokenLinks = brokenLinks + 1
+                If Err.Number = 0 Then m_BrokenLinks = m_BrokenLinks + 1
                 On Error GoTo ErrHandler
             Next i
         End If
-        
+
         If wb.Connections.Count > 0 Then
             Dim connIndex As Long
+            Dim conn As WorkbookConnection
             For connIndex = wb.Connections.Count To 1 Step -1
                 Set conn = wb.Connections(connIndex)
                 On Error Resume Next
                 conn.Delete
-                If Err.Number = 0 Then connectionsRemoved = connectionsRemoved + 1
+                If Err.Number = 0 Then m_ConnectionsRemoved = m_ConnectionsRemoved + 1
                 On Error GoTo ErrHandler
             Next connIndex
         End If
 
-        namesRemoved = RemoveExternalWorkbookNames(wb)
+        m_NamesRemoved = RemoveExternalWorkbookNames(wb)
     End If
 
-    ' Range/Sheet level
-    Set wsToProcess = Infra_CommandSupport.ResolveWorksheetsToProcess(request.Context, request.Scope)
-    If wsToProcess Is Nothing Then GoTo CleanExit
- 
-    originalScreenUpdating = Application.ScreenUpdating
-    If request.Scope = TargetScopeWorkbook Then
-        Application.ScreenUpdating = False
-    End If
- 
-    Infra_Progress.StartProgress "Breaking External Links", wsToProcess.Count
-    For Each ws In wsToProcess
-        index = index + 1
-        ProcessSheetInternal ws, convertedFormulas, pivotsConverted, tablesConverted
-        Infra_Progress.UpdateProgress index, True
-        If Infra_Progress.UserCancelled Then Exit For
-    Next ws
+    ' Execute worksheet batch conversions
+    Dim totalProcessed As Long
+    totalProcessed = Infra_BatchProcessor.Execute(request.Context, request.Scope, Me, "Break External Links", False)
 
-    ExecuteBreakLinks = "Links Broken: " & brokenLinks & vbCrLf & _
-                       "Connections Removed: " & connectionsRemoved & vbCrLf & _
-                       "External Names Removed: " & namesRemoved & vbCrLf & _
-                       "Formulas Converted: " & convertedFormulas & vbCrLf & _
-                       "Pivots Converted: " & pivotsConverted & vbCrLf & _
-                       "Tables Converted: " & tablesConverted
+    ExecuteBreakLinks = "Links Broken: " & m_BrokenLinks & vbCrLf & _
+                       "Connections Removed: " & m_ConnectionsRemoved & vbCrLf & _
+                       "External Names Removed: " & m_NamesRemoved & vbCrLf & _
+                       "Formulas Converted: " & m_ConvertedFormulas & vbCrLf & _
+                       "Pivots Converted: " & m_PivotsConverted & vbCrLf & _
+                       "Tables Converted: " & m_TablesConverted
 
 CleanExit:
-    If Not request Is Nothing Then
-        If request.Scope = TargetScopeWorkbook Then
-            Application.ScreenUpdating = originalScreenUpdating
-        End If
-    End If
-    Infra_Progress.EndProgress
+    Set m_CurrentRequest = Nothing
+    m_LinkArr = Empty
     Exit Function
 
 ErrHandler:
-    Infra_Progress.EndProgress
+    Set m_CurrentRequest = Nothing
+    m_LinkArr = Empty
     Infra_Error.HandleError "ExecuteBreakLinks", Err
     Resume CleanExit
+End Function
+
+Private Function IBatchProcessor_ProcessRange(ByVal targetRange As Range) As Long
+    IBatchProcessor_ProcessRange = 0
+End Function
+
+Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
+    Dim convertedFormulas As Long
+    Dim pivotsConverted As Long
+    Dim tablesConverted As Long
+
+    ProcessSheetInternal ws, convertedFormulas, pivotsConverted, tablesConverted
+
+    m_ConvertedFormulas = m_ConvertedFormulas + convertedFormulas
+    m_PivotsConverted = m_PivotsConverted + pivotsConverted
+    m_TablesConverted = m_TablesConverted + tablesConverted
+
+    IBatchProcessor_ProcessWorksheet = convertedFormulas + pivotsConverted + tablesConverted
 End Function
 
 Private Function RemoveExternalWorkbookNames(ByVal wb As Workbook) As Long

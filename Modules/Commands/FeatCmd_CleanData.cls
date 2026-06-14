@@ -10,10 +10,13 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Implements ICommand
+Implements IBatchProcessor
 
 ' @Module: FeatCmd_CleanData
 ' @Category: Feature
 ' @Description: Advanced data cleaning tools (Trim, Clean).
+
+Private m_CurrentRequest As Infra_CleanDataRequest
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -60,87 +63,53 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteCleanData")
     On Error GoTo ErrHandler
     
-    Dim ws As Worksheet
-    Dim targetRange As Range
-    Dim stateInfo As Collection
-    Dim cleanedCount As Long
-    Dim scopeLabel As String
-    Dim originalScreenUpdating As Boolean
-
-    Set stateInfo = Infra_Error.NewStateInfo()
-    
     If request Is Nothing Then GoTo CleanExit
     If request.Context Is Nothing Then GoTo CleanExit
-    Infra_Error.AddState stateInfo, "Scope", request.Scope
     
-    ' --- 1. Save State for Undo ---
+    Set m_CurrentRequest = request
+    
+    Dim totalCleaned As Long
+    totalCleaned = Infra_BatchProcessor.Execute(request.Context, request.Scope, Me, "Clean Data", False)
+    
+    Dim scopeLabel As String
     Select Case request.Scope
-        Case TargetScopeSelection
-            Set targetRange = request.Context.SelectionRange
-            scopeLabel = "selection"
-        Case TargetScopeActiveSheet
-            Set targetRange = request.Context.WorksheetRef.UsedRange
-            scopeLabel = "active sheet"
-        Case TargetScopeWorkbook
-            Set targetRange = Nothing
-            scopeLabel = "workbook"
-    End Select
-    
-    If Not targetRange Is Nothing Then
-        If Not Infra_Undo.SaveStateOrConfirm(targetRange, "Clean Data") Then GoTo CleanExit
-    End If
-    
-    ' --- 2. Initialize Progress & Dynamic Screen Updating ---
-    originalScreenUpdating = Application.ScreenUpdating
-    If request.Scope = TargetScopeWorkbook Then
-        Application.ScreenUpdating = False
-        Infra_Progress.StartProgress "Cleaning Data", request.Context.WorkbookRef.Worksheets.Count
-    Else
-        Infra_Progress.StartProgress "Cleaning Data", 1
-    End If
-    
-    Select Case request.Scope
-        Case TargetScopeSelection
-            cleanedCount = ProcessRangeForClean(request.Context.SelectionRange, request)
-            Infra_Progress.UpdateProgress 1, True
-        Case TargetScopeActiveSheet
-            cleanedCount = ProcessRangeForClean(request.Context.WorksheetRef.UsedRange, request)
-            If request.CleanBrokenNames Then
-                CleanNamedRanges request.Context.WorkbookRef, request.Context.WorksheetRef
-            End If
-            Infra_Progress.UpdateProgress 1, True
-        Case TargetScopeWorkbook
-            If request.CleanBrokenNames Then
-                CleanNamedRanges request.Context.WorkbookRef, Nothing
-            End If
-            Dim i As Long, count As Long
-            count = request.Context.WorkbookRef.Worksheets.Count
-            For i = 1 To count
-                Set ws = request.Context.WorkbookRef.Worksheets(i)
-                cleanedCount = cleanedCount + ProcessRangeForClean(ws.UsedRange, request)
-                Infra_Progress.UpdateProgress i, True
-                If Infra_Progress.UserCancelled Then Exit For
-            Next i
+        Case TargetScopeSelection: scopeLabel = "selection"
+        Case TargetScopeActiveSheet: scopeLabel = "active sheet"
+        Case TargetScopeWorkbook: scopeLabel = "workbook"
     End Select
     
     Dim msg As String
     msg = "Done! Cleaned text and removed broken names in the " & scopeLabel & "."
-    
-    Infra_Interaction.ShowInfo msg
+    Infra_Interaction.ShowInfo msg, "Clean Data"
 
 CleanExit:
-    If Not request Is Nothing Then
-        If request.Scope = TargetScopeWorkbook Then
-            Application.ScreenUpdating = originalScreenUpdating
-        End If
-    End If
-    Infra_Progress.EndProgress
+    Set m_CurrentRequest = Nothing
     Exit Sub
 
 ErrHandler:
-    Infra_Error.HandleError "ExecuteCleanData", Err, stateInfo
+    Set m_CurrentRequest = Nothing
+    Infra_Error.HandleError "ExecuteCleanData", Err
     Resume CleanExit
 End Sub
+
+Private Function IBatchProcessor_ProcessRange(ByVal targetRange As Range) As Long
+    IBatchProcessor_ProcessRange = ProcessRangeForClean(targetRange, m_CurrentRequest)
+End Function
+
+Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
+    If m_CurrentRequest.CleanBrokenNames Then
+        If m_CurrentRequest.Scope = TargetScopeActiveSheet Then
+            CleanNamedRanges m_CurrentRequest.Context.WorkbookRef, ws
+        ElseIf m_CurrentRequest.Scope = TargetScopeWorkbook Then
+            Dim isFirstSheet As Boolean
+            isFirstSheet = (ws.Name = m_CurrentRequest.Context.WorkbookRef.Worksheets(1).Name)
+            If isFirstSheet Then
+                CleanNamedRanges m_CurrentRequest.Context.WorkbookRef, Nothing
+            End If
+        End If
+    End If
+    IBatchProcessor_ProcessWorksheet = 0
+End Function
 
 Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request As Infra_CleanDataRequest) As Long
     ' Note: No tracker here for performance; this is a core processing loop.
@@ -150,17 +119,8 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     Set ws = targetRange.Worksheet
     
     ' Intersect with UsedRange if targetRange is large to prevent scanning millions of empty cells
-    If targetRange.Cells.CountLarge > 100000 Then
-        Dim usedRange As Range
-        On Error Resume Next
-        Set usedRange = Application.Intersect(targetRange, ws.UsedRange)
-        On Error GoTo 0
-        If Not usedRange Is Nothing Then
-            Set targetRange = usedRange
-        Else
-            Exit Function
-        End If
-    End If
+    Set targetRange = Infra_CommandSupport.GetSafeProcessingRange(targetRange, 100000, False)
+    If targetRange Is Nothing Then Exit Function
 
     Dim textCells As Range
     Dim changeCount As Long

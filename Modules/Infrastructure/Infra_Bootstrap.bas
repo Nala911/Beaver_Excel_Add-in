@@ -63,7 +63,7 @@ Private Sub RegisterUDFs()
     For Each meta In udfs
         ' Register UDF with descriptions in the Function Wizard
         Application.MacroOptions _
-            Macro:=meta("Name"), _
+            Macro:="'" & ThisWorkbook.Name & "'!" & meta("Name"), _
             Description:=meta("Description"), _
             Category:=meta("Category"), _
             ArgumentDescriptions:=meta("ArgumentDescriptions")

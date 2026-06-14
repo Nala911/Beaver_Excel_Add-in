@@ -39,6 +39,13 @@
                                     ]
                    },
                    {
+                       "Id":  "GrpReports",
+                       "Label":  "Reports",
+                       "Features":  [
+                                        "BtnReportGenerator"
+                                    ]
+                   },
+                   {
                        "Id":  "BeaverHelpGroup",
                        "Label":  "Support",
                        "Features":  [
@@ -94,25 +101,111 @@
                      {
                          "ControlId":  "BtnModifyData",
                          "Label":  "Modify Data",
-                         "OnAction":  "Ribbon_OnModifyData",
-                         "Macro":  "UI_Ribbon.Ribbon_OnModifyData",
+                         "Type":  "Menu",
                          "CommandName":  "ModifyData",
                          "Icon":  "ChangeCase",
                          "Keytip":  "MD",
                          "Screentip":  "Modify Data",
                          "Supertip":  "Modifies text and dates in the selection (casing or date standardization).",
+                         "MenuItems":  [
+                                           "BtnDateFixer",
+                                           "BtnCaseFixer",
+                                           "BtnUnmergeFill",
+                                           "BtnForceNumber"
+                                       ]
+                     },
+                     {
+                         "ControlId":  "BtnDateFixer",
+                         "Label":  "Date Fixer",
+                         "OnAction":  "Ribbon_OnDateFixer",
+                         "Macro":  "UI_Ribbon.Ribbon_OnDateFixer",
+                         "CommandName":  "DateFixer",
+                         "CommandClass":  "FeatCmd_ModifyData",
+                         "Icon":  "CalculateNow",
+                         "Keytip":  "DF",
+                         "Screentip":  "Date Fixer",
+                         "Supertip":  "Standardizes dates in the selection.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnCaseFixer",
+                         "Label":  "Case Fixer",
+                         "OnAction":  "Ribbon_OnCaseFixer",
+                         "Macro":  "UI_Ribbon.Ribbon_OnCaseFixer",
+                         "CommandName":  "CaseFixer",
+                         "CommandClass":  "FeatCmd_ModifyData",
+                         "Icon":  "ChangeCase",
+                         "Keytip":  "CF",
+                         "Screentip":  "Case Fixer",
+                         "Supertip":  "Standardizes casing of text in the selection.",
                          "RuntimeTestMode":  "interactive"
                      },
                      {
                          "ControlId":  "BtnHighlightData",
                          "Label":  "Highlight Data",
-                         "OnAction":  "Ribbon_OnHighlightData",
-                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightData",
+                         "Type":  "Menu",
                          "CommandName":  "HighlightData",
                          "Icon":  "ConditionalFormattingMenu",
                          "Keytip":  "HD",
                          "Screentip":  "Highlight Data",
-                         "Supertip":  "Highlights inconsistent formulas (yellow) and duplicate values (soft red) in the selected scope (Range, Sheet, or Workbook).",
+                         "Supertip":  "Highlights key data patterns and duplicates.",
+                         "MenuItems":  [
+                                           "BtnHighlightInconsistentFormulas",
+                                           "BtnHighlightDuplicates",
+                                           "BtnHighlightErrors",
+                                           "BtnHighlightHardcodedValues"
+                                       ]
+                     },
+                     {
+                         "ControlId":  "BtnHighlightInconsistentFormulas",
+                         "Label":  "Inconsistent Formulas",
+                         "OnAction":  "Ribbon_OnHighlightInconsistentFormulas",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightInconsistentFormulas",
+                         "CommandName":  "HighlightInconsistentFormulas",
+                         "CommandClass":  "FeatCmd_HighlightData",
+                         "Icon":  "CalculateNow",
+                         "Keytip":  "HI",
+                         "Screentip":  "Inconsistent Formulas",
+                         "Supertip":  "Highlights inconsistent formulas in yellow.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnHighlightDuplicates",
+                         "Label":  "Duplicates",
+                         "OnAction":  "Ribbon_OnHighlightDuplicates",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightDuplicates",
+                         "CommandName":  "HighlightDuplicates",
+                         "CommandClass":  "FeatCmd_HighlightData",
+                         "Icon":  "ConditionalFormattingMenu",
+                         "Keytip":  "HD",
+                         "Screentip":  "Duplicates",
+                         "Supertip":  "Highlights duplicate values in soft red.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnHighlightErrors",
+                         "Label":  "Errors",
+                         "OnAction":  "Ribbon_OnHighlightErrors",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightErrors",
+                         "CommandName":  "HighlightErrors",
+                         "CommandClass":  "FeatCmd_HighlightData",
+                         "Icon":  "ErrorChecking",
+                         "Keytip":  "HE",
+                         "Screentip":  "Errors",
+                         "Supertip":  "Highlights cells with errors in orange.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnHighlightHardcodedValues",
+                         "Label":  "Hardcoded Values",
+                         "OnAction":  "Ribbon_OnHighlightHardcodedValues",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightHardcodedValues",
+                         "CommandName":  "HighlightHardcodedValues",
+                         "CommandClass":  "FeatCmd_HighlightData",
+                         "Icon":  "FunctionWizard",
+                         "Keytip":  "HH",
+                         "Screentip":  "Hardcoded Values",
+                         "Supertip":  "Highlights formulas containing hardcoded values in lavender.",
                          "RuntimeTestMode":  "interactive"
                      },
                      {
@@ -142,13 +235,42 @@
                      {
                          "ControlId":  "BtnExport",
                          "Label":  "Export",
-                         "OnAction":  "Ribbon_OnExport",
-                         "Macro":  "UI_Ribbon.Ribbon_OnExport",
+                         "Type":  "Menu",
                          "CommandName":  "ExportImageOrPdf",
+                         "CommandClass":  "FeatCmd_ExportImageOrPdf",
                          "Icon":  "Export",
                          "Keytip":  "EX",
-                         "Screentip":  "Export as Image or PDF",
-                         "Supertip":  "Exports the selected range (or the full used range if nothing is selected) and lets you choose where to save it as PNG or PDF.",
+                         "Screentip":  "Export",
+                         "Supertip":  "Exports the selected range as a PNG image or a PDF document.",
+                         "MenuItems":  [
+                                           "BtnExportPng",
+                                           "BtnExportPdf"
+                                       ]
+                     },
+                     {
+                         "ControlId":  "BtnExportPng",
+                         "Label":  "Export as PNG",
+                         "OnAction":  "Ribbon_OnExportPng",
+                         "Macro":  "UI_Ribbon.Ribbon_OnExportPng",
+                         "CommandName":  "ExportPng",
+                         "CommandClass":  "FeatCmd_ExportImageOrPdf",
+                         "Icon":  "FileSaveAs",
+                         "Keytip":  "EP",
+                         "Screentip":  "Export as PNG",
+                         "Supertip":  "Exports the selected range as a PNG image.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnExportPdf",
+                         "Label":  "Export as PDF",
+                         "OnAction":  "Ribbon_OnExportPdf",
+                         "Macro":  "UI_Ribbon.Ribbon_OnExportPdf",
+                         "CommandName":  "ExportPdf",
+                         "CommandClass":  "FeatCmd_ExportImageOrPdf",
+                         "Icon":  "Export",
+                         "Keytip":  "ED",
+                         "Screentip":  "Export as PDF",
+                         "Supertip":  "Exports the selected range as a PDF document.",
                          "RuntimeTestMode":  "interactive"
                      },
                      {
@@ -173,6 +295,56 @@
                          "Keytip":  "HW",
                          "Screentip":  "Say Hello World",
                          "Supertip":  "Puts 'Hello world' into A1 cell.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnReportGenerator",
+                         "Label":  "Report Generator",
+                         "Type":  "Menu",
+                         "Icon":  "TableProperties",
+                         "Keytip":  "RG",
+                         "Screentip":  "Report Generator",
+                         "Supertip":  "Generate structured Table of Contents.",
+                         "MenuItems":  [
+                                           "BtnTableOfContents"
+                                       ]
+                     },
+                     {
+                         "ControlId":  "BtnTableOfContents",
+                         "Label":  "Table of Contents",
+                         "OnAction":  "Ribbon_OnTableOfContents",
+                         "Macro":  "UI_Ribbon.Ribbon_OnTableOfContents",
+                         "CommandName":  "TableOfContents",
+                         "Icon":  "TableOfContentsDialog",
+                         "Keytip":  "TC",
+                         "Screentip":  "Table of Contents",
+                         "Supertip":  "Creates a hyperlinked index sheet at the beginning of the workbook.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnUnmergeFill",
+                         "Label":  "Unmerge & Fill Down",
+                         "OnAction":  "Ribbon_OnUnmergeFill",
+                         "Macro":  "UI_Ribbon.Ribbon_OnUnmergeFill",
+                         "CommandName":  "UnmergeFill",
+                         "CommandClass":  "FeatCmd_UnmergeFill",
+                         "Icon":  "TableProperties",
+                         "Keytip":  "UF",
+                         "Screentip":  "Unmerge & Fill Down",
+                         "Supertip":  "Unmerges the selected cells and fills the parent value to all unmerged cells.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnForceNumber",
+                         "Label":  "Convert Text to Number",
+                         "OnAction":  "Ribbon_OnForceNumber",
+                         "Macro":  "UI_Ribbon.Ribbon_OnForceNumber",
+                         "CommandName":  "ForceNumber",
+                         "CommandClass":  "FeatCmd_ForceNumber",
+                         "Icon":  "CalculateNow",
+                         "Keytip":  "FN",
+                         "Screentip":  "Convert Text to Number",
+                         "Supertip":  "Forces text-formatted numbers in the selection to become actual numeric values.",
                          "RuntimeTestMode":  "interactive"
                      }
                  ],

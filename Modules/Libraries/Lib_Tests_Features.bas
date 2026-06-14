@@ -1684,6 +1684,80 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_HighlightData_HardcodedValues()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HighlightData_HardcodedValues")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    ' Test standalone regex parsing helper first
+    Dim cmd As New FeatCmd_HighlightData
+    
+    ' Should not contain hardcoded values
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=A1"), False, "Simple cell reference should be False"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=$A$1"), False, "Absolute reference should be False"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=A1+B2"), False, "Sum of cell references should be False"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=SUM(A1:B10)"), False, "SUM over range should be False"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=Sheet1!A1"), False, "Reference with sheet should be False"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("='Data 2026'!A1"), False, "Reference with quoted sheet and year should be False"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=LOG10(A1)"), False, "LOG10 function should be False"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=MATCH(A1, B:B, 0)"), False, "MATCH with 0 should be False"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=LEFT(A1, 1)"), False, "LEFT with 1 should be False"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=IF(A1="""", B1, C1)"), False, "IF with empty string should be False"
+    
+    ' Should contain hardcoded values
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=A1*1.05"), True, "1.05 is hardcoded"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=A1+50"), True, "50 is hardcoded"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=IF(A1=""Yes"", B1, C1)"), True, "Yes string is hardcoded"
+    Lib_Tests.AssertEqual cmd.HasHardcodedValue("=DATE(2026, 6, 14)"), True, "Dates have hardcoded numbers"
+    
+    ' Test range highlighting on actual worksheet
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_HighHard"
+    
+    ws.Range("A1").Formula2 = "=B1"                     ' no hardcode
+    ws.Range("A2").Formula2 = "=B2 + 0"                  ' ignores 0
+    ws.Range("A3").Formula2 = "=B3 + 1"                  ' ignores 1
+    ws.Range("A4").Formula2 = "=B4 * 1.05"               ' hardcoded 1.05 (should highlight)
+    ws.Range("A5").Formula2 = "=IF(B5=""USD"", C5, D5)"   ' hardcoded "USD" (should highlight)
+    ws.Range("A6").Formula2 = "=SUM(B6:B10) + 100"       ' hardcoded 100 (should highlight)
+    
+    ' Reset colors
+    ws.Range("A1:A6").Interior.ColorIndex = xlNone
+    
+    Dim req As New Infra_HighlightDataRequest
+    req.HighlightInconsistentFormulas = False
+    req.HighlightDuplicates = False
+    req.HighlightErrors = False
+    req.HighlightHardcodedValues = True
+    
+    cmd.HighlightRangeWithOptionsDirect ws.Range("A1:A6"), req
+    
+    ' Check assertions
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.ColorIndex, xlNone, "A1 should not be highlighted"
+    Lib_Tests.AssertEqual ws.Range("A2").Interior.ColorIndex, xlNone, "A2 should not be highlighted"
+    Lib_Tests.AssertEqual ws.Range("A3").Interior.ColorIndex, xlNone, "A3 should not be highlighted"
+    Lib_Tests.AssertEqual ws.Range("A4").Interior.Color, RGB(230, 210, 250), "A4 formula with 1.05 should be highlighted lavender"
+    Lib_Tests.AssertEqual ws.Range("A5").Interior.Color, RGB(230, 210, 250), "A5 formula with 'USD' should be highlighted lavender"
+    Lib_Tests.AssertEqual ws.Range("A6").Interior.Color, RGB(230, 210, 250), "A6 formula with 100 should be highlighted lavender"
+    
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_HighlightData_HardcodedValues", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_FormatRange_WholeSheetSafety()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FormatRange_WholeSheetSafety")
     Dim guard As New Infra_AppStateGuard
@@ -1868,6 +1942,49 @@ ErrHandler:
 End Sub
 
 
+Public Sub Test_UI_OptionPicker_KeyboardNavigation()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_UI_OptionPicker_KeyboardNavigation")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim frm As Object
+    On Error Resume Next
+    Set frm = VBA.UserForms.Add("UI_OptionPicker")
+    On Error GoTo ErrHandler
+
+    Lib_Tests.AssertTrue Not frm Is Nothing, "UI_OptionPicker form should be loadable"
+
+    ' Configure single select option picker
+    frm.ConfigureOptionPicker "Test Keyboard Title", "Select an option:", "Option 1", Array("Option 1", "Option 2")
+
+    ' Check initial state
+    Lib_Tests.AssertTrue Not frm.IsIgnoringClick, "Initial IsIgnoringClick should be False"
+    Lib_Tests.AssertTrue Not frm.WasConfirmed, "Initial WasConfirmed should be False"
+
+    ' Simulate Arrow Down key down (KeyCode = 40)
+    frm.HandleKeyDown 40, 0
+    Lib_Tests.AssertTrue frm.IsIgnoringClick, "IsIgnoringClick should be True after key down (arrow key)"
+
+    ' Simulate Arrow Down key up
+    frm.HandleKeyUp 40, 0
+    Lib_Tests.AssertTrue Not frm.IsIgnoringClick, "IsIgnoringClick should be False after key up"
+
+    ' Simulate Enter key down (KeyCode = 13)
+    frm.HandleKeyDown 13, 0
+    Lib_Tests.AssertTrue frm.WasConfirmed, "WasConfirmed should be True after Enter key down"
+
+CleanExit:
+    On Error Resume Next
+    If Not frm Is Nothing Then Unload frm
+    On Error GoTo 0
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "Test_UI_OptionPicker_KeyboardNavigation", Err
+    Resume CleanExit
+End Sub
+
+
 Public Sub Test_ModifyData_MixedFormats()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ModifyData_MixedFormats")
     On Error GoTo ErrHandler
@@ -1957,6 +2074,255 @@ ErrHandler:
     Infra_Error.HandleError "Test_FormatRange_ErrorSafety", Err
     Resume CleanExit
 End Sub
+
+
+Public Sub Test_TableOfContents_Generation()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_TableOfContents_Generation")
+    On Error GoTo ErrHandler
+
+    ' Create a temporary workbook
+    Dim wb As Workbook
+    Set wb = Workbooks.Add
+
+    ' Add mock worksheets
+    Dim ws1 As Worksheet, ws2 As Worksheet
+    Set ws1 = wb.Worksheets.Add
+    ws1.Name = "Test_TOC_Sheet1"
+    ws1.Range("A1:B2").Value2 = "Data" ' 4 populated cells
+
+    Set ws2 = wb.Worksheets.Add
+    ws2.Name = "Test_TOC_Sheet2"
+    ws2.Visible = xlSheetHidden
+
+    ' Initialize AppContainer and create context
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("TableOfContents")
+    Set ctx.ActionContext.WorkbookRef = wb
+
+    ' Resolve and execute command
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("TableOfContents")
+    
+    ' Execute (should not prompt since TOC sheet does not exist yet)
+    cmd.Execute ctx
+
+    ' Validate Table of Contents sheet is first
+    Dim wsTOC As Worksheet
+    Set wsTOC = wb.Worksheets(1)
+    Lib_Tests.AssertEqual wsTOC.Name, "Table of Contents", "First worksheet should be 'Table of Contents'"
+
+    ' Validate info on wsTOC
+    Dim r As Long, foundSheet1 As Boolean, foundSheet2 As Boolean
+    For r = 6 To 15
+        Dim sheetName As String
+        sheetName = wsTOC.Cells(r, 3).Value
+        If sheetName = "Test_TOC_Sheet1" Then
+            foundSheet1 = True
+            ' Verify cells count is 4
+            Lib_Tests.AssertEqual wsTOC.Cells(r, 5).Value, 4#, "Test_TOC_Sheet1 populated cells count should be 4"
+            ' Verify visibility is Visible
+            Lib_Tests.AssertEqual wsTOC.Cells(r, 4).Value, "Visible", "Test_TOC_Sheet1 visibility should be Visible"
+        ElseIf sheetName = "Test_TOC_Sheet2" Then
+            foundSheet2 = True
+            ' Verify visibility is Hidden
+            Lib_Tests.AssertEqual wsTOC.Cells(r, 4).Value, "Hidden", "Test_TOC_Sheet2 visibility should be Hidden"
+        End If
+    Next r
+
+    Lib_Tests.AssertEqual foundSheet1, True, "Test_TOC_Sheet1 should be listed in TOC"
+    Lib_Tests.AssertEqual foundSheet2, True, "Test_TOC_Sheet2 should be listed in TOC"
+
+    ' Cleanup
+    wb.Close SaveChanges:=False
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_TableOfContents_Generation", Err
+    Resume CleanExit
+End Sub
+
+
+Public Sub Test_CommandResolution_NewMenus()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandResolution_NewMenus")
+    On Error GoTo ErrHandler
+
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    ' 1. Test ModifyData sub-commands
+    Dim cmdModify As ICommand
+    Set cmdModify = AppContainer.ResolveCommand("DateFixer")
+    Lib_Tests.AssertEqual Not cmdModify Is Nothing, True, "DateFixer command should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdModify), "FeatCmd_ModifyData", "DateFixer should resolve to FeatCmd_ModifyData"
+
+    Set cmdModify = AppContainer.ResolveCommand("CaseFixer")
+    Lib_Tests.AssertEqual Not cmdModify Is Nothing, True, "CaseFixer command should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdModify), "FeatCmd_ModifyData", "CaseFixer should resolve to FeatCmd_ModifyData"
+
+    ' 2. Test HighlightData sub-commands
+    Dim cmdHighlight As ICommand
+    Set cmdHighlight = AppContainer.ResolveCommand("HighlightInconsistentFormulas")
+    Lib_Tests.AssertEqual Not cmdHighlight Is Nothing, True, "HighlightInconsistentFormulas should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdHighlight), "FeatCmd_HighlightData", "HighlightInconsistentFormulas should resolve to FeatCmd_HighlightData"
+
+    Set cmdHighlight = AppContainer.ResolveCommand("HighlightDuplicates")
+    Lib_Tests.AssertEqual Not cmdHighlight Is Nothing, True, "HighlightDuplicates should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdHighlight), "FeatCmd_HighlightData", "HighlightDuplicates should resolve to FeatCmd_HighlightData"
+
+    Set cmdHighlight = AppContainer.ResolveCommand("HighlightErrors")
+    Lib_Tests.AssertEqual Not cmdHighlight Is Nothing, True, "HighlightErrors should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdHighlight), "FeatCmd_HighlightData", "HighlightErrors should resolve to FeatCmd_HighlightData"
+
+    Set cmdHighlight = AppContainer.ResolveCommand("HighlightHardcodedValues")
+    Lib_Tests.AssertEqual Not cmdHighlight Is Nothing, True, "HighlightHardcodedValues should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdHighlight), "FeatCmd_HighlightData", "HighlightHardcodedValues should resolve to FeatCmd_HighlightData"
+
+    ' 3. Test Export sub-commands
+    Dim cmdExport As ICommand
+    Set cmdExport = AppContainer.ResolveCommand("ExportPng")
+    Lib_Tests.AssertEqual Not cmdExport Is Nothing, True, "ExportPng should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdExport), "FeatCmd_ExportImageOrPdf", "ExportPng should resolve to FeatCmd_ExportImageOrPdf"
+
+    Set cmdExport = AppContainer.ResolveCommand("ExportPdf")
+    Lib_Tests.AssertEqual Not cmdExport Is Nothing, True, "ExportPdf should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdExport), "FeatCmd_ExportImageOrPdf", "ExportPdf should resolve to FeatCmd_ExportImageOrPdf"
+
+    ' 4. Test new ModifyData commands
+    Dim cmdNewModify As ICommand
+    Set cmdNewModify = AppContainer.ResolveCommand("UnmergeFill")
+    Lib_Tests.AssertEqual Not cmdNewModify Is Nothing, True, "UnmergeFill command should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdNewModify), "FeatCmd_UnmergeFill", "UnmergeFill should resolve to FeatCmd_UnmergeFill"
+
+    Set cmdNewModify = AppContainer.ResolveCommand("ForceNumber")
+    Lib_Tests.AssertEqual Not cmdNewModify Is Nothing, True, "ForceNumber command should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdNewModify), "FeatCmd_ForceNumber", "ForceNumber should resolve to FeatCmd_ForceNumber"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Test_CommandResolution_NewMenus", Err
+    Resume CleanExit
+End Sub
+
+
+Public Sub Test_UnmergeFill_Execution_And_Undo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_UnmergeFill_Execution_And_Undo")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim wb As Workbook: Set wb = Workbooks.Add
+    Dim ws As Worksheet: Set ws = wb.Worksheets(1)
+
+    ' Setup merged range
+    Dim targetRange As Range: Set targetRange = ws.Range("A1:B2")
+    targetRange.Merge
+    targetRange.Cells(1, 1).Value = "TestMerged"
+
+    ' Run command via AppContainer
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    
+    targetRange.Select
+    
+    Dim cmd As ICommand: Set cmd = AppContainer.ResolveCommand("UnmergeFill")
+    Lib_Tests.AssertEqual Not cmd Is Nothing, True, "Resolve UnmergeFill"
+    
+    ' Execute
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnUnmergeFill", "UnmergeFill", "Ribbon"
+    
+    ' Check if unmerged and populated
+    Lib_Tests.AssertEqual targetRange.MergeCells, False, "Should be unmerged"
+    Lib_Tests.AssertEqual ws.Range("A1").Value, "TestMerged", "A1 has value"
+    Lib_Tests.AssertEqual ws.Range("A2").Value, "TestMerged", "A2 has value"
+    Lib_Tests.AssertEqual ws.Range("B1").Value, "TestMerged", "B1 has value"
+    Lib_Tests.AssertEqual ws.Range("B2").Value, "TestMerged", "B2 has value"
+    
+    ' Test Undo
+    Infra_Undo.RegisterPendingUndo
+    Infra_Undo.PerformUndo
+    
+    ' Check if merged again and restored
+    Lib_Tests.AssertEqual targetRange.MergeCells, True, "Should be merged again after Undo"
+    Lib_Tests.AssertEqual ws.Range("A1").Value, "TestMerged", "A1 still has value"
+    
+    wb.Close SaveChanges:=False
+    
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_UnmergeFill_Execution_And_Undo", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ForceNumber_Execution_And_Undo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ForceNumber_Execution_And_Undo")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim wb As Workbook: Set wb = Workbooks.Add
+    Dim ws As Worksheet: Set ws = wb.Worksheets(1)
+
+    ' Setup text formatted numbers
+    ws.Range("A1").NumberFormat = "@"
+    ws.Range("A1").Value = "1250.50"
+    
+    ws.Range("A2").NumberFormat = "@"
+    ws.Range("A2").Value = "$1500"
+    
+    ws.Range("A3").NumberFormat = "@"
+    ws.Range("A3").Value = "150-"
+    
+    ws.Range("A4").NumberFormat = "@"
+    ws.Range("A4").Value = "5%"
+    
+    ws.Range("A1:A4").Select
+    
+    ' Execute
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnForceNumber", "ForceNumber", "Ribbon"
+    
+    ' Check values and types
+    Lib_Tests.AssertEqual VarType(ws.Range("A1").Value), vbDouble, "A1 is Double"
+    Lib_Tests.AssertEqual ws.Range("A1").Value, 1250.5, "A1 value is 1250.5"
+    Lib_Tests.AssertEqual ws.Range("A1").NumberFormat, "General", "A1 format is General"
+    
+    Lib_Tests.AssertEqual VarType(ws.Range("A2").Value), vbDouble, "A2 is Double"
+    Lib_Tests.AssertEqual ws.Range("A2").Value, 1500#, "A2 value is 1500"
+    
+    Lib_Tests.AssertEqual VarType(ws.Range("A3").Value), vbDouble, "A3 is Double"
+    Lib_Tests.AssertEqual ws.Range("A3").Value, -150#, "A3 value is -150"
+    
+    Lib_Tests.AssertEqual VarType(ws.Range("A4").Value), vbDouble, "A4 is Double"
+    Lib_Tests.AssertEqual ws.Range("A4").Value, 0.05, "A4 value is 0.05"
+    
+    ' Test Undo
+    Infra_Undo.RegisterPendingUndo
+    Infra_Undo.PerformUndo
+    
+    ' Check if format and values are restored
+    Lib_Tests.AssertEqual ws.Range("A1").NumberFormat, "@", "A1 format is text again"
+    Lib_Tests.AssertEqual ws.Range("A1").Value, "1250.50", "A1 value is text again"
+    Lib_Tests.AssertEqual ws.Range("A4").Value, "5%", "A4 value is text again"
+    
+    wb.Close SaveChanges:=False
+    
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ForceNumber_Execution_And_Undo", Err
+    Resume CleanExit
+End Sub
+
+
 
 
 

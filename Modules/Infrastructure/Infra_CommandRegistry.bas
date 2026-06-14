@@ -18,20 +18,36 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "StaticSheetWorkbook"
         Case "UI_RIBBON.RIBBON_ONCLEANDATA"
             ResolveCommandName = "CleanData"
-        Case "UI_RIBBON.RIBBON_ONMODIFYDATA"
-            ResolveCommandName = "ModifyData"
-        Case "UI_RIBBON.RIBBON_ONHIGHLIGHTDATA"
-            ResolveCommandName = "HighlightData"
+        Case "UI_RIBBON.RIBBON_ONDATEFIXER"
+            ResolveCommandName = "DateFixer"
+        Case "UI_RIBBON.RIBBON_ONCASEFIXER"
+            ResolveCommandName = "CaseFixer"
+        Case "UI_RIBBON.RIBBON_ONHIGHLIGHTINCONSISTENTFORMULAS"
+            ResolveCommandName = "HighlightInconsistentFormulas"
+        Case "UI_RIBBON.RIBBON_ONHIGHLIGHTDUPLICATES"
+            ResolveCommandName = "HighlightDuplicates"
+        Case "UI_RIBBON.RIBBON_ONHIGHLIGHTERRORS"
+            ResolveCommandName = "HighlightErrors"
+        Case "UI_RIBBON.RIBBON_ONHIGHLIGHTHARDCODEDVALUES"
+            ResolveCommandName = "HighlightHardcodedValues"
         Case "UI_RIBBON.RIBBON_ONBREAKEXTERNALLINKS"
             ResolveCommandName = "BreakExternalLinks"
         Case "UI_RIBBON.RIBBON_ONDUPLICATE"
             ResolveCommandName = "Duplicate"
-        Case "UI_RIBBON.RIBBON_ONEXPORT"
-            ResolveCommandName = "ExportImageOrPdf"
+        Case "UI_RIBBON.RIBBON_ONEXPORTPNG"
+            ResolveCommandName = "ExportPng"
+        Case "UI_RIBBON.RIBBON_ONEXPORTPDF"
+            ResolveCommandName = "ExportPdf"
         Case "UI_RIBBON.RIBBON_ONSHOWHELPCENTER"
             ResolveCommandName = "ShowHelpCenter"
         Case "UI_RIBBON.RIBBON_ONHELLOWORLD"
             ResolveCommandName = "HelloWorld"
+        Case "UI_RIBBON.RIBBON_ONTABLEOFCONTENTS"
+            ResolveCommandName = "TableOfContents"
+        Case "UI_RIBBON.RIBBON_ONUNMERGEFILL"
+            ResolveCommandName = "UnmergeFill"
+        Case "UI_RIBBON.RIBBON_ONFORCENUMBER"
+            ResolveCommandName = "ForceNumber"
         Case "UI_HOTKEYS.HOTKEY_APPLYCUSTOMNUMBERFORMAT"
             ResolveCommandName = "ApplyCustomNumberFormat"
         Case "UI_HOTKEYS.HOTKEY_MAKEPERMANENT"
@@ -73,7 +89,19 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
             Set CreateCommand = New FeatCmd_CleanData
         Case "MODIFYDATA"
             Set CreateCommand = New FeatCmd_ModifyData
+        Case "DATEFIXER"
+            Set CreateCommand = New FeatCmd_ModifyData
+        Case "CASEFIXER"
+            Set CreateCommand = New FeatCmd_ModifyData
         Case "HIGHLIGHTDATA"
+            Set CreateCommand = New FeatCmd_HighlightData
+        Case "HIGHLIGHTINCONSISTENTFORMULAS"
+            Set CreateCommand = New FeatCmd_HighlightData
+        Case "HIGHLIGHTDUPLICATES"
+            Set CreateCommand = New FeatCmd_HighlightData
+        Case "HIGHLIGHTERRORS"
+            Set CreateCommand = New FeatCmd_HighlightData
+        Case "HIGHLIGHTHARDCODEDVALUES"
             Set CreateCommand = New FeatCmd_HighlightData
         Case "BREAKEXTERNALLINKS"
             Set CreateCommand = New FeatCmd_BreakExternalLinks
@@ -81,10 +109,20 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
             Set CreateCommand = New FeatCmd_Duplicate
         Case "EXPORTIMAGEORPDF"
             Set CreateCommand = New FeatCmd_ExportImageOrPdf
+        Case "EXPORTPNG"
+            Set CreateCommand = New FeatCmd_ExportImageOrPdf
+        Case "EXPORTPDF"
+            Set CreateCommand = New FeatCmd_ExportImageOrPdf
         Case "SHOWHELPCENTER"
             Set CreateCommand = New FeatCmd_ShowHelpCenter
         Case "HELLOWORLD"
             Set CreateCommand = New FeatCmd_HelloWorld
+        Case "TABLEOFCONTENTS"
+            Set CreateCommand = New FeatCmd_TableOfContents
+        Case "UNMERGEFILL"
+            Set CreateCommand = New FeatCmd_UnmergeFill
+        Case "FORCENUMBER"
+            Set CreateCommand = New FeatCmd_ForceNumber
         Case "APPLYCUSTOMNUMBERFORMAT"
             Set CreateCommand = New FeatCmd_ApplyCustomNumberFormat
         Case "MAKEPERMANENT"

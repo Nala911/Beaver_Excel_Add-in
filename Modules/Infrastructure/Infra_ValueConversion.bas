@@ -293,51 +293,53 @@ Public Function ResolveSpillExpandedRange(ByVal sourceRange As Range) As Range
     On Error GoTo ErrHandler
 
     If Not scanRange Is Nothing Then
-        Dim processedSpills As Range
-        For Each cell In scanRange.Cells
-            Dim shouldCheck As Boolean
-            shouldCheck = True
-            
-            If Not processedSpills Is Nothing Then
-                If Not Application.Intersect(cell, processedSpills) Is Nothing Then
-                    shouldCheck = False
-                End If
-            End If
-            
-            If shouldCheck Then
-                Dim hasSpillVal As Boolean
-                hasSpillVal = False
+        If AreaHasSpill(scanRange) Then
+            Dim processedSpills As Range
+            For Each cell In scanRange.Cells
+                Dim shouldCheck As Boolean
+                shouldCheck = True
                 
-                On Error Resume Next
-                hasSpillVal = cell.HasSpill
-                On Error GoTo ErrHandler
-                
-                If hasSpillVal Then
-                    Dim spillParentCell As Range
-                    On Error Resume Next
-                    Set spillParentCell = cell.SpillParent
-                    On Error GoTo ErrHandler
-                    
-                    If spillParentCell Is Nothing Then
-                        Set spillParentCell = cell
+                If Not processedSpills Is Nothing Then
+                    If Not Application.Intersect(cell, processedSpills) Is Nothing Then
+                        shouldCheck = False
                     End If
+                End If
+                
+                If shouldCheck Then
+                    Dim hasSpillVal As Boolean
+                    hasSpillVal = False
                     
-                    Dim spillRange As Range
                     On Error Resume Next
-                    Set spillRange = spillParentCell.SpillingToRange
+                    hasSpillVal = cell.HasSpill
                     On Error GoTo ErrHandler
                     
-                    If Not spillRange Is Nothing Then
-                        Set expanded = Application.Union(expanded, spillRange)
-                        If processedSpills Is Nothing Then
-                            Set processedSpills = spillRange
-                        Else
-                            Set processedSpills = Application.Union(processedSpills, spillRange)
+                    If hasSpillVal Then
+                        Dim spillParentCell As Range
+                        On Error Resume Next
+                        Set spillParentCell = cell.SpillParent
+                        On Error GoTo ErrHandler
+                        
+                        If spillParentCell Is Nothing Then
+                            Set spillParentCell = cell
+                        End If
+                        
+                        Dim spillRange As Range
+                        On Error Resume Next
+                        Set spillRange = spillParentCell.SpillingToRange
+                        On Error GoTo ErrHandler
+                        
+                        If Not spillRange Is Nothing Then
+                            Set expanded = Application.Union(expanded, spillRange)
+                            If processedSpills Is Nothing Then
+                                Set processedSpills = spillRange
+                            Else
+                                Set processedSpills = Application.Union(processedSpills, spillRange)
+                            End If
                         End If
                     End If
                 End If
-            End If
-        Next cell
+            Next cell
+        End If
     End If
 
     Set ResolveSpillExpandedRange = expanded

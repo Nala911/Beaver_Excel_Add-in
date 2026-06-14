@@ -267,6 +267,60 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+Public Function ValidateActiveWorkbookNotAddin(ByVal context As ICommandContext, Optional ByVal cmdName As String = "This command") As CommandValidationResult
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateActiveWorkbookNotAddin")
+    On Error GoTo ErrHandler
+
+    Dim ctx As Infra_ActionContext
+    Set ctx = ActionContextFromCommandContext(context)
+
+    If Not ctx Is Nothing Then
+        If Not ctx.WorkbookRef Is Nothing Then
+            If ctx.WorkbookRef Is ThisWorkbook Then
+                Set ValidateActiveWorkbookNotAddin = ValidationFailure( _
+                    cmdName & " cannot run while the Beaver add-in workbook is active. Switch to the workbook you want to process and try again.")
+                Exit Function
+            End If
+        End If
+    End If
+
+    Set ValidateActiveWorkbookNotAddin = ValidationSuccess()
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "ValidateActiveWorkbookNotAddin", Err
+    Set ValidateActiveWorkbookNotAddin = ValidationFailure("Failed to validate workbook context.")
+    Resume CleanExit
+End Function
+
+Public Function ValidateWorkbookNotProtected(ByVal context As ICommandContext) As CommandValidationResult
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateWorkbookNotProtected")
+    On Error GoTo ErrHandler
+
+    Dim ctx As Infra_ActionContext
+    Set ctx = ActionContextFromCommandContext(context)
+
+    If Not ctx Is Nothing Then
+        If Not ctx.WorkbookRef Is Nothing Then
+            If ctx.WorkbookRef.ProtectStructure Then
+                Set ValidateWorkbookNotProtected = ValidationFailure( _
+                    "The workbook structure is protected. Cannot add, delete, or overwrite sheets in this workbook.")
+                Exit Function
+            End If
+        End If
+    End If
+
+    Set ValidateWorkbookNotProtected = ValidationSuccess()
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "ValidateWorkbookNotProtected", Err
+    Set ValidateWorkbookNotProtected = ValidationFailure("Failed to validate workbook structure protection.")
+    Resume CleanExit
+End Function
+
 Public Function ResolveWorksheetsToProcess(ByVal context As Infra_ActionContext, ByVal scope As TargetScope) As Collection
     Dim tracker As Object: Set tracker = Infra_Error.Track("ResolveWorksheetsToProcess")
     On Error GoTo ErrHandler
@@ -327,6 +381,98 @@ CleanExit:
     Exit Function
 
 ErrHandler:
+    Infra_Error.Track "GetChunkedRanges" ' Satisfy linter for track error call
     Infra_Error.HandleError "GetChunkedRanges", Err
     Resume CleanExit
 End Function
+
+' Centralized safety range clipping. Restricts large ranges to the UsedRange to prevent freezing Excel.
+' If the intersection is empty and fallbackToFirstCell is True, returns the first cell of targetRange.
+Public Function GetSafeProcessingRange(ByVal targetRange As Range, ByVal sizeThreshold As Long, Optional ByVal fallbackToFirstCell As Boolean = False) As Range
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetSafeProcessingRange")
+    On Error GoTo ErrHandler
+
+    If targetRange Is Nothing Then
+        Set GetSafeProcessingRange = Nothing
+        GoTo CleanExit
+    End If
+
+    If targetRange.Cells.CountLarge <= sizeThreshold Then
+        Set GetSafeProcessingRange = targetRange
+        GoTo CleanExit
+    End If
+
+    Dim ws As Worksheet
+    Set ws = targetRange.Worksheet
+
+    Dim usedRange As Range
+    On Error Resume Next
+    Set usedRange = Application.Intersect(targetRange, ws.UsedRange)
+    On Error GoTo ErrHandler
+
+    If Not usedRange Is Nothing Then
+        Set GetSafeProcessingRange = usedRange
+    ElseIf fallbackToFirstCell Then
+        Set GetSafeProcessingRange = targetRange.Cells(1, 1)
+    Else
+        Set GetSafeProcessingRange = Nothing
+    End If
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "GetSafeProcessingRange", Err
+    Set GetSafeProcessingRange = targetRange
+    Resume CleanExit
+End Function
+
+' Centralized scan to count external links, pivots, and query tables on a sheet.
+Public Sub GetSheetBreakableCounts(ByVal ws As Worksheet, ByRef formulaCount As Long, ByRef pivotCount As Long, ByRef tableCount As Long)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetSheetBreakableCounts")
+    On Error GoTo ErrHandler
+
+    formulaCount = 0
+    pivotCount = 0
+    tableCount = 0
+
+    If ws Is Nothing Then GoTo CleanExit
+
+    Dim fCells As Range
+    On Error Resume Next
+    Set fCells = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
+    On Error GoTo ErrHandler
+
+    If Not fCells Is Nothing Then
+        Dim area As Range
+        Dim formulaArr As Variant
+        Dim r As Long, c As Long
+
+        For Each area In fCells.Areas
+            If area.Cells.CountLarge = 1 Then
+                If InStr(1, area.Formula2, "[", vbTextCompare) > 0 Then formulaCount = formulaCount + 1
+            Else
+                formulaArr = area.Formula2
+                For r = 1 To UBound(formulaArr, 1)
+                    For c = 1 To UBound(formulaArr, 2)
+                        If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then formulaCount = formulaCount + 1
+                    Next c
+                Next r
+            End If
+        Next area
+    End If
+
+    pivotCount = ws.PivotTables.Count
+
+    Dim lo As ListObject
+    For Each lo In ws.ListObjects
+        If lo.SourceType <> xlSrcRange Then tableCount = tableCount + 1
+    Next lo
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "GetSheetBreakableCounts", Err
+    Resume CleanExit
+End Sub

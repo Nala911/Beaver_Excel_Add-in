@@ -66,29 +66,81 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Public Sub Ribbon_OnModifyData(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnModifyData")
+Public Sub Ribbon_OnDateFixer(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnDateFixer")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnModifyData", "Ribbon_OnModifyData", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnDateFixer", "Ribbon_OnDateFixer", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnModifyData", Err
+    Infra_Error.HandleError "Ribbon_OnDateFixer", Err
     Resume CleanExit
 End Sub
 
-Public Sub Ribbon_OnHighlightData(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnHighlightData")
+Public Sub Ribbon_OnCaseFixer(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnCaseFixer")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnHighlightData", "Ribbon_OnHighlightData", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnCaseFixer", "Ribbon_OnCaseFixer", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnHighlightData", Err
+    Infra_Error.HandleError "Ribbon_OnCaseFixer", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnHighlightInconsistentFormulas(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnHighlightInconsistentFormulas")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnHighlightInconsistentFormulas", "Ribbon_OnHighlightInconsistentFormulas", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnHighlightInconsistentFormulas", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnHighlightDuplicates(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnHighlightDuplicates")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnHighlightDuplicates", "Ribbon_OnHighlightDuplicates", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnHighlightDuplicates", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnHighlightErrors(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnHighlightErrors")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnHighlightErrors", "Ribbon_OnHighlightErrors", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnHighlightErrors", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnHighlightHardcodedValues(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnHighlightHardcodedValues")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnHighlightHardcodedValues", "Ribbon_OnHighlightHardcodedValues", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnHighlightHardcodedValues", Err
     Resume CleanExit
 End Sub
 
@@ -118,16 +170,29 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Public Sub Ribbon_OnExport(ByVal control As Object)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnExport")
+Public Sub Ribbon_OnExportPng(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnExportPng")
     On Error GoTo ErrHandler
 
-    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnExport", "Ribbon_OnExport", "Ribbon"
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnExportPng", "Ribbon_OnExportPng", "Ribbon"
 
 CleanExit:
     Exit Sub
 ErrHandler:
-    Infra_Error.HandleError "Ribbon_OnExport", Err
+    Infra_Error.HandleError "Ribbon_OnExportPng", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnExportPdf(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnExportPdf")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnExportPdf", "Ribbon_OnExportPdf", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnExportPdf", Err
     Resume CleanExit
 End Sub
 
@@ -154,5 +219,44 @@ CleanExit:
     Exit Sub
 ErrHandler:
     Infra_Error.HandleError "Ribbon_OnHelloWorld", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnTableOfContents(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnTableOfContents")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnTableOfContents", "Ribbon_OnTableOfContents", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnTableOfContents", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnUnmergeFill(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnUnmergeFill")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnUnmergeFill", "Ribbon_OnUnmergeFill", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnUnmergeFill", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnForceNumber(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnForceNumber")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnForceNumber", "Ribbon_OnForceNumber", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnForceNumber", Err
     Resume CleanExit
 End Sub

@@ -21,9 +21,11 @@ Public Scope As TargetScope
 Public HighlightInconsistentFormulas As Boolean
 Public HighlightDuplicates As Boolean
 Public HighlightErrors As Boolean
+Public HighlightHardcodedValues As Boolean
 
 Private Sub Class_Initialize()
     HighlightInconsistentFormulas = True
     HighlightDuplicates = True
     HighlightErrors = False
+    HighlightHardcodedValues = False
 End Sub
