@@ -18,6 +18,14 @@ Private m_PendingUndoAction As String
 ' Call this BEFORE modifying the range.
 Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("SaveState")
+    Dim links As Variant
+    Dim undoRange As Range
+    Dim formulaCells As Range
+    Dim foundCell As Range
+    Dim firstAddress As String
+    Dim extCells As Collection
+    Dim c As Variant
+    Dim i As Long
     On Error GoTo ErrHandler
     
     If Target Is Nothing Then GoTo CleanExit
@@ -63,6 +71,47 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As 
     ' Copy captureRange to Undo Sheet at the same address so relative formulas
     ' keep their original references instead of being re-based from A1.
     captureRange.Copy Destination:=undoSh.Range(captureRange.Address)
+
+    ' Prefix external formulas in the undo sheet to prevent external links from being active in the session.
+    On Error Resume Next
+    links = ThisWorkbook.LinkSources(Type:=xlLinkTypeExcelLinks)
+    On Error GoTo 0
+    
+    If Not IsEmpty(links) Then
+        Set undoRange = undoSh.Range(captureRange.Address)
+        On Error Resume Next
+        Set formulaCells = undoRange.SpecialCells(xlCellTypeFormulas)
+        On Error GoTo 0
+        
+        If Not formulaCells Is Nothing Then
+            Set extCells = New Collection
+            On Error Resume Next
+            Set foundCell = formulaCells.Find(What:="[", LookIn:=xlFormulas, LookAt:=xlPart)
+            If Not foundCell Is Nothing Then
+                firstAddress = foundCell.Address
+                Do
+                    extCells.Add foundCell
+                    Set foundCell = formulaCells.FindNext(foundCell)
+                    If foundCell Is Nothing Then Exit Do
+                Loop While foundCell.Address <> firstAddress
+                
+                For Each c In extCells
+                    c.Value = "__BEAVER_UNDO_FORMULA_PREFIX__" & c.Formula2
+                Next c
+            End If
+            On Error GoTo 0
+        End If
+        
+        ' Clean up any active external links created in ThisWorkbook (the add-in) due to the copy.
+        ' Only run if ThisWorkbook is NOT the target workbook to prevent breaking links prematurely.
+        If Not ThisWorkbook Is targetWb Then
+            For i = LBound(links) To UBound(links)
+                On Error Resume Next
+                ThisWorkbook.BreakLink Name:=links(i), Type:=xlLinkTypeExcelLinks
+                On Error GoTo 0
+            Next i
+        End If
+    End If
 
     ' Store metadata outside the undo payload so large target ranges cannot
     ' overwrite it.
@@ -178,6 +227,11 @@ Public Sub PerformUndo()
     Set dataRange = undoSh.Range(addr)
 
     dataRange.Copy Destination:=targetRange
+    
+    ' Restore formulas by replacing the prefix back to empty string
+    On Error Resume Next
+    targetRange.Replace What:="__BEAVER_UNDO_FORMULA_PREFIX__", Replacement:="", LookAt:=xlPart
+    On Error GoTo 0
     
     ' Clear undo sheet to prevent accidental double-restore
     undoSh.Cells.Clear

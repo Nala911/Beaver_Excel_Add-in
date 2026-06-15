@@ -116,9 +116,7 @@ Private Sub LoadMultiOptionList(ByVal options As Variant, ByVal defaultChecked A
                     regKey = Me.Caption & "_" & candidateValue
                     regKey = Replace(regKey, " ", "_")
                     
-                    On Error Resume Next
-                    savedSetting = GetSetting(appname:="BeaverAddin", section:="Preferences", key:=regKey, Default:=vbNullString)
-                    On Error GoTo 0
+                    savedSetting = Infra_Interaction.GetUserPreference("Preferences", regKey, vbNullString)
                     
                     If savedSetting <> vbNullString Then
                         isChecked = CBool(savedSetting)
@@ -334,14 +332,12 @@ Private Sub ConfirmSelection()
         End If
         
         ' Save multi-select preferences to Registry
-        On Error Resume Next
         For i = 0 To lstHotkeys.ListCount - 1
             itemText = Trim$(CStr(lstHotkeys.List(i)))
             regKey = Me.Caption & "_" & itemText
             regKey = Replace(regKey, " ", "_")
-            SaveSetting appname:="BeaverAddin", section:="Preferences", key:=regKey, setting:=CStr(lstHotkeys.Selected(i))
+            Infra_Interaction.SaveUserPreference "Preferences", regKey, CStr(lstHotkeys.Selected(i))
         Next i
-        On Error GoTo 0
         
         mConfirmed = True
     End If

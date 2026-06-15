@@ -1,6 +1,11 @@
 Attribute VB_Name = "Infra_CommandSupport"
 Option Explicit
 
+Public Enum NameCleanCriteria
+    NameCleanCriteriaBroken = 1
+    NameCleanCriteriaExternal = 2
+End Enum
+
 ' @Module: Infra_CommandSupport
 ' @Category: Infrastructure
 ' @Description: Shared helpers for command validation, execution policy, and typed command context access.
@@ -476,3 +481,91 @@ ErrHandler:
     Infra_Error.HandleError "GetSheetBreakableCounts", Err
     Resume CleanExit
 End Sub
+
+' Closes a workbook by name in a deferred manner.
+' Useful when closing the active workbook during active Ribbon/Hotkey callbacks causes Excel UI issues.
+Public Sub CloseWorkbookDeferred(ByVal wbName As String)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CloseWorkbookDeferred")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim wb As Workbook
+    On Error Resume Next
+    Set wb = Workbooks(wbName)
+    On Error GoTo ErrHandler
+
+    If Not wb Is Nothing Then
+        wb.Close SaveChanges:=False
+    End If
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "CloseWorkbookDeferred", Err
+    Resume CleanExit
+End Sub
+
+' Helper to loop backwards and delete workbook or sheet named ranges that meet criteria.
+Public Sub CleanWorkbookNames(ByVal wb As Workbook, ByVal ws As Worksheet, ByVal criteria As NameCleanCriteria, ByRef outCount As Long)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CleanWorkbookNames")
+    On Error GoTo ErrHandler
+
+    Dim nm As Name
+    Dim i As Long
+    
+    outCount = 0
+    
+    If Not ws Is Nothing Then
+        For i = ws.Names.Count To 1 Step -1
+            Set nm = ws.Names(i)
+            If MatchesCleanCriteria(nm, criteria) Then
+                On Error Resume Next
+                nm.Delete
+                If Err.Number = 0 Then outCount = outCount + 1
+                Err.Clear
+                On Error GoTo ErrHandler
+            End If
+        Next i
+    ElseIf Not wb Is Nothing Then
+        For i = wb.Names.Count To 1 Step -1
+            Set nm = wb.Names(i)
+            If MatchesCleanCriteria(nm, criteria) Then
+                On Error Resume Next
+                nm.Delete
+                If Err.Number = 0 Then outCount = outCount + 1
+                Err.Clear
+                On Error GoTo ErrHandler
+            End If
+        Next i
+    End If
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "CleanWorkbookNames", Err
+    Resume CleanExit
+End Sub
+
+Private Function MatchesCleanCriteria(ByVal nm As Name, ByVal criteria As NameCleanCriteria) As Boolean
+    Dim refersToVal As String
+    refersToVal = ""
+    On Error Resume Next
+    refersToVal = nm.RefersTo
+    On Error GoTo 0
+    
+    If refersToVal = "" Then
+        MatchesCleanCriteria = False
+        Exit Function
+    End If
+    
+    Select Case criteria
+        Case NameCleanCriteriaBroken
+            MatchesCleanCriteria = (InStr(1, refersToVal, "#REF!", vbTextCompare) > 0)
+        Case NameCleanCriteriaExternal
+            MatchesCleanCriteria = (InStr(1, refersToVal, "[", vbTextCompare) > 0)
+        Case Else
+            MatchesCleanCriteria = False
+    End Select
+End Function
+

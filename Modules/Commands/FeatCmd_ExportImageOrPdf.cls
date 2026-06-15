@@ -14,6 +14,8 @@ Implements ICommand
 ' @Module: FeatCmd_ExportImageOrPdf
 ' @Category: Feature
 ' @Description: Exports selected range as a PNG image or high-quality PDF.
+' @ManagedBy: BeaverAddin Agent
+' @Dependencies: Infra_PageSetupBackup
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -28,7 +30,6 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
 
     Dim ctx As Infra_ActionContext
-    Dim request As Infra_ExportRequest
     Dim stateInfo As Collection
     Set stateInfo = Infra_Error.NewStateInfo()
     
@@ -36,23 +37,111 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WorksheetRef Is Nothing Then GoTo CleanExit
     Infra_Error.AddState stateInfo, "Worksheet", ctx.WorksheetRef.Name
-    
-    ' IMPROVED WORKFLOW: Use UI Factory for decentralized request building.
-    Set request = Infra_UIFactory.ShowExportDialog(ctx, context.CommandName)
-    If request Is Nothing Then GoTo CleanExit
-    
-    If request.SourceRange Is Nothing Then GoTo CleanExit
-    If request.OutputPath = vbNullString Then GoTo CleanExit
 
-    If request.ExportAsPng Then
-        Application.StatusBar = "Beaver: Exporting image - please wait..."
-        If Not ExportAsPngImpl(request.SourceRange, request.ScaleFactor, request.OutputPath) Then GoTo CleanExit
-    Else
+    Dim isPdf As Boolean
+    isPdf = (LCase$(context.CommandName) = "exportpdf")
+
+    If isPdf Then
+        Dim exportMode As String
+        Dim selRng As Range
+        Dim ws As Worksheet
+        Set ws = ctx.WorksheetRef
+
+        ' 1. Check if we have an active range selection (> 1 cell or multi-area)
+        Dim hasRangeSelection As Boolean
+        hasRangeSelection = False
+        If TypeName(Selection) = "Range" Then
+            Set selRng = Selection
+            If selRng.Cells.CountLarge > 1 Or selRng.Areas.Count > 1 Then
+                hasRangeSelection = True
+            End If
+        End If
+
+        If hasRangeSelection Then
+            exportMode = "Range"
+        Else
+            ' Prompt options: Sheet or Workbook
+            Dim choice As String
+            If Not Infra_Interaction.PromptOption( _
+                "What would you like to export as PDF?", _
+                "Export PDF", "Sheet", Array("Sheet", "Workbook"), choice) Then
+                GoTo CleanExit
+            End If
+            exportMode = choice
+        End If
+
+        ' 2. Determine Output File Name & Path (Save directly to Desktop)
+        Dim desktopPath As String
+        desktopPath = Infra_AppState.GetDesktopPath()
+        If desktopPath = vbNullString Then
+            Infra_Interaction.ShowCritical "Could not locate the Desktop path.", "Export PDF"
+            GoTo CleanExit
+        End If
+
+        Dim wb As Workbook
+        Set wb = ws.Parent
+
+        Dim wbName As String
+        If InStr(wb.Name, ".") > 0 Then
+            wbName = Left$(wb.Name, InStrRev(wb.Name, ".") - 1)
+        Else
+            wbName = wb.Name
+        End If
+        wbName = Infra_AppState.SanitizeFileNameStem(wbName)
+        If wbName = vbNullString Then wbName = "Workbook"
+
+        Dim fileLabel As String
+        If exportMode = "Range" Then
+            fileLabel = Infra_AppState.SanitizeFileNameStem(ws.Name) & "_Range"
+        ElseIf exportMode = "Sheet" Then
+            fileLabel = Infra_AppState.SanitizeFileNameStem(ws.Name) & "_Sheet"
+        Else
+            fileLabel = "Workbook"
+        End If
+
+        Dim fileName As String
+        fileName = wbName & "_" & fileLabel & "_Export_" & Format(Now, "yyyymmdd_hhnnss") & ".pdf"
+
+        Dim outputPath As String
+        outputPath = Infra_AppState.CombinePath(desktopPath, fileName)
+
+        ' 3. Perform the PDF Export based on Mode
         Application.StatusBar = "Beaver: Exporting PDF - please wait..."
-        If Not ExportAsPdfImpl(request.SourceRange, request.OutputPath) Then GoTo CleanExit
-    End If
 
-    Infra_Interaction.ShowInfo "Export saved:" & vbCrLf & request.OutputPath, Infra_Config.ADDIN_NAME & " - Export"
+        Dim success As Boolean
+        success = False
+
+        If exportMode = "Range" Then
+            success = ExportRangesPdf(ws, selRng, outputPath)
+        ElseIf exportMode = "Sheet" Then
+            success = ExportSheetPdf(ws, outputPath)
+        ElseIf exportMode = "Workbook" Then
+            success = ExportWorkbookPdf(wb, outputPath)
+        End If
+
+        If success Then
+            Infra_Interaction.ShowInfo "PDF exported successfully to Desktop:" & vbCrLf & outputPath, Infra_Config.ADDIN_NAME & " - Export PDF"
+        End If
+    Else
+        ' PNG / dialog flow
+        Dim request As Infra_ExportRequest
+        Set request = Infra_UIFactory.ShowExportDialog(ctx, context.CommandName)
+        If request Is Nothing Then GoTo CleanExit
+        
+        If request.SourceRange Is Nothing Then GoTo CleanExit
+        If request.OutputPath = vbNullString Then GoTo CleanExit
+
+        If request.ExportAsPng Then
+            Application.StatusBar = "Beaver: Exporting image - please wait..."
+            If Not ExportAsPngImpl(request.SourceRange, request.ScaleFactor, request.OutputPath) Then GoTo CleanExit
+            Infra_Interaction.ShowInfo "Export saved:" & vbCrLf & request.OutputPath, Infra_Config.ADDIN_NAME & " - Export"
+        Else
+            ' Fallback PDF export
+            Application.StatusBar = "Beaver: Exporting PDF - please wait..."
+            If Not ExportAsPdfImpl(request.SourceRange, request.OutputPath) Then GoTo CleanExit
+            Infra_Interaction.ShowInfo "Export saved:" & vbCrLf & request.OutputPath, Infra_Config.ADDIN_NAME & " - Export"
+        End If
+    End If
 
 CleanExit:
     Application.StatusBar = False
@@ -145,46 +234,12 @@ ErrHandler:
     Resume PngCleanup
 End Function
 
-Private Function ExportAsPdfImpl(ByVal exportRng As Range, ByVal filePath As String) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("ExportAsPdfImpl")
+Private Sub ApplyStandardPageSetup(ByVal ws As Worksheet, ByVal printAreaAddress As String)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ApplyStandardPageSetup")
     On Error GoTo ErrHandler
-    
-    Dim ws As Worksheet
-    Dim oldPrintArea As String
-    Dim oldOrientation As XlPageOrientation
-    Dim oldPaperSize As XlPaperSize
-    Dim oldLeftMargin As Double
-    Dim oldRightMargin As Double
-    Dim oldTopMargin As Double
-    Dim oldBottomMargin As Double
-    Dim oldHeaderMargin As Double
-    Dim oldFooterMargin As Double
-    Dim oldZoom As Variant
-    Dim oldFitToPagesWide As Variant
-    Dim oldFitToPagesTall As Variant
-    Dim oldCenterHorizontally As Boolean
-    Dim oldCenterVertically As Boolean
-
-    Set ws = exportRng.Worksheet
-    With ws.PageSetup
-        oldPrintArea = .PrintArea
-        oldOrientation = .Orientation
-        oldPaperSize = .PaperSize
-        oldLeftMargin = .LeftMargin
-        oldRightMargin = .RightMargin
-        oldTopMargin = .TopMargin
-        oldBottomMargin = .BottomMargin
-        oldHeaderMargin = .HeaderMargin
-        oldFooterMargin = .FooterMargin
-        oldZoom = .Zoom
-        oldFitToPagesWide = .FitToPagesWide
-        oldFitToPagesTall = .FitToPagesTall
-        oldCenterHorizontally = .CenterHorizontally
-        oldCenterVertically = .CenterVertically
-    End With
 
     With ws.PageSetup
-        .PrintArea = exportRng.Address
+        .PrintArea = printAreaAddress
         .Orientation = xlLandscape
         .PaperSize = xlPaperA4
         .LeftMargin = Application.InchesToPoints(0.25)
@@ -200,6 +255,25 @@ Private Function ExportAsPdfImpl(ByVal exportRng As Range, ByVal filePath As Str
         .CenterVertically = False
     End With
 
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "ApplyStandardPageSetup", Err
+    Resume CleanExit
+End Sub
+
+Private Function ExportAsPdfImpl(ByVal exportRng As Range, ByVal filePath As String) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ExportAsPdfImpl")
+    On Error GoTo ErrHandler
+    
+    Dim ws As Worksheet
+    Set ws = exportRng.Worksheet
+
+    Dim backupObj As New Infra_PageSetupBackup
+    backupObj.Backup ws
+
+    ApplyStandardPageSetup ws, exportRng.Address
+
     ws.ExportAsFixedFormat _
         Type:=xlTypePDF, _
         Filename:=filePath, _
@@ -212,28 +286,178 @@ Private Function ExportAsPdfImpl(ByVal exportRng As Range, ByVal filePath As Str
 
 CleanExit:
     On Error Resume Next
-    If Not ws Is Nothing Then
-        With ws.PageSetup
-            .PrintArea = oldPrintArea
-            .Orientation = oldOrientation
-            .PaperSize = oldPaperSize
-            .LeftMargin = oldLeftMargin
-            .RightMargin = oldRightMargin
-            .TopMargin = oldTopMargin
-            .BottomMargin = oldBottomMargin
-            .HeaderMargin = oldHeaderMargin
-            .FooterMargin = oldFooterMargin
-            .Zoom = oldZoom
-            .FitToPagesWide = oldFitToPagesWide
-            .FitToPagesTall = oldFitToPagesTall
-            .CenterHorizontally = oldCenterHorizontally
-            .CenterVertically = oldCenterVertically
-        End With
-    End If
+    backupObj.Restore
     On Error GoTo 0
     Exit Function
 
 ErrHandler:
     Infra_Error.HandleError "ExportAsPdfImpl", Err
+    Resume CleanExit
+End Function
+
+Private Function ExportRangesPdf(ByVal ws As Worksheet, ByVal selRng As Range, ByVal outputPath As String) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ExportRangesPdf")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+    
+    Dim backupObj As New Infra_PageSetupBackup
+    backupObj.Backup ws
+    
+    ' Intersect selected areas with the used range to prevent massive blank grids
+    Dim area As Range
+    Dim intersectRange As Range
+    Dim printAreaAddress As String
+    printAreaAddress = ""
+    
+    For Each area In selRng.Areas
+        Set intersectRange = Intersect(area, ws.UsedRange)
+        If Not intersectRange Is Nothing Then
+            If printAreaAddress <> "" Then
+                printAreaAddress = printAreaAddress & ","
+            End If
+            printAreaAddress = printAreaAddress & intersectRange.Address
+        End If
+    Next area
+    
+    ' Fallback to UsedRange if no areas intersect
+    If printAreaAddress = "" Then
+        printAreaAddress = ws.UsedRange.Address
+    End If
+    
+    ' Apply standard PDF settings
+    ApplyStandardPageSetup ws, printAreaAddress
+    
+    ws.ExportAsFixedFormat _
+        Type:=xlTypePDF, _
+        Filename:=outputPath, _
+        Quality:=xlQualityStandard, _
+        IncludeDocProperties:=True, _
+        IgnorePrintAreas:=False, _
+        OpenAfterPublish:=False
+        
+    ExportRangesPdf = True
+
+CleanExit:
+    On Error Resume Next
+    backupObj.Restore
+    On Error GoTo 0
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "ExportRangesPdf", Err
+    Resume CleanExit
+End Function
+
+Private Function ExportSheetPdf(ByVal ws As Worksheet, ByVal outputPath As String) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ExportSheetPdf")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+    
+    Dim backupObj As New Infra_PageSetupBackup
+    backupObj.Backup ws
+    
+    ' Apply standard PDF settings
+    ApplyStandardPageSetup ws, ws.UsedRange.Address
+    
+    ws.ExportAsFixedFormat _
+        Type:=xlTypePDF, _
+        Filename:=outputPath, _
+        Quality:=xlQualityStandard, _
+        IncludeDocProperties:=True, _
+        IgnorePrintAreas:=False, _
+        OpenAfterPublish:=False
+        
+    ExportSheetPdf = True
+
+CleanExit:
+    On Error Resume Next
+    backupObj.Restore
+    On Error GoTo 0
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "ExportSheetPdf", Err
+    Resume CleanExit
+End Function
+
+Private Function ExportWorkbookPdf(ByVal wb As Workbook, ByVal outputPath As String) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ExportWorkbookPdf")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+    
+    Dim backups As New Collection
+    Dim ws As Worksheet
+    Dim backupObj As Infra_PageSetupBackup
+    
+    ' First, verify there is at least one visible worksheet with data
+    Dim visibleWithDataCount As Long
+    visibleWithDataCount = 0
+    For Each ws In wb.Worksheets
+        If ws.Visible = xlSheetVisible Then
+            If Not ws.UsedRange Is Nothing Then
+                If Application.WorksheetFunction.CountA(ws.UsedRange) > 0 Then
+                    visibleWithDataCount = visibleWithDataCount + 1
+                End If
+            End If
+        End If
+    Next ws
+    
+    If visibleWithDataCount = 0 Then
+        Infra_Interaction.ShowWarning "No visible worksheets with data were found in the active workbook.", "Export PDF"
+        ExportWorkbookPdf = False
+        GoTo CleanExit
+    End If
+    
+    ' Proceed with setting up layout and visibility
+    For Each ws In wb.Worksheets
+        If ws.Visible = xlSheetVisible Then
+            Dim hasData As Boolean
+            hasData = False
+            If Not ws.UsedRange Is Nothing Then
+                If Application.WorksheetFunction.CountA(ws.UsedRange) > 0 Then
+                    hasData = True
+                End If
+            End If
+            
+            Set backupObj = New Infra_PageSetupBackup
+            backupObj.Backup ws
+            backups.Add backupObj
+            
+            If hasData Then
+                ' Set up print area and layout on visible sheets with data
+                ApplyStandardPageSetup ws, ws.UsedRange.Address
+            Else
+                ' Temporarily hide empty sheets so they aren't printed
+                ws.Visible = xlSheetHidden
+            End If
+        End If
+    Next ws
+    
+    ' Export the workbook
+    wb.ExportAsFixedFormat _
+        Type:=xlTypePDF, _
+        Filename:=outputPath, _
+        Quality:=xlQualityStandard, _
+        IncludeDocProperties:=True, _
+        IgnorePrintAreas:=False, _
+        OpenAfterPublish:=False
+        
+    ExportWorkbookPdf = True
+
+CleanExit:
+    On Error Resume Next
+    ' Restore all sheet settings and visibilities in reverse order
+    If backups.Count > 0 Then
+        Dim i As Long
+        For i = backups.Count To 1 Step -1
+            Set backupObj = backups.Item(i)
+            backupObj.Restore
+        Next i
+    End If
+    On Error GoTo 0
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "ExportWorkbookPdf", Err
     Resume CleanExit
 End Function

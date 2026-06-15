@@ -547,6 +547,90 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_BreakExternalLinks_SpillHandling()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_BreakExternalLinks_SpillHandling")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    ' 1. Create a temporary source workbook to avoid file picker dialog
+    Dim sourceWb As Workbook
+    Set sourceWb = Workbooks.Add
+    sourceWb.Sheets(1).Range("A1").Value = "Apple"
+    sourceWb.Sheets(1).Range("A2").Value = "Banana"
+    sourceWb.Sheets(1).Range("A3").Value = "Cherry"
+    Dim sourceWbName As String
+    sourceWbName = sourceWb.Name
+
+    ' 2. Create the target worksheet
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_BreakLinksSpill"
+
+    ' 3. Set a dynamic array spill formula in the target sheet referencing the source workbook
+    ws.Range("B2").Formula2 = "='[" & sourceWbName & "]" & sourceWb.Sheets(1).Name & "'!$A$1:$A$3"
+    
+    ' Force recalculation and wait to make sure the spill range is calculated and populated
+    ws.Calculate
+    Infra_ValueConversion.WaitForCalculation
+    
+    ' Check if it has a spill and correct values
+    Lib_Tests.AssertEqual ws.Range("B2").Value, "Apple", "B2 should be Apple before link breaking"
+    Lib_Tests.AssertEqual ws.Range("B3").Value, "Banana", "B3 should be Banana (spilled) before link breaking"
+    Lib_Tests.AssertEqual ws.Range("B4").Value, "Cherry", "B4 should be Cherry (spilled) before link breaking"
+
+    ' 4. Break the links
+    Dim cmd As New FeatCmd_BreakExternalLinks
+    Dim request As New Infra_ScopedRequest
+    Dim context As ICommandContext
+    
+    Set context = AppContainer.CreateCommandContext("BreakExternalLinks")
+    Set context.ActionContext.WorksheetRef = ws
+    Set context.ActionContext.WorkbookRef = ThisWorkbook
+    Set request.Context = context.ActionContext
+    request.Scope = TargetScopeActiveSheet
+    
+    Dim stats As String
+    stats = cmd.ExecuteBreakLinksDirect(ThisWorkbook, request, Empty)
+
+    ' 5. Verify results
+    ' Check that B2 formula is gone (replaced by static value)
+    Lib_Tests.AssertEqual ws.Range("B2").HasFormula, False, "B2 should not have formula after link breaking"
+    
+    ' Check that all spilled values are preserved
+    Lib_Tests.AssertEqual ws.Range("B2").Value, "Apple", "B2 value should be Apple after link breaking"
+    Lib_Tests.AssertEqual ws.Range("B3").Value, "Banana", "B3 value should be Banana after link breaking"
+    Lib_Tests.AssertEqual ws.Range("B4").Value, "Cherry", "B4 value should be Cherry after link breaking"
+    
+    ' Cleanup target worksheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    Set ws = Nothing
+    
+    ' Close source workbook
+    sourceWb.Close SaveChanges:=False
+    Set sourceWb = Nothing
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    If Not ws Is Nothing Then
+        Application.DisplayAlerts = False
+        ws.Delete
+        Application.DisplayAlerts = True
+    End If
+    If Not sourceWb Is Nothing Then
+        sourceWb.Close SaveChanges:=False
+    End If
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_BreakExternalLinks_SpillHandling", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_XFilter_Features()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_XFilter_Features")
     On Error GoTo ErrHandler
@@ -2201,6 +2285,12 @@ Public Sub Test_CommandResolution_NewMenus()
     Lib_Tests.AssertEqual Not cmdNewModify Is Nothing, True, "ForceNumber command should resolve"
     Lib_Tests.AssertEqual TypeName(cmdNewModify), "FeatCmd_ForceNumber", "ForceNumber should resolve to FeatCmd_ForceNumber"
 
+    ' 5. Test Duplicate command resolution
+    Dim cmdDuplicate As ICommand
+    Set cmdDuplicate = AppContainer.ResolveCommand("Duplicate")
+    Lib_Tests.AssertEqual Not cmdDuplicate Is Nothing, True, "Duplicate command should resolve"
+    Lib_Tests.AssertEqual TypeName(cmdDuplicate), "FeatCmd_Duplicate", "Duplicate should resolve to FeatCmd_Duplicate"
+
 CleanExit:
     Exit Sub
 ErrHandler:
@@ -2323,7 +2413,187 @@ ErrHandler:
 End Sub
 
 
+Public Sub Test_Export_Pdf_Backup_And_MultiRange()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_Export_Pdf_Backup_And_MultiRange")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
 
+    Dim wb As Workbook: Set wb = Workbooks.Add
+    Dim ws As Worksheet: Set ws = wb.Worksheets(1)
 
+    ' 1. Test PageSetup Backup & Restore
+    Dim backupObj As New Infra_PageSetupBackup
+    
+    ws.PageSetup.Orientation = xlPortrait
+    ws.PageSetup.PrintArea = "A1:B5"
+    ws.Visible = xlSheetVisible
+    
+    backupObj.Backup ws
+    
+    ' Modify settings
+    ws.PageSetup.Orientation = xlLandscape
+    ws.PageSetup.PrintArea = "C1:D10"
+    ws.Visible = xlSheetHidden
+    
+    ' Restore settings
+    backupObj.Restore
+    
+    Lib_Tests.AssertEqual ws.PageSetup.Orientation, xlPortrait, "Restore orientation to Portrait"
+    Lib_Tests.AssertEqual ws.PageSetup.PrintArea, "$A$1:$B$5", "Restore print area to A1:B5"
+    Lib_Tests.AssertEqual ws.Visible, xlSheetVisible, "Restore visibility to Visible"
 
+    ' 2. Test Multi-Range print area generation logic
+    ' Let's write some dummy values
+    ws.Range("A1").Value = "A"
+    ws.Range("D1").Value = "B"
+    ' Selection with multi-areas
+    Dim selRng As Range
+    Set selRng = Union(ws.Range("A1:B2"), ws.Range("D1:E2"))
+    
+    Dim area As Range
+    Dim intersectRange As Range
+    Dim printAreaAddress As String
+    printAreaAddress = ""
+    
+    For Each area In selRng.Areas
+        Set intersectRange = Intersect(area, ws.UsedRange)
+        If Not intersectRange Is Nothing Then
+            If printAreaAddress <> "" Then
+                printAreaAddress = printAreaAddress & ","
+            End If
+            printAreaAddress = printAreaAddress & intersectRange.Address
+        End If
+    Next area
+    
+    ' Check if print area address correctly combines the non-contiguous ranges
+    Lib_Tests.AssertEqual InStr(printAreaAddress, "$A$1:$B$2") > 0, True, "Contains first area"
+    Lib_Tests.AssertEqual InStr(printAreaAddress, "$D$1:$E$2") > 0, True, "Contains second area"
+    Lib_Tests.AssertEqual InStr(printAreaAddress, ","), 10, "Contains a comma separating areas"
 
+    wb.Close SaveChanges:=False
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_Export_Pdf_Backup_And_MultiRange", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_CleanWorkbookNames_BrokenAndExternal()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CleanWorkbookNames_BrokenAndExternal")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_CleanNames"
+
+    ' Setup names on the sheet
+    On Error Resume Next
+    ws.Names.Add Name:="TestBrokenName", RefersTo:="=SheetNonExistent!#REF!"
+    ws.Names.Add Name:="TestExternalName", RefersTo:="=[ExternalFile.xlsx]Sheet1!$A$1"
+    ws.Names.Add Name:="TestNormalName", RefersTo:="=$A$1"
+    
+    ' Also setup workbook scope broken name
+    ThisWorkbook.Names.Add Name:="TestWbBrokenName", RefersTo:="=SheetNonExistent!#REF!"
+    On Error GoTo ErrHandler
+
+    ' Clean Broken Names on Sheet
+    Dim removedBrokenCount As Long
+    Infra_CommandSupport.CleanWorkbookNames Nothing, ws, NameCleanCriteriaBroken, removedBrokenCount
+    Lib_Tests.AssertEqual removedBrokenCount, 1, "Should clean exactly 1 broken name on the sheet"
+
+    ' Verify the sheet names remaining
+    Dim brokenExists As Boolean: brokenExists = False
+    Dim externalExists As Boolean: externalExists = False
+    Dim normalExists As Boolean: normalExists = False
+    Dim nm As Name
+
+    For Each nm In ws.Names
+        If nm.Name = ws.Name & "!TestBrokenName" Then brokenExists = True
+        If nm.Name = ws.Name & "!TestExternalName" Then externalExists = True
+        If nm.Name = ws.Name & "!TestNormalName" Then normalExists = True
+    Next nm
+
+    Lib_Tests.AssertEqual brokenExists, False, "Broken sheet-scoped name should be deleted"
+    Lib_Tests.AssertEqual externalExists, True, "External name should still exist"
+    Lib_Tests.AssertEqual normalExists, True, "Normal name should still exist"
+
+    ' Clean External Names on Sheet
+    Dim removedExternalCount As Long
+    Infra_CommandSupport.CleanWorkbookNames Nothing, ws, NameCleanCriteriaExternal, removedExternalCount
+    Lib_Tests.AssertEqual removedExternalCount, 1, "Should clean exactly 1 external name on the sheet"
+
+    externalExists = False
+    For Each nm In ws.Names
+        If nm.Name = ws.Name & "!TestExternalName" Then externalExists = True
+    Next nm
+    Lib_Tests.AssertEqual externalExists, False, "External sheet-scoped name should be deleted"
+
+    ' Clean Workbook Scope Broken Names
+    Dim removedWbCount As Long
+    Infra_CommandSupport.CleanWorkbookNames ThisWorkbook, Nothing, NameCleanCriteriaBroken, removedWbCount
+    Lib_Tests.AssertTrue removedWbCount >= 1, "Should clean at least 1 workbook-scoped broken name"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_CleanWorkbookNames_BrokenAndExternal", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_TryConvertToNumber_Unification()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_TryConvertToNumber_Unification")
+    On Error GoTo ErrHandler
+
+    Dim outVal As Variant
+    Dim success As Boolean
+
+    ' 1. Standard number
+    success = Infra_ValueConversion.TryConvertToNumber("123.45", outVal)
+    Lib_Tests.AssertTrue success, "Should successfully convert standard numeric string"
+    Lib_Tests.AssertEqual outVal, 123.45, "Should return 123.45"
+
+    ' 2. Trailing minus
+    success = Infra_ValueConversion.TryConvertToNumber("123.45-", outVal)
+    Lib_Tests.AssertTrue success, "Should successfully convert trailing minus"
+    Lib_Tests.AssertEqual outVal, -123.45, "Should return -123.45"
+
+    ' 3. Percent
+    success = Infra_ValueConversion.TryConvertToNumber("45%", outVal)
+    Lib_Tests.AssertTrue success, "Should successfully convert percent string"
+    Lib_Tests.AssertEqual outVal, 0.45, "Should return 0.45"
+
+    ' 4. Currency and spaces
+    success = Infra_ValueConversion.TryConvertToNumber(" $ 1,234.50 ", outVal)
+    Lib_Tests.AssertTrue success, "Should successfully convert formatted currency string"
+    Lib_Tests.AssertEqual outVal, 1234.5, "Should return 1234.5"
+
+    ' 5. Hex/Octal exclusion
+    success = Infra_ValueConversion.TryConvertToNumber("&HFF", outVal)
+    Lib_Tests.AssertTrue Not success, "Should reject hexadecimal strings"
+
+    ' 6. Non-numeric
+    success = Infra_ValueConversion.TryConvertToNumber("hello", outVal)
+    Lib_Tests.AssertTrue Not success, "Should reject non-numeric string"
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "Test_TryConvertToNumber_Unification", Err
+    Resume CleanExit
+End Sub

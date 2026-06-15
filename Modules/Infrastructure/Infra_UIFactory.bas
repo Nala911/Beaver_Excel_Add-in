@@ -467,25 +467,6 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function PromptForDuplicateOutputPath(ByVal ctx As Infra_ActionContext, ByVal suggestedBaseName As String) As String
-    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForDuplicateOutputPath")
-    On Error GoTo ErrHandler
-
-    PromptForDuplicateOutputPath = PromptForOutputPath( _
-        ctx, _
-        "Create Duplicate", _
-        suggestedBaseName, _
-        "xlsx", _
-        "Excel Workbook (*.xlsx), *.xlsx")
-
-CleanExit:
-    Exit Function
-ErrHandler:
-    Infra_Error.HandleError "PromptForDuplicateOutputPath", Err
-    PromptForDuplicateOutputPath = vbNullString
-    Resume CleanExit
-End Function
-
 Public Function PromptForSheetInsertPosition(ByVal ctx As Infra_ActionContext, ByVal sheetName As String) As SheetInsertPosition
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForSheetInsertPosition")
     On Error GoTo ErrHandler

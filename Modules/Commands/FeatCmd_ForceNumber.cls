@@ -76,7 +76,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     changeCount = 0
     Dim outVal As Variant
     For Each cell In textCells.Cells
-        If CleanAndConvertToNumber(cell.Value2, outVal) Then
+        If Infra_ValueConversion.TryConvertToNumber(cell.Value2, outVal) Then
             If InStr(1, cell.NumberFormat, "@") > 0 Or LCase$(cell.NumberFormat) = "text" Then
                 cell.NumberFormat = "General"
             End If
@@ -103,71 +103,3 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Function CleanAndConvertToNumber(ByVal rawVal As Variant, ByRef outVal As Variant) As Boolean
-    If IsError(rawVal) Then
-        CleanAndConvertToNumber = False
-        Exit Function
-    End If
-    
-    Dim txt As String
-    txt = CStr(rawVal)
-    txt = Trim$(txt)
-    
-    If txt = vbNullString Then
-        CleanAndConvertToNumber = False
-        Exit Function
-    End If
-    
-    ' 1. Check if it's already directly numeric
-    If IsNumeric(txt) Then
-        On Error Resume Next
-        outVal = CDbl(txt)
-        If Err.Number = 0 Then
-            CleanAndConvertToNumber = True
-            Exit Function
-        End If
-        Err.Clear
-        On Error GoTo 0
-    End If
-    
-    ' 2. Handle trailing minus sign (e.g. "123.45-" -> "-123.45")
-    If Right$(txt, 1) = "-" Then
-        txt = "-" & Left$(txt, Len(txt) - 1)
-        txt = Trim$(txt)
-    End If
-    
-    ' 3. Handle percent sign (e.g. "45%" -> 0.45)
-    Dim isPercent As Boolean
-    isPercent = False
-    If Right$(txt, 1) = "%" Then
-        isPercent = True
-        txt = Left$(txt, Len(txt) - 1)
-        txt = Trim$(txt)
-    End If
-    
-    ' 4. Remove currency symbols and formatting characters
-    txt = Replace(txt, "$", "")
-    txt = Replace(txt, "€", "")
-    txt = Replace(txt, "£", "")
-    txt = Replace(txt, "¥", "")
-    txt = Replace(txt, " ", "")
-    
-    ' Try conversion again after stripping formatting
-    If IsNumeric(txt) Then
-        On Error Resume Next
-        Dim dVal As Double
-        dVal = CDbl(txt)
-        If Err.Number = 0 Then
-            If isPercent Then
-                dVal = dVal / 100
-            End If
-            outVal = dVal
-            CleanAndConvertToNumber = True
-            Exit Function
-        End If
-        Err.Clear
-        On Error GoTo 0
-    End If
-    
-    CleanAndConvertToNumber = False
-End Function

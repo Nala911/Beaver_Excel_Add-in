@@ -30,7 +30,7 @@
           <button id="BtnBreakLinks" label="Break Links" imageMso="WorkbookLinks" size="large" onAction="Ribbon_OnBreakExternalLinks" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />
         </group>
         <group id="GrpExport" label="File Actions">
-          <button id="BtnDuplicate" label="Duplicate Workbook" imageMso="FileSaveAs" size="large" onAction="Ribbon_OnDuplicate" keytip="DP" screentip="Save a Macro-Free Copy" supertip="Creates a macro-free copy of the current workbook and lets you choose where to save it." />
+          <button id="BtnDuplicate" label="Duplicate Workbook" imageMso="FileSaveAs" size="large" onAction="Ribbon_OnDuplicate" keytip="DP" screentip="Duplicate Active Workbook" supertip="Duplicates the active workbook to your Desktop, opens it, and closes the original so you can work safely on the copy." />
           <menu id="BtnExport" label="Export" imageMso="Export" size="large" keytip="EX" screentip="Export" supertip="Exports the selected range as a PNG image or a PDF document.">
             <button id="BtnExportPng" label="Export as PNG" imageMso="FileSaveAs" onAction="Ribbon_OnExportPng" keytip="EP" screentip="Export as PNG" supertip="Exports the selected range as a PNG image." />
             <button id="BtnExportPdf" label="Export as PDF" imageMso="Export" onAction="Ribbon_OnExportPdf" keytip="ED" screentip="Export as PDF" supertip="Exports the selected range as a PDF document." />

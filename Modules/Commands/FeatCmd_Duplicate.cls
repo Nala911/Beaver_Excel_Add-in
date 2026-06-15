@@ -31,36 +31,63 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim sourceWB As Workbook
     Dim copyWB As Workbook
     Dim baseName As String
+    Dim ext As String
+    Dim dotPos As Long
+    Dim desktopPath As String
+    Dim affix As String
+    Dim counter As Long
     Dim ctx As Infra_ActionContext
     
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
 
     Set sourceWB = ctx.WorkbookRef
+    If sourceWB Is Nothing Then GoTo CleanExit
 
-    ' --- Extract current workbook name without extension ---
-    baseName = sourceWB.Name
-    If InStrRev(baseName, ".") > 0 Then
-        baseName = Left(baseName, InStrRev(baseName, ".") - 1)
+    ' --- Determine Desktop Path ---
+    desktopPath = Infra_AppState.GetDesktopPath()
+    If desktopPath = vbNullString Then
+        desktopPath = Environ("USERPROFILE") & "\Desktop"
     End If
 
-    fullPath = Infra_UIFactory.PromptForDuplicateOutputPath(ctx, baseName)
-    If fullPath = vbNullString Then GoTo CleanExit
+    ' --- Extract current workbook name and extension ---
+    baseName = sourceWB.Name
+    dotPos = InStrRev(baseName, ".")
+    If dotPos > 0 Then
+        ext = Mid(baseName, dotPos + 1)
+        baseName = Left(baseName, dotPos - 1)
+    Else
+        ext = "xlsx" ' Default for unsaved workbooks
+    End If
 
-    ' --- Copy all sheets to a brand-new workbook ---
-    sourceWB.Sheets.Copy
-    Set copyWB = ActiveWorkbook   ' Sheets.Copy makes the new workbook active
+    ' --- Build Unique File Path ---
+    affix = "_Copy"
+    fullPath = Infra_AppState.CombinePath(desktopPath, baseName & affix & "." & ext)
+    
+    counter = 1
+    Do While Infra_AppState.FileExists(fullPath)
+        fullPath = Infra_AppState.CombinePath(desktopPath, baseName & affix & " (" & counter & ")." & ext)
+        counter = counter + 1
+    Loop
 
-    ' --- Save the copy as genuine .xlsx (no macros), then close it ---
+    ' --- Save Copy ---
+    ' SaveCopyAs creates a file on disk matching the current in-memory state of sourceWB.
     Application.DisplayAlerts = False
-    copyWB.SaveAs Filename:=fullPath, FileFormat:=xlOpenXMLWorkbook
-    copyWB.Close SaveChanges:=False
+    sourceWB.SaveCopyAs fullPath
     Application.DisplayAlerts = True
 
-    ' --- Re-activate the original workbook ---
-    sourceWB.Activate
+    ' --- Open the Copy ---
+    Set copyWB = Workbooks.Open(fullPath)
 
-    Infra_Interaction.ShowInfo "Duplicate saved:" & vbCrLf & fullPath
+    ' --- Close the Original Workbook (Deferred) ---
+    ' We defer this using Application.OnTime because closing the workbook that initiated a
+    ' Ribbon/Hotkey callback during execution causes Excel to throw an Application-defined
+    ' or object-defined error (1004) when the callback returns.
+    Dim originalName As String
+    originalName = sourceWB.Name
+    Application.OnTime EarliestTime:=Now, Procedure:="'Infra_CommandSupport.CloseWorkbookDeferred """ & Replace(originalName, "'", "''") & """'"
+
+    Infra_Interaction.ShowInfo "Duplicate workbook opened:" & vbCrLf & fullPath
 
 CleanExit:
     Exit Sub

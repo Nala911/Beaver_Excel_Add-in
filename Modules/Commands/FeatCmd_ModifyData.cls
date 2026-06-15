@@ -176,16 +176,13 @@ Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_Mo
     Dim changedCells As Collection
     Set changedCells = New Collection
     
-    Dim needsFormats As Boolean
-    needsFormats = (request.Operation = "Date Standardization")
-
     For r = rowMin To rowMax
         For c = colMin To colMax
             Dim oldVal As Variant
             Dim oldFormat As String
             oldVal = vals(r, c)
             
-            If Not needsFormats And VarType(oldVal) <> vbDate Then
+            If VarType(oldVal) <> vbDate Then
                 oldFormat = vbNullString
             ElseIf isFmtsArray Then
                 oldFormat = CStr(fmts(r, c))

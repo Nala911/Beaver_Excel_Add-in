@@ -13,7 +13,6 @@ Option Explicit
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: None
 
-Private Const LOG_FILE_NAME As String = "BeaverAddin.log"
 Private Const ENABLE_TRACE_LOGGING As Boolean = False
 
 Public Function NextOperationId(ByVal procedureName As String) As String

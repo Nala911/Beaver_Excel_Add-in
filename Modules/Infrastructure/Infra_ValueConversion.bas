@@ -444,3 +444,82 @@ Private Function GetArrayDims(ByVal arr As Variant) As Long
     Next i
     GetArrayDims = 0
 End Function
+
+' Attempts to convert a string or value to a numeric double, handling trailing minus, percent, and currency signs.
+' Avoids octal or hexadecimal representations like &H.
+Public Function TryConvertToNumber(ByVal rawVal As Variant, ByRef outVal As Variant) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("TryConvertToNumber")
+    On Error GoTo ErrHandler
+
+    TryConvertToNumber = False
+    If IsError(rawVal) Then GoTo CleanExit
+    
+    Dim txt As String
+    txt = CStr(rawVal)
+    txt = Trim$(txt)
+    
+    If txt = vbNullString Then GoTo CleanExit
+    
+    ' Exclude hexadecimal/octal syntax which IsNumeric allows but are not standard numeric strings
+    If Left$(txt, 2) = "&H" Or Left$(txt, 2) = "&h" Or Left$(txt, 2) = "&O" Or Left$(txt, 2) = "&o" Then
+        GoTo CleanExit
+    End If
+    
+    ' 1. Check if it's already directly numeric
+    If IsNumeric(txt) Then
+        On Error Resume Next
+        outVal = CDbl(txt)
+        If Err.Number = 0 Then
+            TryConvertToNumber = True
+            GoTo CleanExit
+        End If
+        Err.Clear
+        On Error GoTo ErrHandler
+    End If
+    
+    ' 2. Handle trailing minus sign (e.g. "123.45-" -> "-123.45")
+    If Right$(txt, 1) = "-" Then
+        txt = "-" & Left$(txt, Len(txt) - 1)
+        txt = Trim$(txt)
+    End If
+    
+    ' 3. Handle percent sign (e.g. "45%" -> 0.45)
+    Dim isPercent As Boolean
+    isPercent = False
+    If Right$(txt, 1) = "%" Then
+        isPercent = True
+        txt = Left$(txt, Len(txt) - 1)
+        txt = Trim$(txt)
+    End If
+    
+    ' 4. Remove currency symbols and formatting characters
+    txt = Replace(txt, "$", "")
+    txt = Replace(txt, "€", "")
+    txt = Replace(txt, "£", "")
+    txt = Replace(txt, "¥", "")
+    txt = Replace(txt, " ", "")
+    
+    ' Try conversion again after stripping formatting
+    If IsNumeric(txt) Then
+        On Error Resume Next
+        Dim dVal As Double
+        dVal = CDbl(txt)
+        If Err.Number = 0 Then
+            If isPercent Then
+                dVal = dVal / 100
+            End If
+            outVal = dVal
+            TryConvertToNumber = True
+            GoTo CleanExit
+        End If
+        Err.Clear
+        On Error GoTo ErrHandler
+    End If
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "TryConvertToNumber", Err
+    Resume CleanExit
+End Function
+

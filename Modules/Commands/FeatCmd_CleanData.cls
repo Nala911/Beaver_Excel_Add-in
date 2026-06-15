@@ -98,18 +98,22 @@ End Function
 
 Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
     If m_CurrentRequest.CleanBrokenNames Then
+        Dim namesRemoved As Long
         If m_CurrentRequest.Scope = TargetScopeActiveSheet Then
-            CleanNamedRanges m_CurrentRequest.Context.WorkbookRef, ws
+            Infra_CommandSupport.CleanWorkbookNames m_CurrentRequest.Context.WorkbookRef, ws, NameCleanCriteriaBroken, namesRemoved
         ElseIf m_CurrentRequest.Scope = TargetScopeWorkbook Then
             Dim isFirstSheet As Boolean
             isFirstSheet = (ws.Name = m_CurrentRequest.Context.WorkbookRef.Worksheets(1).Name)
             If isFirstSheet Then
-                CleanNamedRanges m_CurrentRequest.Context.WorkbookRef, Nothing
+                Infra_CommandSupport.CleanWorkbookNames m_CurrentRequest.Context.WorkbookRef, Nothing, NameCleanCriteriaBroken, namesRemoved
             End If
         End If
     End If
     IBatchProcessor_ProcessWorksheet = 0
 End Function
+
+
+
 
 Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request As Infra_CleanDataRequest) As Long
     ' Note: No tracker here for performance; this is a core processing loop.
@@ -300,21 +304,10 @@ Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infr
 
     ' --- 6. Convert Numeric Text ---
     If request.CleanConvertNumbers Then
-        If IsNumeric(textValue) Then
-            Dim cleanedTrimmed As String
-            cleanedTrimmed = Trim$(textValue)
-            If Not (Left$(cleanedTrimmed, 2) = "&H" Or Left$(cleanedTrimmed, 2) = "&h" Or _
-                    Left$(cleanedTrimmed, 2) = "&O" Or Left$(cleanedTrimmed, 2) = "&o") Then
-                On Error Resume Next
-                Dim numericVal As Double
-                numericVal = CDbl(textValue)
-                If Err.Number = 0 Then
-                    CleanTextValue = numericVal
-                    Exit Function
-                End If
-                Err.Clear
-                On Error GoTo 0
-            End If
+        Dim numericVal As Variant
+        If Infra_ValueConversion.TryConvertToNumber(textValue, numericVal) Then
+            CleanTextValue = numericVal
+            Exit Function
         End If
     End If
 
@@ -403,29 +396,6 @@ Private Function GetAccentedChars() As String
     chars = chars & ChrW$(366) & ChrW$(367)
     GetAccentedChars = chars
 End Function
-
-Private Sub CleanNamedRanges(ByVal wb As Workbook, ByVal ws As Worksheet)
-    Dim nm As Name
-    Dim i As Long
-    
-    On Error Resume Next
-    If Not ws Is Nothing Then
-        For i = ws.Names.Count To 1 Step -1
-            Set nm = ws.Names(i)
-            If InStr(1, nm.RefersTo, "#REF!", vbTextCompare) > 0 Then
-                nm.Delete
-            End If
-        Next i
-    ElseIf Not wb Is Nothing Then
-        For i = wb.Names.Count To 1 Step -1
-            Set nm = wb.Names(i)
-            If InStr(1, nm.RefersTo, "#REF!", vbTextCompare) > 0 Then
-                nm.Delete
-            End If
-        Next i
-    End If
-    On Error GoTo 0
-End Sub
 
 
 ' --- Testing Entry Points ---

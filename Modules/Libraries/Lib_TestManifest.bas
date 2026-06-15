@@ -21,14 +21,17 @@ Public Sub RunGeneratedTests()
     Lib_Tests_Features.Test_ApplyCustomNumberFormat_Execution
     Lib_Tests_Features.Test_Backspace_LargeRange_Undo
     Lib_Tests_Features.Test_BreakExternalLinks_Execution
+    Lib_Tests_Features.Test_BreakExternalLinks_SpillHandling
     Lib_Tests_Features.Test_CleanData_CheckboxOptions
     Lib_Tests_Features.Test_CleanData_LargeSelectionSafety
     Lib_Tests_Features.Test_CleanData_NewEnhancements
     Lib_Tests_Features.Test_CleanData_TrimmingAndNumericalFixing
     Lib_Tests_Features.Test_CleanData_UserRequestedEnhancements
+    Lib_Tests_Features.Test_CleanWorkbookNames_BrokenAndExternal
     Lib_Tests_Features.Test_CommandResolution_NewMenus
     Lib_Tests_Features.Test_CreateSheet_PlacementAndNaming
     Lib_Tests_Features.Test_Delete_Execution_And_Undo
+    Lib_Tests_Features.Test_Export_Pdf_Backup_And_MultiRange
     Lib_Tests_Features.Test_FillDown_Features
     Lib_Tests_Features.Test_FilterByCell_Execution
     Lib_Tests_Features.Test_ForceNumber_Execution_And_Undo
@@ -50,6 +53,7 @@ Public Sub RunGeneratedTests()
     Lib_Tests_Features.Test_PasteFormat_Execution
     Lib_Tests_Features.Test_StaticSheetWorkbook_Execution
     Lib_Tests_Features.Test_TableOfContents_Generation
+    Lib_Tests_Features.Test_TryConvertToNumber_Unification
     Lib_Tests_Features.Test_UdfRegistry_And_HelpCenter
     Lib_Tests_Features.Test_UI_OptionPicker_DynamicLayout
     Lib_Tests_Features.Test_UI_OptionPicker_KeyboardNavigation

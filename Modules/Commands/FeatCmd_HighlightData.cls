@@ -321,12 +321,17 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
     
     Dim cell As Range
     Dim unionRange As Range
+    Dim re As Object
+    
+    Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.IgnoreCase = True
     
     For Each cell In formulaCells.Cells
         Dim hasHardcoded As Boolean
         hasHardcoded = False
         On Error Resume Next
-        hasHardcoded = HasHardcodedValue(CStr(cell.Formula2))
+        hasHardcoded = HasHardcodedValue(CStr(cell.Formula2), re)
         On Error GoTo 0
         
         If hasHardcoded Then
@@ -348,7 +353,7 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
     End If
 End Sub
 
-Public Function HasHardcodedValue(ByVal formula As String) As Boolean
+Public Function HasHardcodedValue(ByVal formula As String, Optional ByVal rePassed As Object = Nothing) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("HasHardcodedValue")
     On Error GoTo ErrHandler
 
@@ -356,9 +361,13 @@ Public Function HasHardcodedValue(ByVal formula As String) As Boolean
     If Left$(formula, 1) = "=" Then formula = Mid$(formula, 2)
     
     Dim re As Object
-    Set re = CreateObject("VBScript.RegExp")
-    re.Global = True
-    re.IgnoreCase = True
+    If rePassed Is Nothing Then
+        Set re = CreateObject("VBScript.RegExp")
+        re.Global = True
+        re.IgnoreCase = True
+    Else
+        Set re = rePassed
+    End If
     
     ' 1. Check for non-empty text literals: "[^"]+" (excluding empty string "")
     re.Pattern = """([^""]+)"""

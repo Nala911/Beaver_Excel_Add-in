@@ -312,3 +312,30 @@ ErrHandler:
     Infra_Error.HandleError "ResolveTitle", Err
     Resume CleanExit
 End Function
+
+Public Function GetUserPreference(ByVal section As String, ByVal key As String, Optional ByVal defaultVal As String = "") As String
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetUserPreference")
+    On Error GoTo ErrHandler
+
+    GetUserPreference = GetSetting(appname:="BeaverAddin", section:=section, key:=key, Default:=defaultVal)
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "GetUserPreference", Err
+    GetUserPreference = defaultVal
+    Resume CleanExit
+End Function
+
+Public Sub SaveUserPreference(ByVal section As String, ByVal key As String, ByVal value As String)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("SaveUserPreference")
+    On Error GoTo ErrHandler
+
+    SaveSetting appname:="BeaverAddin", section:=section, key:=key, setting:=value
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "SaveUserPreference", Err
+    Resume CleanExit
+End Sub

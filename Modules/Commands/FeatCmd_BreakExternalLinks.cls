@@ -167,6 +167,7 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
 
     Dim processWholeWorkbook As Boolean
     processWholeWorkbook = (request.Scope = TargetScopeWorkbook)
+    Dim linkIndex As Long
 
     ' Global workbook-level breaks
     If processWholeWorkbook Then
@@ -192,12 +193,28 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
             Next connIndex
         End If
 
-        m_NamesRemoved = RemoveExternalWorkbookNames(wb)
+        Dim namesRemoved As Long
+        Infra_CommandSupport.CleanWorkbookNames wb, Nothing, NameCleanCriteriaExternal, namesRemoved
+        m_NamesRemoved = namesRemoved
     End If
 
     ' Execute worksheet batch conversions
     Dim totalProcessed As Long
     totalProcessed = Infra_BatchProcessor.Execute(request.Context, request.Scope, Me, "Break External Links", False)
+
+    ' Post-process active sheet links: if a link source has no more references anywhere in the workbook, break it.
+    If Not processWholeWorkbook Then
+        If Not IsEmpty(linkArr) Then
+            For linkIndex = LBound(linkArr) To UBound(linkArr)
+                If CountLinkSourceReferences(wb, CStr(linkArr(linkIndex))) = 0 Then
+                    On Error Resume Next
+                    wb.BreakLink Name:=linkArr(linkIndex), Type:=xlLinkTypeExcelLinks
+                    If Err.Number = 0 Then m_BrokenLinks = m_BrokenLinks + 1
+                    On Error GoTo ErrHandler
+                End If
+            Next linkIndex
+        End If
+    End If
 
     ExecuteBreakLinks = "Links Broken: " & m_BrokenLinks & vbCrLf & _
                        "Connections Removed: " & m_ConnectionsRemoved & vbCrLf & _
@@ -236,38 +253,6 @@ Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
     IBatchProcessor_ProcessWorksheet = convertedFormulas + pivotsConverted + tablesConverted
 End Function
 
-Private Function RemoveExternalWorkbookNames(ByVal wb As Workbook) As Long
-    Dim tracker As Object: Set tracker = Infra_Error.Track("RemoveExternalWorkbookNames")
-    On Error GoTo ErrHandler
- 
-    Dim i As Long
- 
-    If wb Is Nothing Then GoTo CleanExit
- 
-    For i = wb.Names.Count To 1 Step -1
-        Dim extRefersToVal As String
-        extRefersToVal = ""
-        On Error Resume Next
-        extRefersToVal = wb.Names(i).RefersTo
-        On Error GoTo ErrHandler
-        
-        If InStr(1, extRefersToVal, "[", vbTextCompare) > 0 Then
-            On Error Resume Next
-            wb.Names(i).Delete
-            If Err.Number = 0 Then RemoveExternalWorkbookNames = RemoveExternalWorkbookNames + 1
-            Err.Clear
-            On Error GoTo ErrHandler
-        End If
-    Next i
- 
-CleanExit:
-    Exit Function
-
-ErrHandler:
-    Infra_Error.HandleError "RemoveExternalWorkbookNames", Err
-    Resume CleanExit
-End Function
-
 Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, ByRef pCount As Long, ByRef tCount As Long)
     ' No tracker for performance
     Dim area As Range, fCells As Range, pvt As PivotTable, lo As ListObject
@@ -277,6 +262,12 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
     Dim pvtIndex As Long
     Dim loIndex As Long
     
+    ' Variable declarations at the top to comply with VBA compiler rules
+    Dim cell As Range
+    Dim isFormulaArrArray As Boolean
+    Dim hasExternalLinks As Boolean
+    Dim hasSpillOrArray As Boolean
+    
     On Error Resume Next
     Set fCells = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
     On Error GoTo 0
@@ -285,24 +276,67 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
         For Each area In fCells.Areas
             If area.Cells.CountLarge = 1 Then
                 If InStr(1, area.Formula2, "[", vbTextCompare) > 0 Then
-                    area.Value = area.Value
-                    fCount = fCount + 1
+                    fCount = fCount + Infra_ValueConversion.ConvertCellToStatic(area)
                 End If
             Else
                 formulaArr = area.Formula2
                 valueArr = area.Value
                 changed = False
-                For r = 1 To UBound(formulaArr, 1)
-                    For c = 1 To UBound(formulaArr, 2)
-                        If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then
-                            ' Note: valueArr(r, c) already contains the result of the formula
-                            formulaArr(r, c) = valueArr(r, c)
+                
+                isFormulaArrArray = IsArray(formulaArr)
+                hasExternalLinks = False
+                
+                If isFormulaArrArray Then
+                    For r = 1 To UBound(formulaArr, 1)
+                        For c = 1 To UBound(formulaArr, 2)
+                            If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then
+                                hasExternalLinks = True
+                                Exit For
+                            End If
+                        Next c
+                        If hasExternalLinks Then Exit For
+                    Next r
+                Else
+                    If InStr(1, formulaArr, "[", vbTextCompare) > 0 Then
+                        hasExternalLinks = True
+                    End If
+                End If
+                
+                If hasExternalLinks Then
+                    hasSpillOrArray = False
+                    
+                    On Error Resume Next
+                    If IsNull(area.HasSpill) Or area.HasSpill = True Or IsNull(area.HasArray) Or area.HasArray = True Then
+                        hasSpillOrArray = True
+                    End If
+                    On Error GoTo 0
+                    
+                    If Not hasSpillOrArray Then
+                        If isFormulaArrArray Then
+                            For r = 1 To UBound(formulaArr, 1)
+                                For c = 1 To UBound(formulaArr, 2)
+                                    If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then
+                                        formulaArr(r, c) = valueArr(r, c)
+                                        fCount = fCount + 1
+                                        changed = True
+                                    End If
+                                Next c
+                            Next r
+                            If changed Then area.Value = formulaArr
+                        Else
+                            area.Value = valueArr
                             fCount = fCount + 1
-                            changed = True
                         End If
-                    Next c
-                Next r
-                If changed Then area.Value = formulaArr
+                    Else
+                        For Each cell In area.Cells
+                            If cell.HasFormula Then
+                                If InStr(1, cell.Formula2, "[", vbTextCompare) > 0 Then
+                                    fCount = fCount + Infra_ValueConversion.ConvertCellToStatic(cell)
+                                End If
+                            End If
+                        Next cell
+                    End If
+                End If
             End If
         Next area
     End If
@@ -340,6 +374,55 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
     Application.CutCopyMode = False
 End Sub
 
+Private Function CountLinkSourceReferences(ByVal wb As Workbook, ByVal linkName As String) As Long
+    Dim ws As Worksheet
+    Dim formulaCells As Range
+    Dim foundCell As Range
+    Dim firstAddress As String
+    Dim refCount As Long
+    
+    ' Extract the filename with brackets if it's a full path
+    Dim fileName As String
+    Dim openBracketPos As Long
+    openBracketPos = InStrRev(linkName, "\")
+    If openBracketPos > 0 Then
+        fileName = Mid(linkName, openBracketPos + 1)
+    Else
+        fileName = linkName
+    End If
+    ' Prefix with bracket to look for [filename]
+    fileName = "[" & fileName & "]"
+
+    For Each ws In wb.Worksheets
+        ' Skip the undo sheet and test sheets
+        If ws.Name <> "_BeaverUndo" And ws.Name <> "_BeaverTests" And Left(ws.Name, 10) <> "Test_Temp_" Then
+            Set formulaCells = Nothing
+            On Error Resume Next
+            Set formulaCells = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
+            On Error GoTo 0
+            
+            If Not formulaCells Is Nothing Then
+                Set foundCell = Nothing
+                On Error Resume Next
+                Set foundCell = formulaCells.Find(What:=fileName, LookIn:=xlFormulas, LookAt:=xlPart)
+                On Error GoTo 0
+                If Not foundCell Is Nothing Then
+                    firstAddress = foundCell.Address
+                    Do
+                        refCount = refCount + 1
+                        On Error Resume Next
+                        Set foundCell = formulaCells.FindNext(foundCell)
+                        On Error GoTo 0
+                        If foundCell Is Nothing Then Exit Do
+                    Loop While foundCell.Address <> firstAddress
+                End If
+            End If
+        End If
+    Next ws
+    
+    CountLinkSourceReferences = refCount
+End Function
+
 ' --- Testing Entry Points ---
 ' Allows headless automated testing of the link breaking and name removal logic.
 Public Function ExecuteBreakLinksDirect(ByVal wb As Workbook, ByVal request As Infra_ScopedRequest, ByRef linkArr As Variant) As String
@@ -360,7 +443,9 @@ Public Function RemoveExternalWorkbookNamesDirect(ByVal wb As Workbook) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("RemoveExternalWorkbookNamesDirect")
     On Error GoTo ErrHandler
     
-    RemoveExternalWorkbookNamesDirect = RemoveExternalWorkbookNames(wb)
+    Dim removedCount As Long
+    Infra_CommandSupport.CleanWorkbookNames wb, Nothing, NameCleanCriteriaExternal, removedCount
+    RemoveExternalWorkbookNamesDirect = removedCount
 
 CleanExit:
     Exit Function

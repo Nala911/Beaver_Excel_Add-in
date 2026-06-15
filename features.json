@@ -228,8 +228,8 @@
                          "CommandName":  "Duplicate",
                          "Icon":  "FileSaveAs",
                          "Keytip":  "DP",
-                         "Screentip":  "Save a Macro-Free Copy",
-                         "Supertip":  "Creates a macro-free copy of the current workbook and lets you choose where to save it.",
+                         "Screentip":  "Duplicate Active Workbook",
+                         "Supertip":  "Duplicates the active workbook to your Desktop, opens it, and closes the original so you can work safely on the copy.",
                          "RuntimeTestMode":  "interactive"
                      },
                      {

@@ -62,7 +62,10 @@ Excel Add-in\
 |- ribbon.xml
 |- features.json
 |- config.json
-|- Update.ps1
+|- Update.ps1            (Unified pipeline orchestrator)
+|- Build.ps1             (Compilation & XML injection pipeline)
+|- Test.ps1              (VBA unit tests & Ribbon scraper validation)
+|- BuildSupport.ps1      (Shared build & COM execution utilities)
 |- GEMINI.md             (Consolidated project guide)
 \- Modules\
    |- Commands\
@@ -129,17 +132,28 @@ Excel Add-in\
 - If the value is a stable flag, add a typed property instead of leaving it as a raw `FeatureFlags` lookup.
 
 ### Build & Sync Workflow
+The build and test pipeline is modularized into separate scripts for faster local iteration:
+- **Build Pipeline (`.\Build.ps1`)**: Handles manifest synchronization, syntax linting, module importing, compilation, and Ribbon XML injection.
+- **Test Pipeline (`.\Test.ps1`)**: Spawns Excel, runs WindowScraper checks for Ribbon Custom UI errors, runs the full VBA unit test suite, and tests headless callbacks.
+- **Unified Pipeline (`.\Update.ps1`)**: The orchestrator wrapper that executes both build and testing sequentially.
+
 Use the following commands from PowerShell:
 ```powershell
-# Standard update, compilation, and validation run
+# Standard build, compile, and full test run (sequential orchestration)
 .\Update.ps1
 
-# Update and compile, skipping runtime tests (use when deferring execution checks)
+# Build and compile only, skipping runtime tests (same as running .\Build.ps1)
 .\Update.ps1 -SkipRuntimeTests
+
+# Independent execution of build tasks (sync manifest, import, compile, inject XML)
+.\Build.ps1
+
+# Independent execution of runtime tests (Ribbon UI check and unit tests)
+.\Test.ps1
 ```
 
-`Update.ps1` automates:
-- Validating Ribbon XML.
+`Build.ps1` automates:
+- Validating Ribbon XML schema and logic.
 - Synchronizing `features.json` into `ribbon.xml`.
 - Synchronizing `Hotkeys`, `Icons`, and `FeatureFlags` into `config.json`.
 - Generating `Modules\Libraries\Lib_TestManifest.bas` from `Public Sub Test_*` procedures.
@@ -150,8 +164,12 @@ Use the following commands from PowerShell:
 - Replacing `ThisWorkbook` from `ThisWorkbook.cls`.
 - Compiling the VBA project (with enhanced line mapping and source code context diagnostics on compilation failures).
 - Injecting `ribbon.xml` into the workbook archive as `customUI/customUI14.xml` and updating `_rels/.rels`.
-- Running runtime smoke tests.
-- Bumping the build version (if `-BumpVersion` is passed).
+
+`Test.ps1` automates:
+- Spawns the WindowScraper background scraper thread to check for Excel Ribbon Custom UI errors.
+- Opens the compiled workbook (initially hidden, then visible to catch Custom UI errors).
+- Runs the internal unit tests (`Lib_Tests.RunAllTests`) inside Excel.
+- Validates headless callback macros.
 
 #### Prerequisites:
 - Excel must allow "Trust access to the VBA project object model".
@@ -160,9 +178,9 @@ Use the following commands from PowerShell:
 ### Validation Order
 When validating changes, verify in this order:
 1. **Manifest/config consistency**: Ensure JSON files are valid and match each other.
-2. **VBA export/import and compilation**: Run `Update.ps1` and verify the compilation completes without error.
+2. **VBA export/import and compilation**: Run `.\Build.ps1` (or `.\Update.ps1 -SkipRuntimeTests`) and verify the compilation completes without error.
 3. **Ribbon callback alignment**: Ensure Ribbon action bindings exist in `UI_Ribbon.bas`.
-4. **Runtime smoke tests**: Verify actual command execution. Prefer using the full `.\Update.ps1` flow (without `-SkipRuntimeTests`) for interactive UI changes to run automated checks.
+4. **Runtime smoke tests**: Run `.\Test.ps1` (or the full `.\Update.ps1`) to verify actual command execution and unit tests.
 
 ---
 
@@ -232,13 +250,16 @@ graph TD
 - `Wrap` -> `FeatCmd_Wrap` (Supports formula reuse and pattern typing)
 - `StaticSheetWorkbook` -> `FeatCmd_StaticSheetWorkbook`
 - `CleanData` -> `FeatCmd_CleanData`
-- `ModifyData` -> `FeatCmd_ModifyData`
-- `HighlightData` -> `FeatCmd_HighlightData`
+- `ModifyData` -> `FeatCmd_ModifyData` (Acts as the command class for menus like `DateFixer` and `CaseFixer`)
+- `HighlightData` -> `FeatCmd_HighlightData` (Acts as the command class for `HighlightInconsistentFormulas`, `HighlightDuplicates`, `HighlightErrors`, and `HighlightHardcodedValues`)
 - `BreakExternalLinks` -> `FeatCmd_BreakExternalLinks`
 - `Duplicate` -> `FeatCmd_Duplicate`
-- `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf`
+- `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf` (Acts as the command class for `ExportPng` and `ExportPdf`)
 - `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter` (Displays guidance, hotkeys, and diagnostics in a scrollable UserForm)
 - `HelloWorld` -> `FeatCmd_HelloWorld`
+- `TableOfContents` -> `FeatCmd_TableOfContents` (Creates a hyperlinked index sheet at the beginning of the workbook)
+- `UnmergeFill` -> `FeatCmd_UnmergeFill` (Unmerges the selected cells and fills the parent value to all unmerged cells)
+- `ForceNumber` -> `FeatCmd_ForceNumber` (Forces text-formatted numbers in the selection to become actual numeric values)
 
 #### Hotkey-Driven Commands
 - `ApplyCustomNumberFormat` -> `FeatCmd_ApplyCustomNumberFormat`
@@ -265,6 +286,7 @@ graph TD
 - **Formatting**: Wrap (mode picked in a `UserForm`), static sheet/workbook.
 - **Data Tools**: Clean data, modify data, highlight data, break links.
 - **File Actions**: Duplicate workbook, export range.
+- **Reports**: Table of Contents.
 - **Support**: Help center.
 
 *UI Interaction Design Rules:*
@@ -278,7 +300,7 @@ graph TD
 - **Ribbon Icon Selection**: When choosing or modifying icons (`imageMso`) in `features.json`, you must only use identifiers that are natively verified and loaded in Microsoft Excel (e.g., `TableProperties`, `TableOfContentsDialog`, `ErrorChecking`, `FunctionWizard`, `CalculateNow`, `Clear`, `ChangeCase`, `ConditionalFormattingMenu`, `WorkbookLinks`, `FileSaveAs`, `Export`, `Help`, `HappyFace`). Do not use Access-only, Word-only, or custom application-specific icons (like `ReportInsert`, `InsertTableOfContents`, `StatusSpreadsheet`, or `DocumentInspector`) as they will throw runtime Custom UI XML errors when Excel loads the add-in.
 
 #### Ribbon controls in `features.json`
-- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`.
+- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`, `BtnReportGenerator`, `BtnTableOfContents`, `BtnUnmergeFill`, `BtnForceNumber`.
 
 #### Hotkeys in `config.json`
 - `^+4` -> `UI_Hotkeys.Hotkey_ApplyCustomNumberFormat`
@@ -324,7 +346,7 @@ graph TD
   },
   "FeatureFlags": {
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 10
+    "GeneratedFeatureCount": 22
   },
   "Hotkeys": [
     {
@@ -339,12 +361,24 @@ graph TD
     "BtnStaticSheetWorkbook": "CalculateNow",
     "BtnCleanData": "Clear",
     "BtnModifyData": "ChangeCase",
+    "BtnDateFixer": "CalculateNow",
+    "BtnCaseFixer": "ChangeCase",
     "BtnHighlightData": "ConditionalFormattingMenu",
+    "BtnHighlightInconsistentFormulas": "CalculateNow",
+    "BtnHighlightDuplicates": "ConditionalFormattingMenu",
+    "BtnHighlightErrors": "ErrorChecking",
+    "BtnHighlightHardcodedValues": "FunctionWizard",
     "BtnBreakLinks": "WorkbookLinks",
     "BtnDuplicate": "FileSaveAs",
     "BtnExport": "Export",
+    "BtnExportPng": "FileSaveAs",
+    "BtnExportPdf": "Export",
     "BtnHelpCenter": "Help",
-    "BtnHelloWorld": "HappyFace"
+    "BtnHelloWorld": "HappyFace",
+    "BtnReportGenerator": "TableProperties",
+    "BtnTableOfContents": "TableOfContentsDialog",
+    "BtnUnmergeFill": "TableProperties",
+    "BtnForceNumber": "CalculateNow"
   }
 }
 ```
