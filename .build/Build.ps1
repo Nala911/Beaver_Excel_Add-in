@@ -1,8 +1,18 @@
-# Script:   Build.ps1
-# Purpose:  Syncs VBA modules from disk, compiles the VBA project, and injects Ribbon XML.
-# ==============================================================================
+[CmdletBinding()]
+param(
+    [switch]$Force,
+    [switch]$SkipLint,
+    [switch]$Clean
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
 
 . (Join-Path $PSScriptRoot "BuildSupport.ps1")
+
+# Initialize global caches to satisfy StrictMode
+$global:BeaverLintStatusCache = @{}
+$global:BeaverTestManifestCache = @{}
 
 # --- Helper Functions ---
 
@@ -146,20 +156,7 @@ function Sync-TestManifest {
     )
 
     Write-Host "Generating test manifest..." -ForegroundColor Cyan
-    $testProcedures = @()
-    $moduleFiles = @(Get-ChildItem -Path $SourceDir -Filter *.bas -Recurse)
-
-    foreach ($file in $moduleFiles) {
-        if ($file.Name -eq "Lib_TestManifest.bas") { continue }
-        $moduleName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
-        $matches = Select-String -Path $file.FullName -Pattern '^\s*Public Sub (Test_[A-Za-z0-9_]+)\s*\('
-        foreach ($match in $matches) {
-            $testProcedures += [pscustomobject]@{
-                Module = $moduleName
-                Procedure = $match.Matches[0].Groups[1].Value
-            }
-        }
-    }
+    $testProcedures = Get-AllTestProcedures -SourceDir $SourceDir
 
     $lines = @(
         'Attribute VB_Name = "Lib_TestManifest"',
@@ -172,11 +169,11 @@ function Sync-TestManifest {
         ''' @Dependencies: Infra_Error'
     )
     $lines += ''
-    $lines += 'Public Sub RunGeneratedTests()'
+    $lines += 'Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")'
     $lines += '    Dim tracker As Object: Set tracker = Infra_Error.Track("RunGeneratedTests")'
     $lines += '    On Error GoTo ErrHandler'
     $lines += ''
-
+ 
     if ($testProcedures.Count -eq 0) {
         $lines += 'CleanExit:'
         $lines += '    Exit Sub'
@@ -186,7 +183,8 @@ function Sync-TestManifest {
         $lines += '    Resume CleanExit'
     } else {
         foreach ($test in $testProcedures | Sort-Object Module, Procedure) {
-            $lines += "    $($test.Module).$($test.Procedure)"
+            $testFullName = "$($test.Module).$($test.Procedure)"
+            $lines += "    If MatchesFilter(""{0}"", filterPattern) Then {0}" -f $testFullName
         }
         $lines += ''
         $lines += 'CleanExit:'
@@ -196,8 +194,25 @@ function Sync-TestManifest {
         $lines += '    Infra_Error.HandleError "RunGeneratedTests", Err'
         $lines += '    Resume CleanExit'
     }
-
+ 
     $lines += 'End Sub'
+    $lines += ''
+    $lines += 'Private Function MatchesFilter(ByVal testName As String, ByVal filterPattern As String) As Boolean'
+    $lines += '    If filterPattern = "" Then'
+    $lines += '        MatchesFilter = True'
+    $lines += '        Exit Function'
+    $lines += '    End If'
+    $lines += '    Dim patterns() As String'
+    $lines += '    patterns = Split(filterPattern, ",")'
+    $lines += '    Dim i As Long'
+    $lines += '    For i = LBound(patterns) To UBound(patterns)'
+    $lines += '        If UCase$(testName) Like UCase$(Trim$(patterns(i))) Then'
+    $lines += '            MatchesFilter = True'
+    $lines += '            Exit Function'
+    $lines += '        End If'
+    $lines += '    Next i'
+    $lines += '    MatchesFilter = False'
+    $lines += 'End Function'
     [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
     Write-Host "  Test manifest generated with $($testProcedures.Count) test(s)." -ForegroundColor Green
 }
@@ -569,14 +584,53 @@ function Update-RibbonInWorkbook {
 }
 
 function Invoke-VbaSyntaxCheck {
-    param ([string]$SourceDir)
+    param (
+        [string]$SourceDir,
+        [string[]]$FilesToProcess
+    )
     Write-Host "Linting VBA Files..." -ForegroundColor Cyan
-    $vbaFiles = @(Get-ChildItem -Path $SourceDir -Include *.bas, *.cls, *.frm -Recurse)
-    $thisWorkbook = Join-Path $PSScriptRoot "ThisWorkbook.cls"
-    if (Test-Path $thisWorkbook) { $vbaFiles += Get-Item $thisWorkbook }
+
+    $projectRoot = Split-Path $PSScriptRoot -Parent
+    $buildState = Get-BuildState
+    if (-not (Get-Variable -Name "BeaverLintStatusCache" -Scope Global -ErrorAction SilentlyContinue)) { $global:BeaverLintStatusCache = @{} }
+
+    $vbaFiles = @()
+    if ($null -ne $FilesToProcess -and $FilesToProcess.Count -gt 0) {
+        foreach ($file in $FilesToProcess) {
+            if ($file -match "\.(bas|cls|frm)$") {
+                $absPath = Join-Path $projectRoot $file
+                if (Test-Path $absPath) {
+                    $vbaFiles += Get-Item $absPath
+                }
+            }
+        }
+    } else {
+        $vbaFiles = @(Get-ChildItem -Path $SourceDir -Include *.bas, *.cls, *.frm -Recurse)
+        $thisWorkbook = Join-Path $projectRoot "ThisWorkbook.cls"
+        if (Test-Path $thisWorkbook) { $vbaFiles += Get-Item $thisWorkbook }
+    }
 
     $allPassed = $true
     foreach ($file in $vbaFiles) {
+        $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
+        
+        $cachedPassed = $false
+        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.$relPath) {
+            $meta = $buildState.Metadata.$relPath
+            if ($meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
+                $cachedPassed = $true
+            }
+        }
+        
+        if ($cachedPassed) {
+            $global:BeaverLintStatusCache[$relPath] = $true
+            continue
+        }
+        
+        if (-not $global:BeaverLintStatusCache.ContainsKey($relPath)) {
+            $global:BeaverLintStatusCache[$relPath] = $true
+        }
+
         $rawLines = [System.IO.File]::ReadAllLines($file.FullName)
         $fileName = $file.Name
         
@@ -620,6 +674,7 @@ function Invoke-VbaSyntaxCheck {
                     } else {
                         Write-Host "  [$fileName] Syntax Error: Unexpected '$($b.End.Trim())' at line $lineNum (No matching start found)." -ForegroundColor Red
                         $allPassed = $false
+                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                 }
             }
@@ -627,6 +682,7 @@ function Invoke-VbaSyntaxCheck {
             foreach ($startLine in $stack) {
                 Write-Host "  [$fileName] Syntax Error: Mismatched '$($b.Name)' starting at line $startLine (No matching end found)." -ForegroundColor Red
                 $allPassed = $false
+                $global:BeaverLintStatusCache[$relPath] = $false
             }
         }
     }
@@ -634,14 +690,53 @@ function Invoke-VbaSyntaxCheck {
 }
 
 function Invoke-EnhancedLinting {
-    param ([string]$SourceDir)
+    param (
+        [string]$SourceDir,
+        [string[]]$FilesToProcess
+    )
     Write-Host "Running Enhanced Linting..." -ForegroundColor Cyan
-    $vbaFiles = @(Get-ChildItem -Path $SourceDir -Include *.bas, *.cls, *.frm -Recurse)
-    $thisWorkbook = Join-Path $PSScriptRoot "ThisWorkbook.cls"
-    if (Test-Path $thisWorkbook) { $vbaFiles += Get-Item $thisWorkbook }
+
+    $projectRoot = Split-Path $PSScriptRoot -Parent
+    $buildState = Get-BuildState
+    if (-not (Get-Variable -Name "BeaverLintStatusCache" -Scope Global -ErrorAction SilentlyContinue)) { $global:BeaverLintStatusCache = @{} }
+
+    $vbaFiles = @()
+    if ($null -ne $FilesToProcess -and $FilesToProcess.Count -gt 0) {
+        foreach ($file in $FilesToProcess) {
+            if ($file -match "\.(bas|cls|frm)$") {
+                $absPath = Join-Path $projectRoot $file
+                if (Test-Path $absPath) {
+                    $vbaFiles += Get-Item $absPath
+                }
+            }
+        }
+    } else {
+        $vbaFiles = @(Get-ChildItem -Path $SourceDir -Include *.bas, *.cls, *.frm -Recurse)
+        $thisWorkbook = Join-Path $projectRoot "ThisWorkbook.cls"
+        if (Test-Path $thisWorkbook) { $vbaFiles += Get-Item $thisWorkbook }
+    }
     $allPassed = $true
 
     foreach ($file in $vbaFiles) {
+        $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
+        
+        $cachedPassed = $false
+        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.$relPath) {
+            $meta = $buildState.Metadata.$relPath
+            if ($meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
+                $cachedPassed = $true
+            }
+        }
+        
+        if ($cachedPassed) {
+            $global:BeaverLintStatusCache[$relPath] = $true
+            continue
+        }
+        
+        if (-not $global:BeaverLintStatusCache.ContainsKey($relPath)) {
+            $global:BeaverLintStatusCache[$relPath] = $true
+        }
+
         $content = [System.IO.File]::ReadAllText($file.FullName)
         $lines = $content -split "`r?`n"
         $fileName = $file.Name
@@ -649,11 +744,13 @@ function Invoke-EnhancedLinting {
         if ($content -notmatch "(?m)^Option Explicit") {
             Write-Host "  [$fileName] Error: Missing 'Option Explicit' at the top of the file." -ForegroundColor Red
             $allPassed = $false
+            $global:BeaverLintStatusCache[$relPath] = $false
         }
 
-        if ($content -notmatch "' @Module:") {
+        if ($file.Name -ne "Lib_TestManifest.bas" -and $content -notmatch "' @Module:") {
             Write-Host "  [$fileName] Error: Missing '@Module' metadata header." -ForegroundColor Red
             $allPassed = $false
+            $global:BeaverLintStatusCache[$relPath] = $false
         }
 
         for ($i = 0; $i -lt $lines.Count; $i++) {
@@ -663,12 +760,14 @@ function Invoke-EnhancedLinting {
             if ($file.Name -ne "Lib_JsonConverter.bas" -and $line -match '\b\.\bFormula\b' -and $line -notmatch '".*\.Formula.*"' -and $line -notmatch '^\s*\''' -and $line -notmatch '\.Formula2' -and $line -notmatch '\.FormulaArray') {
                 Write-Host "  [$fileName] Error: Range.Formula usage detected at line $($i + 1). Use Range.Formula2 instead to prevent spill errors." -ForegroundColor Red
                 $allPassed = $false
+                $global:BeaverLintStatusCache[$relPath] = $false
             }
 
             # --- Rule B: Multi-cell Range Property Null Check ---
             if ($line -match '\b(CStr|CInt|CLng|CDbl|CSng|CBool|CDate|CVar)\s*\(\s*(?!(?:cell\b|\w+\.Cells\b|\w+Cells\b))[a-zA-Z0-9_\.]+\.(?:NumberFormat|Font\.(?:Name|Size))\s*\)' -and $line -notmatch '^\s*''') {
                 Write-Host "  [$fileName] Error: Direct string/value conversion on range property without IsNull check at line $($i + 1). Mixed ranges return Null, causing Error 94." -ForegroundColor Red
                 $allPassed = $false
+                $global:BeaverLintStatusCache[$relPath] = $false
             }
 
             # --- Rule C: Collection Mutation Loop Direction ---
@@ -686,6 +785,7 @@ function Invoke-EnhancedLinting {
                 if ($hasDeletion) {
                     Write-Host "  [$fileName] Error: Forward iteration loop with mutation detected at line $($i + 1). Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs." -ForegroundColor Red
                     $allPassed = $false
+                    $global:BeaverLintStatusCache[$relPath] = $false
                 }
             }
 
@@ -693,7 +793,7 @@ function Invoke-EnhancedLinting {
                 $procName = $matches[1]
                 $procLineNum = $i + 1
                 
-                if ($procName -match "^(?:Workbook_|Worksheet_|App_)" -or $file.Name -eq "Lib_JsonConverter.bas" -or $file.Name -match "^Lib_[a-zA-Z0-9_]+Function\.bas$" -or $file.Name -match "^(?:Infra_Error\.(bas|cls)|Infra_ContextTracker\.cls|Infra_Diagnostics\.bas|Infra_OperationContext\.cls|AppContainer\.cls|Infra_Config\.(cls|bas)|Infra_ConfigModel\.cls|I[A-Z][a-zA-Z0-9_\-]*\.cls|Infra_AppStateGuard\.cls|Infra_AppState\.bas)$") {
+                if ($procName -match "^(?:Workbook_|Worksheet_|App_)" -or $file.Name -eq "Lib_JsonConverter.bas" -or $file.Name -match "^Lib_[a-zA-Z0-9_]+Function\.bas$" -or $file.Name -match "^(?:Infra_Error\.(bas|cls)|Infra_ContextTracker\.cls|Infra_Diagnostics\.bas|Infra_OperationContext\.cls|AppContainer\.cls|Infra_Config\.(cls|bas)|Infra_ConfigModel\.cls|I[A-Z][a-zA-Z0-9_\-]*\.cls|Infra_AppStateGuard\.cls|Infra_AppState\.bas|Infra_ValueConversion\.bas)$") {
                     continue
                 }
 
@@ -716,18 +816,22 @@ function Invoke-EnhancedLinting {
                 if (-not $foundPush) {
                     Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing context tracking (PushContext or Track)." -ForegroundColor Red
                     $allPassed = $false
+                    $global:BeaverLintStatusCache[$relPath] = $false
                 }
                 if (-not $foundPop) {
                     Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'PopContext' (or RAII Track tracker)." -ForegroundColor Red
                     $allPassed = $false
+                    $global:BeaverLintStatusCache[$relPath] = $false
                 }
                 if (-not $foundErrorGoto) {
                     Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'On Error GoTo'." -ForegroundColor Red
                     $allPassed = $false
+                    $global:BeaverLintStatusCache[$relPath] = $false
                 }
                 if (-not $foundHandleError) {
                     Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'HandleError ""$procName""'." -ForegroundColor Red
                     $allPassed = $false
+                    $global:BeaverLintStatusCache[$relPath] = $false
                 }
             }
         }
@@ -736,15 +840,55 @@ function Invoke-EnhancedLinting {
 }
 
 function Test-FormFilesValidity {
-    param ([string]$SourceDir)
+    param (
+        [string]$SourceDir,
+        [string[]]$FilesToProcess
+    )
     Write-Host "Checking Form Companion Files..." -ForegroundColor Cyan
-    $frmFiles = @(Get-ChildItem -Path $SourceDir -Include *.frm -Recurse)
+
+    $projectRoot = Split-Path $PSScriptRoot -Parent
+    $buildState = Get-BuildState
+    if (-not (Get-Variable -Name "BeaverLintStatusCache" -Scope Global -ErrorAction SilentlyContinue)) { $global:BeaverLintStatusCache = @{} }
+
+    $frmFiles = @()
+    if ($null -ne $FilesToProcess -and $FilesToProcess.Count -gt 0) {
+        foreach ($file in $FilesToProcess) {
+            if ($file -match "\.frm$") {
+                $absPath = Join-Path $projectRoot $file
+                if (Test-Path $absPath) {
+                    $frmFiles += Get-Item $absPath
+                }
+            }
+        }
+    } else {
+        $frmFiles = @(Get-ChildItem -Path $SourceDir -Include *.frm -Recurse)
+    }
     $allPassed = $true
     foreach ($file in $frmFiles) {
+        $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
+        
+        $cachedPassed = $false
+        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.$relPath) {
+            $meta = $buildState.Metadata.$relPath
+            if ($meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
+                $cachedPassed = $true
+            }
+        }
+        
+        if ($cachedPassed) {
+            $global:BeaverLintStatusCache[$relPath] = $true
+            continue
+        }
+        
+        if (-not $global:BeaverLintStatusCache.ContainsKey($relPath)) {
+            $global:BeaverLintStatusCache[$relPath] = $true
+        }
+
         $frxPath = [System.IO.Path]::ChangeExtension($file.FullName, ".frx")
         if (-not (Test-Path $frxPath)) {
             Write-Host "  [$($file.Name)] Error: Missing companion binary file (.frx). MSForms requires a .frx file to import successfully." -ForegroundColor Red
             $allPassed = $false
+            $global:BeaverLintStatusCache[$relPath] = $false
         }
     }
     return $allPassed
@@ -771,43 +915,156 @@ function New-NormalizedImportCopy {
     return $normalizedPath
 }
 
+function Get-VbaComponentNameFromFile {
+    param([string]$FilePath)
+
+    if (-not (Test-Path $FilePath)) { return $null }
+
+    $lines = Get-Content -Path $FilePath -TotalCount 50
+    foreach ($line in $lines) {
+        if ($line -match '^Attribute\s+VB_Name\s*=\s*"([^"]+)"') {
+            return $Matches[1]
+        }
+    }
+    
+    return [System.IO.Path]::GetFileNameWithoutExtension($FilePath)
+}
+
 # --- Build Execution ---
 
+if ($Clean) {
+    Write-Host "Running clean stage..." -ForegroundColor Cyan
+    if (Test-Path $buildStatePath) {
+        Remove-Item $buildStatePath -Force -ErrorAction SilentlyContinue
+        Write-Host "  Cleared build state cache (.build_state.json)." -ForegroundColor Green
+    }
+    $stoppedAny = Remove-OrphanedExcelProcesses
+    if (-not $stoppedAny) {
+        Write-Host "  No orphaned Excel processes to clean." -ForegroundColor Gray
+    }
+    Write-Host "Clean complete." -ForegroundColor Green
+    exit 0
+}
+
 $sharedExcel = $null
+$excelWasAlreadyOpen = $false
 
 try {
+    # --- Change Detection ---
+    $currentHashes = Get-SourceFileHashes
+    $buildState = Get-BuildState
+    $manifestChanged = $true
+    $changedFiles = @()
+    $deletedFiles = @()
+
+    if ($null -ne $buildState -and $null -ne $buildState.Files) {
+        $manifestChanged = (-not $buildState.Files.PSObject.Properties.Name.Contains("features.json") -or $buildState.Files."features.json" -ne $currentHashes["features.json"])
+        
+        foreach ($key in $currentHashes.Keys) {
+            if (-not $buildState.Files.PSObject.Properties.Name.Contains($key) -or $buildState.Files.$key -ne $currentHashes[$key]) {
+                $changedFiles += $key
+            }
+        }
+        
+        foreach ($prop in $buildState.Files.PSObject.Properties) {
+            $key = $prop.Name
+            if (-not $currentHashes.ContainsKey($key)) {
+                $deletedFiles += $key
+            }
+        }
+    } else {
+        foreach ($key in $currentHashes.Keys) {
+            $changedFiles += $key
+        }
+    }
+
+    $hasAnyChanges = ($changedFiles.Count -gt 0 -or $deletedFiles.Count -gt 0)
+
+    if (-not $hasAnyChanges -and (Test-Path $excelPath) -and -not $Force) {
+        Write-Host "No changes detected. Build skipped." -ForegroundColor Green
+        exit 0
+    }
+
+    $forceFullBuild = ($manifestChanged -or -not (Test-Path $excelPath) -or $Force)
+
+    if ($forceFullBuild) {
+        Write-Host "Performing clean full build..." -ForegroundColor Cyan
+    } else {
+        Write-Host "Performing incremental build..." -ForegroundColor Cyan
+        Write-Host "  Changed files: $($changedFiles.Count), Deleted files: $($deletedFiles.Count)" -ForegroundColor Yellow
+    }
+
     Invoke-Stage -Stage "manifest_sync" -Action {
-        Sync-FeatureManifest -ManifestPath $featureManifestPath -ConfigPath $configPath -RibbonPath $ribbonXmlPath
-        return "features synced from features.json"
+        if ($forceFullBuild) {
+            Sync-FeatureManifest -ManifestPath $featureManifestPath -ConfigPath $configPath -RibbonPath $ribbonXmlPath
+            return "features synced from features.json"
+        } else {
+            return "skipped (manifest unchanged)"
+        }
     } | Out-Null
 
     Invoke-Stage -Stage "command_registry_generation" -Action {
-        Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
-        return "command registry refreshed"
+        if ($forceFullBuild) {
+            Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
+            return "command registry refreshed"
+        } else {
+            return "skipped (manifest unchanged)"
+        }
     } | Out-Null
 
     Invoke-Stage -Stage "ui_entry_generation" -Action {
-        Sync-UiRibbonModule -ManifestPath $featureManifestPath -OutputPath $uiRibbonPath
-        Sync-UiHotkeysModule -ManifestPath $featureManifestPath -OutputPath $uiHotkeysPath
-        return "UI entry modules refreshed"
+        if ($forceFullBuild) {
+            Sync-UiRibbonModule -ManifestPath $featureManifestPath -OutputPath $uiRibbonPath
+            Sync-UiHotkeysModule -ManifestPath $featureManifestPath -OutputPath $uiHotkeysPath
+            return "UI entry modules refreshed"
+        } else {
+            return "skipped (manifest unchanged)"
+        }
     } | Out-Null
 
     Invoke-Stage -Stage "test_manifest_generation" -Action {
-        Sync-TestManifest -SourceDir $modulesDir -OutputPath $testManifestPath
-        return "test manifest refreshed"
+        $hasBasChanges = @($changedFiles | Where-Object { $_ -match "\.bas$" }).Count -gt 0
+        if ($forceFullBuild -or $hasBasChanges) {
+            Sync-TestManifest -SourceDir $modulesDir -OutputPath $testManifestPath
+            
+            # Explicitly append regenerated manifest to changed files for import
+            if (-not $forceFullBuild) {
+                $relPath = "Modules/Libraries/Lib_TestManifest.bas"
+                if ($changedFiles -notcontains $relPath) {
+                    $script:changedFiles += $relPath
+                }
+            }
+            return "test manifest refreshed"
+        } else {
+            return "skipped (no test file changes)"
+        }
     } | Out-Null
 
     Invoke-Stage -Stage "validation" -Action {
-        $validRibbon = Test-RibbonValidity -XmlPath $ribbonXmlPath -ModulesDir $modulesDir
-        $validVba = Invoke-VbaSyntaxCheck -SourceDir $modulesDir
-        $validLint = Invoke-EnhancedLinting -SourceDir $modulesDir
-        $validForms = Test-FormFilesValidity -SourceDir $modulesDir
+        $filesToValidate = if ($forceFullBuild) { $null } else { $changedFiles }
+        $validRibbon = if ($forceFullBuild) { Test-RibbonValidity -XmlPath $ribbonXmlPath -ModulesDir $modulesDir } else { $true }
+        
+        $validVba = $true
+        $validLint = $true
+        $validForms = $true
+        
+        if (-not $SkipLint) {
+            $validVba = Invoke-VbaSyntaxCheck -SourceDir $modulesDir -FilesToProcess $filesToValidate
+            $validLint = Invoke-EnhancedLinting -SourceDir $modulesDir -FilesToProcess $filesToValidate
+            $validForms = Test-FormFilesValidity -SourceDir $modulesDir -FilesToProcess $filesToValidate
+        } else {
+            Write-Host "  Skipping linting, syntax, and form validity checks (-SkipLint)." -ForegroundColor Yellow
+        }
 
         if (-not ($validRibbon -and $validVba -and $validLint -and $validForms)) {
             throw "Pre-deployment validation failed"
         }
 
-        return "ribbon, syntax, lint, and form checks passed"
+        if ($SkipLint) {
+            return "ribbon validated (syntax and lint skipped)"
+        } else {
+            return "ribbon, syntax, lint, and form checks passed"
+        }
     } | Out-Null
 
     # --- environment_checks ---
@@ -816,119 +1073,157 @@ try {
             throw "Excel file not found: $excelPath"
         }
 
-        $lockFile = Join-Path $PSScriptRoot ("~$" + (Split-Path $excelPath -Leaf))
-        if (-not (Test-Path $lockFile)) {
-            return "workbook available"
-        }
+        if ($forceFullBuild) {
+            $lockFile = Join-Path $projectRoot ("~$" + (Split-Path $excelPath -Leaf))
+            if (-not (Test-Path $lockFile)) {
+                return "workbook available"
+            }
 
-        Write-Host "Excel file is open. Attempting to close it..." -ForegroundColor Yellow
-        try {
-            $activeExcel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+            Write-Host "Excel file is open. Attempting to close it..." -ForegroundColor Yellow
             try {
-                $activeExcel.DisplayAlerts = $false
-                $wbFound = $null
-                foreach ($wb in $activeExcel.Workbooks) {
-                    if ($wb.FullName -eq $excelPath) {
-                        $wbFound = $wb
-                        break
-                    }
-                }
-
-                if ($null -ne $wbFound) {
-                    $otherVisibleWorkbooks = 0
-                    foreach ($otherWb in $activeExcel.Workbooks) {
-                        if ($otherWb.FullName -ne $excelPath) {
-                            $hasVisibleWindow = $false
-                            try {
-                                foreach ($win in $otherWb.Windows) {
-                                    if ($win.Visible) {
-                                        $hasVisibleWindow = $true
-                                        break
-                                    }
-                                }
-                            } catch {
-                                $hasVisibleWindow = $true
-                            }
-                            if ($hasVisibleWindow) {
-                                $otherVisibleWorkbooks++
-                            }
+                $activeExcel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+                try {
+                    $activeExcel.DisplayAlerts = $false
+                    $wbFound = $null
+                    foreach ($wb in $activeExcel.Workbooks) {
+                        if ($wb.FullName -eq $excelPath) {
+                            $wbFound = $wb
+                            break
                         }
                     }
 
-                    $wbFound.Close($true)
-                    Write-Host "  Closed $($wbFound.Name) successfully." -ForegroundColor Green
+                    if ($null -ne $wbFound) {
+                        $otherVisibleWorkbooks = 0
+                        foreach ($otherWb in $activeExcel.Workbooks) {
+                            if ($otherWb.FullName -ne $excelPath) {
+                                $hasVisibleWindow = $false
+                                try {
+                                    foreach ($win in $otherWb.Windows) {
+                                        if ($win.Visible) {
+                                            $hasVisibleWindow = $true
+                                            break
+                                        }
+                                    }
+                                } catch {
+                                    $hasVisibleWindow = $true
+                                }
+                                if ($hasVisibleWindow) {
+                                    $otherVisibleWorkbooks++
+                                }
+                            }
+                        }
 
-                    if ($otherVisibleWorkbooks -eq 0) {
-                        Write-Host "  No other visible workbooks open. Closing Excel application..." -ForegroundColor Green
-                        $activeExcel.Quit()
+                        $wbFound.Close($true)
+                        Write-Host "  Closed $($wbFound.Name) successfully." -ForegroundColor Green
+
+                        if ($otherVisibleWorkbooks -eq 0) {
+                            Write-Host "  No other visible workbooks open. Closing Excel application..." -ForegroundColor Green
+                            $activeExcel.Quit()
+                        }
                     }
+                } finally {
+                    try {
+                        $activeExcel.DisplayAlerts = $true
+                    } catch { }
+                    [System.Runtime.InteropServices.Marshal]::ReleaseComObject($activeExcel) | Out-Null
                 }
-            } finally {
-                try {
-                    $activeExcel.DisplayAlerts = $true
-                } catch { }
-                [System.Runtime.InteropServices.Marshal]::ReleaseComObject($activeExcel) | Out-Null
+            } catch {
+                Write-Warning "Could not close gracefully via COM. Force closing Excel..."
+                Stop-Process -Name "EXCEL" -Force -ErrorAction SilentlyContinue
             }
-        } catch {
-            Write-Warning "Could not close gracefully via COM. Force closing Excel..."
-            Stop-Process -Name "EXCEL" -Force -ErrorAction SilentlyContinue
-        }
 
-        Start-Sleep -Seconds 2
-        if (Test-Path $lockFile) {
-            throw "Excel file is still open. Please close it manually and retry."
-        }
+            Start-Sleep -Seconds 2
+            if (Test-Path $lockFile) {
+                throw "Excel file is still open. Please close it manually and retry."
+            }
 
-        return "lock file cleared"
+            return "lock file cleared"
+        } else {
+            return "skipped (in-place reload active)"
+        }
     } | Out-Null
 
     # --- workbook_update ---
     Invoke-Stage -Stage "workbook_update" -Action {
-        if ($null -eq $sharedExcel) {
-            Write-Host "Starting Excel... (This may take a moment)"
-            $script:sharedExcel = Start-ExcelApplication -Purpose "workbook update"
-        }
-        $excel = $sharedExcel
-        $excel.Visible = $false
-        $excel.DisplayAlerts = $false
-        $workbook = $null
-        $vbaProject = $null
+        $session = Initialize-ExcelWorkbookSession -Purpose "workbook update"
+        $excel = $session.Excel
+        $workbook = $session.Workbook
+        $wasAlreadyOpen = $session.WasAlreadyOpen
+        $script:excelWasAlreadyOpen = $wasAlreadyOpen
+        $script:sharedExcel = $excel
+        
+        $vbaProject = $workbook.VBProject
         $btn = $null
         $activePane = $null
         $commandBars = $null
         $cb = $null
 
         try {
-            $workbook = $excel.Workbooks.Open($excelPath)
-            $vbaProject = $workbook.VBProject
-
             Write-Host "Updating modules..."
             $compsToRemove = @()
-            for ($i = 1; $i -le $vbaProject.VBComponents.Count; $i++) {
-                $comp = $vbaProject.VBComponents.Item($i)
-                if (($comp.Type -ge 1 -and $comp.Type -le 3) -and ($comp.Name -ne "ThisWorkbook")) {
-                    $compsToRemove += $comp
+            $filesToImport = @()
+            
+            if ($forceFullBuild) {
+                # Purge all components
+                for ($i = 1; $i -le $vbaProject.VBComponents.Count; $i++) {
+                    $comp = $vbaProject.VBComponents.Item($i)
+                    if (($comp.Type -ge 1 -and $comp.Type -le 3) -and ($comp.Name -ne "ThisWorkbook")) {
+                        $compsToRemove += $comp
+                    }
+                }
+                $vbaSourceFiles = Get-ChildItem -Path $modulesDir -Recurse | Where-Object { $_.Extension -match "\.(bas|cls|frm)$" }
+                $filesToImport = @($vbaSourceFiles | ForEach-Object { $_.FullName })
+            } else {
+                # Incremental Mode: Remove only modified/deleted components
+                foreach ($relPath in ($changedFiles + $deletedFiles)) {
+                    if ($relPath -eq "features.json" -or $relPath -eq "ThisWorkbook.cls") { continue }
+                    
+                    $filePath = Join-Path $projectRoot $relPath
+                    $compName = $null
+                    
+                    if ($changedFiles -contains $relPath) {
+                        $compName = Get-VbaComponentNameFromFile -FilePath $filePath
+                    } else {
+                        $fileName = Split-Path $relPath -Leaf
+                        $compName = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
+                    }
+                    
+                    if ($null -ne $compName) {
+                        try {
+                            $comp = $vbaProject.VBComponents.Item($compName)
+                            if ($null -ne $comp) {
+                                $compsToRemove += $comp
+                            }
+                        } catch {
+                            # Component doesn't exist
+                        }
+                    }
+                    
+                    if ($changedFiles -contains $relPath -and $relPath -match "\.(bas|cls|frm)$") {
+                        $filesToImport += $filePath
+                    }
                 }
             }
 
             foreach ($comp in $compsToRemove) {
                 try {
                     $vbaProject.VBComponents.Remove($comp)
+                    Write-Host "  Removed component: $($comp.Name)"
                 } catch {
-                    Write-Warning "  Could not remove component: $($comp.Name)"
+                    throw "Failed to remove existing VBA component '$($comp.Name)': $($_.Exception.Message). Please ensure Excel is not in break mode or busy."
                 }
             }
 
-            $vbaSourceFiles = Get-ChildItem -Path $modulesDir -Recurse | Where-Object { $_.Extension -match "\.(bas|cls|frm)$" }
             $tempImportDir = Join-Path ([System.IO.Path]::GetTempPath()) ("BeaverAddin-VbaImport-" + [System.Guid]::NewGuid().ToString("N"))
 
             try {
-                foreach ($file in $vbaSourceFiles) {
-                    Write-Host "  Importing $($file.Name)..."
-                    $importPath = New-NormalizedImportCopy -SourcePath $file.FullName -TempRoot $tempImportDir
+                foreach ($filePath in $filesToImport) {
+                    $fileName = Split-Path $filePath -Leaf
+                    Write-Host "  Importing $($fileName)..."
+                    $importPath = New-NormalizedImportCopy -SourcePath $filePath -TempRoot $tempImportDir
 
-                    if ($file.Extension -eq ".frm") {
-                        $frxPath = [System.IO.Path]::ChangeExtension($file.FullName, ".frx")
+                    if ($filePath -match "\.frm$") {
+                        $frxPath = [System.IO.Path]::ChangeExtension($filePath, ".frx")
                         if (Test-Path $frxPath) {
                             $tempFrxPath = Join-Path $tempImportDir ([System.IO.Path]::GetFileName($frxPath))
                             Copy-Item -Path $frxPath -Destination $tempFrxPath -Force
@@ -943,7 +1238,8 @@ try {
                 }
             }
 
-            if (Test-Path $desktopThisWorkbookCls) {
+            $thisWorkbookChanged = ($changedFiles -contains "ThisWorkbook.cls")
+            if ((Test-Path $desktopThisWorkbookCls) -and ($forceFullBuild -or $thisWorkbookChanged)) {
                 Write-Host "  Updating ThisWorkbook..."
                 $twCode = $vbaProject.VBComponents.Item("ThisWorkbook").CodeModule
                 if ($twCode.CountOfLines -gt 0) { $twCode.DeleteLines(1, $twCode.CountOfLines) }
@@ -957,124 +1253,126 @@ try {
                 $twCode.AddFromString([string]::Join("`r`n", $lines))
             }
 
-            Write-Host "Compiling VBA Project..."
-            if ($null -ne $excel.VBE) {
-                Write-Host "  VBE object found."
+            $excelPid = Get-ExcelProcessId -ExcelApplication $excel
+            $signalFile = Join-Path $env:TEMP ("BeaverBuildSignal_" + [System.Guid]::NewGuid().ToString("N") + ".tmp")
+            $watcher = $null
 
-                $commandBars = $excel.VBE.CommandBars
-                foreach ($cb in $commandBars) {
-                    function Find-ControlRecursive {
-                        param($Parent)
-                        foreach ($c in $Parent.Controls) {
-                            try {
-                                if ($c.Id -eq 578 -or $c.Caption -match "Compile") {
-                                    return $c
-                                }
-                                if ($c.Type -eq 10 -or $c.Type -eq 12) {
-                                    $found = Find-ControlRecursive -Parent $c
-                                    if ($found) { return $found }
-                                }
-                            } catch { }
-                        }
-                        return $null
-                    }
-                    $btn = Find-ControlRecursive -Parent $cb
-                    if ($btn) { break }
-                }
+            if ($excelPid -gt 0) {
+                $watcher = Start-ExcelWindowWatcher -ExcelPid $excelPid -SignalPath $signalFile -TimeoutSeconds 20
+            }
 
-                if ($null -ne $btn) {
-                    Write-Host "  Found '$($btn.Caption)' button (Enabled: $($btn.Enabled))."
-                    if ($btn.Enabled) {
-                        $excel.DisplayAlerts = $false
+            try {
+                Write-Host "Compiling VBA Project..."
+                if ($null -ne $excel.VBE) {
+                    Write-Host "  VBE object found."
 
-                        try {
-                            Write-Host "  Executing compile..."
-                            $btn.Execute()
-                        } catch {
-                            Write-Host "  Execute() threw an exception: $($_.Exception.Message)"
-                        }
+                    $missing = [System.Reflection.Missing]::Value
+                    $btn = $excel.VBE.CommandBars.Item("Menu Bar").FindControl($missing, 578, $missing, $missing, $true)
 
+                    if ($null -ne $btn) {
+                        Write-Host "  Found '$($btn.Caption)' button (Enabled: $($btn.Enabled))."
                         if ($btn.Enabled) {
-                            Write-Host "  ERROR: VBA Compilation failed (Button still enabled)." -ForegroundColor Red
+                            $excel.DisplayAlerts = $false
 
                             try {
-                                $activePane = $excel.VBE.ActiveCodePane
-                                if ($null -ne $activePane) {
-                                    $modName = $activePane.CodeModule.Name
-                                    $startLine = 0
-                                    $startCol = 0
-                                    $endLine = 0
-                                    $endCol = 0
-                                    $activePane.GetSelection([ref]$startLine, [ref]$startCol, [ref]$endLine, [ref]$endCol)
-
-                                    $errorLineText = $activePane.CodeModule.Lines($startLine, 1).Trim()
-
-                                    $diskFile = $null
-                                    if ($modName -eq "ThisWorkbook") {
-                                        if (Test-Path $desktopThisWorkbookCls) {
-                                            $diskFile = Get-Item $desktopThisWorkbookCls
-                                        }
-                                    } else {
-                                        $diskFile = Get-ChildItem -Path $modulesDir -Recurse | Where-Object { $_.BaseName -eq $modName -and $_.Extension -match "\.(bas|cls|frm)$" } | Select-Object -First 1
-                                    }
-
-                                    if ($null -ne $diskFile) {
-                                        $diskLines = Get-Content $diskFile.FullName
-                                        $lastAttr = -1
-                                        for ($l = 0; $l -lt $diskLines.Count; $l++) {
-                                            if ($diskLines[$l] -match "^Attribute\s+") {
-                                                $lastAttr = $l
-                                            }
-                                        }
-                                        $offset = $lastAttr + 1
-                                        $diskErrorLine = $startLine + $offset
-
-                                        Write-Host "  [Diagnostics] Source File: $($diskFile.FullName)" -ForegroundColor Yellow
-                                        Write-Host "  [Diagnostics] Error at Disk Line $diskErrorLine" -ForegroundColor Yellow
-
-                                        $contextStart = [Math]::Max(1, $diskErrorLine - 3)
-                                        $contextEnd = [Math]::Min($diskLines.Count, $diskErrorLine + 3)
-
-                                        Write-Host "  [Diagnostics] --- Code Context ---" -ForegroundColor Yellow
-                                        for ($l = $contextStart; $l -le $contextEnd; $l++) {
-                                            $prefix = if ($l -eq $diskErrorLine) { ">>> " } else { "    " }
-                                            $color = if ($l -eq $diskErrorLine) { "Red" } else { "DarkGray" }
-                                            Write-Host ("{0}{1:D3}: {2}" -f $prefix, $l, $diskLines[$l - 1]) -ForegroundColor $color
-                                        }
-                                        Write-Host "  [Diagnostics] --------------------" -ForegroundColor Yellow
-
-                                        throw "VBA Compilation failed in module '$modName' (Source: $($diskFile.FullName)) at line $($diskErrorLine): '$errorLineText'. Please fix the syntax or missing definitions."
-                                    } else {
-                                        Write-Host "  [Diagnostics] Module: $modName" -ForegroundColor Yellow
-                                        Write-Host "  [Diagnostics] Line $($startLine): $errorLineText" -ForegroundColor Yellow
-                                        throw "VBA Compilation failed in module '$modName' at line $($startLine): '$errorLineText'. Please fix the syntax or missing definitions."
-                                    }
-                                }
-
-                                Write-Host "  [Diagnostics] No ActiveCodePane found after failure." -ForegroundColor Yellow
-                                throw "VBA Compilation failed. Check your code for syntax or definition errors."
+                                Write-Host "  Executing compile..."
+                                $btn.Execute()
                             } catch {
-                                if ($_.Exception.Message -match "VBA Compilation failed") {
-                                    throw $_.Exception.Message
-                                }
+                                Write-Host "  Execute() threw an exception: $($_.Exception.Message)"
+                            }
 
-                                Write-Host "  [Diagnostics] Error retrieving active pane: $($_.Exception.Message)" -ForegroundColor Red
-                                throw "VBA Compilation failed. Check your code for 'Variable not defined' or syntax errors."
+                            if ($btn.Enabled) {
+                                Write-Host "  ERROR: VBA Compilation failed (Button still enabled)." -ForegroundColor Red
+
+                                try {
+                                    $activePane = $excel.VBE.ActiveCodePane
+                                    if ($null -ne $activePane) {
+                                        $modName = $activePane.CodeModule.Name
+                                        $startLine = 0
+                                        $startCol = 0
+                                        $endLine = 0
+                                        $endCol = 0
+                                        $activePane.GetSelection([ref]$startLine, [ref]$startCol, [ref]$endLine, [ref]$endCol)
+
+                                        $errorLineText = $activePane.CodeModule.Lines($startLine, 1).Trim()
+
+                                        $diskFile = $null
+                                        if ($modName -eq "ThisWorkbook") {
+                                            if (Test-Path $desktopThisWorkbookCls) {
+                                                $diskFile = Get-Item $desktopThisWorkbookCls
+                                            }
+                                        } else {
+                                            $diskFile = Get-ChildItem -Path $modulesDir -Recurse | Where-Object { $_.BaseName -eq $modName -and $_.Extension -match "\.(bas|cls|frm)$" } | Select-Object -First 1
+                                        }
+
+                                        if ($null -ne $diskFile) {
+                                            $diskLines = Get-Content $diskFile.FullName
+                                            $lastAttr = -1
+                                            for ($l = 0; $l -lt $diskLines.Count; $l++) {
+                                                if ($diskLines[$l] -match "^Attribute\s+") {
+                                                    $lastAttr = $l
+                                                }
+                                            }
+                                            $offset = $lastAttr + 1
+                                            $diskErrorLine = $startLine + $offset
+
+                                            Write-Host "  [Diagnostics] Source File: $($diskFile.FullName)" -ForegroundColor Yellow
+                                            Write-Host "  [Diagnostics] Error at Disk Line $diskErrorLine" -ForegroundColor Yellow
+
+                                            $contextStart = [Math]::Max(1, $diskErrorLine - 3)
+                                            $contextEnd = [Math]::Min($diskLines.Count, $diskErrorLine + 3)
+
+                                            Write-Host "  [Diagnostics] --- Code Context ---" -ForegroundColor Yellow
+                                            for ($l = $contextStart; $l -le $contextEnd; $l++) {
+                                                $prefix = if ($l -eq $diskErrorLine) { ">>> " } else { "    " }
+                                                $color = if ($l -eq $diskErrorLine) { "Red" } else { "DarkGray" }
+                                                Write-Host ("{0}{1:D3}: {2}" -f $prefix, $l, $diskLines[$l - 1]) -ForegroundColor $color
+                                            }
+                                            Write-Host "  [Diagnostics] --------------------" -ForegroundColor Yellow
+
+                                            throw "VBA Compilation failed in module '$modName' (Source: $($diskFile.FullName)) at line $($diskErrorLine): '$errorLineText'. Please fix the syntax or missing definitions."
+                                        } else {
+                                            Write-Host "  [Diagnostics] Module: $modName" -ForegroundColor Yellow
+                                            Write-Host "  [Diagnostics] Line $($startLine): $errorLineText" -ForegroundColor Yellow
+                                            throw "VBA Compilation failed in module '$modName' at line $($startLine): '$errorLineText'. Please fix the syntax or missing definitions."
+                                        }
+                                    }
+
+                                    Write-Host "  [Diagnostics] No ActiveCodePane found after failure." -ForegroundColor Yellow
+                                    throw "VBA Compilation failed. Check your code for syntax or definition errors."
+                                } catch {
+                                    if ($_.Exception.Message -match "VBA Compilation failed") {
+                                        throw $_.Exception.Message
+                                    }
+
+                                    Write-Host "  [Diagnostics] Error retrieving active pane: $($_.Exception.Message)" -ForegroundColor Red
+                                    throw "VBA Compilation failed. Check your code for 'Variable not defined' or syntax errors."
+                                }
+                            } else {
+                                Write-Host "  Compilation successful." -ForegroundColor Green
                             }
                         } else {
-                            Write-Host "  Compilation successful." -ForegroundColor Green
+                            Write-Host "  Project already compiled." -ForegroundColor Gray
                         }
                     } else {
-                        Write-Host "  Project already compiled." -ForegroundColor Gray
+                        Write-Host "  'Compile Project' button NOT found on VBE Menu Bar." -ForegroundColor Yellow
                     }
                 } else {
-                    Write-Host "  'Compile Project' button NOT found. Listing available CommandBars:" -ForegroundColor Yellow
-                    foreach ($cb in $commandBars) {
-                        Write-Host "    - $($cb.Name) (Visible: $($cb.Visible))"
+                    Write-Host "  VBE object NOT found." -ForegroundColor Yellow
+                }
+            } finally {
+                if ($excelPid -gt 0) {
+                    $null = New-Item -Path $signalFile -ItemType File -Force
+                    $compileError = [WindowScraper]::StopAndGetResult()
+                    if ($compileError) {
+                        Write-Host "  ERROR: VBE Compilation popup dialog detected." -ForegroundColor Red
+                        $cleanError = $compileError -replace "\r\n+", " | " -replace "\s+", " "
+                        Write-Host "  [Diagnostics] $cleanError" -ForegroundColor Yellow
                     }
                 }
-            } else {
-                Write-Host "  VBE object NOT found." -ForegroundColor Yellow
+                if (Test-Path $signalFile) {
+                    Remove-Item -Path $signalFile -Force -ErrorAction SilentlyContinue
+                }
             }
 
             if ($null -ne $excel.VBE) {
@@ -1083,53 +1381,82 @@ try {
                 } catch { }
             }
 
+            $workbook.Saved = $false
             $workbook.Save()
-            $workbook.Close($true)
+            
+            if ($forceFullBuild) {
+                $workbook.Close($true)
+                Release-ComObjectSafely $workbook
+                $workbook = $null
+            }
+            
             Release-ComObjectSafely $activePane
             Release-ComObjectSafely $btn
             Release-ComObjectSafely $cb
             Release-ComObjectSafely $commandBars
             Release-ComObjectSafely $vbaProject
-            Release-ComObjectSafely $workbook
             $activePane = $null
             $btn = $null
             $cb = $null
             $commandBars = $null
             $vbaProject = $null
-            $workbook = $null
             Write-Host "SUCCESS: Modules updated."
             return "modules imported and workbook saved"
         } finally {
-            if ($workbook) {
-                try { $workbook.Close($false) } catch { }
+            if ($forceFullBuild) {
+                if ($workbook) {
+                    try { $workbook.Close($false) } catch { }
+                }
+                Release-ComObjectSafely $workbook
+                $workbook = $null
             }
             Release-ComObjectSafely $activePane
             Release-ComObjectSafely $btn
             Release-ComObjectSafely $cb
             Release-ComObjectSafely $commandBars
             Release-ComObjectSafely $vbaProject
-            Release-ComObjectSafely $workbook
             $activePane = $null
             $btn = $null
             $cb = $null
             $commandBars = $null
             $vbaProject = $null
-            $workbook = $null
         }
     } | Out-Null
 
     Invoke-Stage -Stage "ribbon_injection" -Action {
-        Update-RibbonInWorkbook -WorkbookPath $excelPath -RibbonXmlPath $ribbonXmlPath
-        return "customUI14.xml refreshed"
+        if ($forceFullBuild) {
+            Update-RibbonInWorkbook -WorkbookPath $excelPath -RibbonXmlPath $ribbonXmlPath
+            return "customUI14.xml refreshed"
+        } else {
+            return "skipped (ribbon unchanged)"
+        }
     } | Out-Null
+
+    # Save successful build state to persist actual final hashes of all files on disk
+    Save-BuildState -FileHashes (Get-SourceFileHashes -Force)
 
     Write-StageSummary
 } catch {
     Stop-Script $_.Exception.Message
 } finally {
-    if ($null -ne $sharedExcel) {
-        Write-Host "Closing Excel application..." -ForegroundColor Gray
-        try { $sharedExcel.Quit() } catch { }
+    if (-not $global:BeaverOrchestratorActive -and $null -ne $sharedExcel) {
+        if (-not $excelWasAlreadyOpen) {
+            try {
+                foreach ($wb in $sharedExcel.Workbooks) {
+                    if ($wb.FullName -eq $excelPath) {
+                        $wb.Close($true)
+                    }
+                }
+            } catch { }
+            try {
+                $sharedExcel.Quit()
+            } catch { }
+        } else {
+            try {
+                $sharedExcel.Visible = $true
+                $sharedExcel.DisplayAlerts = $true
+            } catch { }
+        }
         Release-ComObjectSafely $sharedExcel
         $sharedExcel = $null
     }

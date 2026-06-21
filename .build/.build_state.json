@@ -1,0 +1,591 @@
+{
+    "LastBuildTime":  "2026-06-21T22:28:18+05:30",
+    "Files":  {
+                  "Modules/UI/UI_OptionPicker.frm":  "F3C572C71E27D78FE652535963888AB6",
+                  "Modules/Infrastructure/Infra_HotkeyDefinition.cls":  "FC54BE94926ABB543B4F5BED67AC061A",
+                  "Modules/Infrastructure/Infra_Bootstrap.bas":  "58CBD7E227052F92D164901A761E3DC1",
+                  "Modules/Commands/FeatCmd_HighlightData.cls":  "0FF8470392FB5D0B4B968998B9C0F3EA",
+                  "Modules/UI/UI_HelpCenter.frx":  "A176677B3FBE5632930E8A8C16618375",
+                  "Modules/Commands/FeatCmd_CreateSheet.cls":  "21DC7103F9F982BA141BA0020106C98E",
+                  "Modules/Infrastructure/Infra_UIFactory.bas":  "0DA9340DEA47DE20A899AF9A17EDD28B",
+                  "Modules/Core/Infra_CleanDataRequest.cls":  "C52FFB7182F2A8B3B6E194A73140AA00",
+                  "Modules/Infrastructure/Infra_Enums.bas":  "570C3D468984AF722FA3E6E350AD1DB6",
+                  "Modules/Infrastructure/IConfig.cls":  "96D917C7358699DFB020A9A454B6D499",
+                  "Modules/UI/UI_OptionPicker.frx":  "EDFA1403A1D17A73AACAA0EFC60BF25F",
+                  "Modules/Libraries/Lib_Tests_CommandInfrastructure.bas":  "3C7171A802C979BEB60CA76AA2E93E80",
+                  "Modules/Commands/FeatCmd_BreakExternalLinks.cls":  "95BE5514F6F09E4876F40EC7161C4E11",
+                  "Modules/Core/AppContainer.cls":  "FCD3D7E453718189BCF5DABC1A390071",
+                  "Modules/Infrastructure/Infra_AppStateGuard.cls":  "9D373194E36EA5942A22118FD21F5863",
+                  "Modules/Commands/FeatCmd_HelloWorld.cls":  "98F8028289ADFDBDE506BAFD0E2ECD02",
+                  "Modules/Core/ICommand.cls":  "157F84119C4C05595001F313A16B7251",
+                  "Modules/Infrastructure/Infra_CommandSupport.bas":  "5FF63E06FF6B9AB82F17A59A2D3A1D41",
+                  "Modules/Core/CommandExecutionPolicy.cls":  "FED002C9FDC59C76E220EB00BB93A6CA",
+                  "Modules/Infrastructure/Infra_OperationContext.cls":  "BF0C91A940EEED7837F617C8CBA2D0DE",
+                  "Modules/Commands/FeatCmd_ExportImageOrPdf.cls":  "2CF8D0B0EE5EA974217222D0C319418E",
+                  "Modules/Commands/FeatCmd_Wrap.cls":  "7717C1BAD955914EB69B13465070B3F6",
+                  "Modules/Commands/FeatCmd_ModifyData.cls":  "CA79CA8D888F2AF535AF84F5287C4D6B",
+                  "Modules/Core/Infra_ModifyDataRequest.cls":  "8B2BF427BADF034A07F468C08A180D44",
+                  "Modules/Infrastructure/Infra_ErrorContext.cls":  "63C03C6D3FCE1E1B827F578F21D09E7C",
+                  "Modules/Core/Infra_ExportRequest.cls":  "C61ABF2CD2B082015E29C1382EB2CA5A",
+                  "Modules/Libraries/Lib_TestManifest.bas":  "F2A307B6267D8DF5FC782B74881CEA30",
+                  "Modules/Infrastructure/Infra_Hotkeys.bas":  "84B4FF46546271BEE7C44FAB5957A664",
+                  "Modules/Infrastructure/Infra_Error.cls":  "D077FDC1FF29AE2C5FCFC6DC35EA5429",
+                  "Modules/Core/CommandValidationResult.cls":  "10F220EAA08BF5B88FAE9FC65ACE3300",
+                  "Modules/Infrastructure/Infra_Progress.bas":  "5A988E09A02DDCB1D97C20DC66088EFF",
+                  "Modules/Infrastructure/Infra_ConfigModel.cls":  "C6464E43C7D7523E6203175629A6D7DE",
+                  "Modules/Infrastructure/Infra_Interaction.bas":  "57A99D8A37671EA0D78D912D524D47C2",
+                  "Modules/Libraries/Lib_Tests_Features.bas":  "F6678048A043CCB053F83211AEAF7854",
+                  "Modules/Core/Infra_ActionContext.cls":  "8290341B65149510EF00BFDDCA384287",
+                  "Modules/Commands/FeatCmd_Friends.cls":  "E1FF140F4004D4D5BB6DD30597288B69",
+                  "Modules/Infrastructure/Infra_ValueConversion.bas":  "5037DDC5DBA1E453382487AA7347244B",
+                  "Modules/Core/ICommandContext.cls":  "CED381A04F342C584583B0004AB4B69A",
+                  "Modules/Commands/FeatCmd_CleanData.cls":  "4E9B5738186F2B09541670B1C2D37DEC",
+                  "Modules/Infrastructure/Infra_Diagnostics.bas":  "06EE4856AE3CE2D58EF33868D2F93E26",
+                  "Modules/Infrastructure/Infra_Undo.bas":  "EAEF4A267ED109FC21B0B80DA7BBE4C8",
+                  "Modules/Infrastructure/Infra_Config.cls":  "2F52FC24284741FE2C64FF850C01B113",
+                  "Modules/Infrastructure/Infra_TestResult.cls":  "5137A76E9718DA4667A36513459CF538",
+                  "Modules/Libraries/Lib_Tests.bas":  "F9FC6B70D100FCB827EE2C11DF3B5D92",
+                  "Modules/Infrastructure/Infra_PageSetupBackup.cls":  "857EABB2AE2F26C5604FA4F6D735B653",
+                  "Modules/Commands/FeatCmd_StaticSheetWorkbook.cls":  "811A47511B18E23BAB7A23EA3864E10E",
+                  "ThisWorkbook.cls":  "F6669C7288FFF0072B14056D959FF03F",
+                  "Modules/Commands/FeatCmd_FormatRange.cls":  "DE662BFD2AF2B78305EB7C75B75E6B5A",
+                  "Modules/Core/IBatchProcessor.cls":  "4AF3823555D7CF1EF2326BDBFFE22AB8",
+                  "Modules/Infrastructure/Infra_BatchProcessor.cls":  "00B1505E6934B0216764B7FEFA171C8F",
+                  "Modules/Core/BasicCommandContext.cls":  "425940AE305A8DA1D45B8D6C3BC3B2D5",
+                  "Modules/Libraries/Lib_JsonConverter.bas":  "892B3F4992BAB396AA31BDAD161221AE",
+                  "Modules/UI/UI_Hotkeys.bas":  "2918C60AE04D882939A7C68871C11054",
+                  "Modules/Commands/FeatCmd_PasteFormat.cls":  "5357335DDF6FF41F14ACD8A3C1AAEA77",
+                  "Modules/UI/UI_HelpCenter.frm":  "4880A3279AC550F4CFBA578B0BEE9B8F",
+                  "Modules/Infrastructure/Infra_ContextTracker.cls":  "EE2F870296B5295963D30EF9EE702469",
+                  "Modules/Infrastructure/Infra_ProgressState.cls":  "47AD1403AD4F3644CA0F17AE9229E011",
+                  "Modules/UI/UI_Ribbon.bas":  "B0686AB3F04670A870DC5D782BDC4F79",
+                  "Modules/Commands/FeatCmd_Backspace.cls":  "65BC8E102FA9B02E00762E2ADFE68550",
+                  "Modules/Libraries/Lib_UdfRegistry.bas":  "D193A9C1694438AE35ECCF40F62D7C06",
+                  "Modules/Commands/FeatCmd_MakePermanent.cls":  "3A2E67D8A4252FF94A8021EE517E054F",
+                  "Modules/Commands/FeatCmd_FillDown.cls":  "B9ECBB5B87888FBE7D97BB0EC9D73FD8",
+                  "Modules/Commands/FeatCmd_TableOfContents.cls":  "A49BE07C3D2A3B51AB60C7FD8DA94B31",
+                  "Modules/Core/ExcelContextProvider.cls":  "B230E89FCD2A178215AA58506A92433D",
+                  "Modules/Infrastructure/Infra_AppState.bas":  "CAD9EFD5BD4E8333360D019074242B32",
+                  "Modules/Core/Infra_HighlightDataRequest.cls":  "F551FCB1558C4E00BAA26EC40DC8C257",
+                  "Modules/Commands/FeatCmd_ApplyCustomNumberFormat.cls":  "778C32FDE20A78AA0B097F13F3527F92",
+                  "Modules/Commands/FeatCmd_ForceNumber.cls":  "7BAF98A06402B4F8F734B5AAE8F0FA27",
+                  "Modules/Commands/FeatCmd_Delete.cls":  "1BB00268F6DA286A2B42A2CBB730C32A",
+                  "Modules/Commands/FeatCmd_UnmergeFill.cls":  "1FB2404CAB065DB59372F1E543838D3B",
+                  "Modules/Libraries/Lib_XUnpivotFunction.bas":  "F4D1FBF30FAFE29DD7B4EE1F9ABD7BBB",
+                  "Modules/Infrastructure/Infra_CommandRegistry.bas":  "0AB2DB7604A5B29D3C4136D9FA8E704D",
+                  "Modules/Commands/FeatCmd_ShowHelpCenter.cls":  "781EE4B3F76FD51746FF128399B418C3",
+                  "Modules/Commands/FeatCmd_FilterByCell.cls":  "E666EA1F9408C50F649DDC0A82E544F9",
+                  "Modules/Commands/FeatCmd_Duplicate.cls":  "635AA09323A32000A08CDF6308B409A1",
+                  "Modules/Core/CommandInvoker.cls":  "D3F7953D6A3C52F199F4E515D403769C",
+                  "Modules/Libraries/Lib_XFilterFunction.bas":  "6EEA770D327A0062108FE89EA50DA4A5",
+                  "features.json":  "A2AEAFCB65306E888EC4F70461E9B8DA",
+                  "Modules/Core/Infra_ScopedRequest.cls":  "DCBB745EE49700F4299B4F16EAD49415"
+              },
+    "Metadata":  {
+                     "Modules/UI/UI_OptionPicker.frm":  {
+                                                            "Length":  12239,
+                                                            "LastWriteTime":  "134260177427428931",
+                                                            "LintPassed":  true
+                                                        },
+                     "Modules/Infrastructure/Infra_HotkeyDefinition.cls":  {
+                                                                               "Length":  540,
+                                                                               "LastWriteTime":  "134188138472103116",
+                                                                               "LintPassed":  true
+                                                                           },
+                     "Modules/Infrastructure/Infra_Bootstrap.bas":  {
+                                                                        "Length":  1980,
+                                                                        "LastWriteTime":  "134259214348787204",
+                                                                        "Tests":  [
+
+                                                                                  ],
+                                                                        "LintPassed":  true
+                                                                    },
+                     "Modules/Commands/FeatCmd_HighlightData.cls":  {
+                                                                        "Length":  19863,
+                                                                        "LastWriteTime":  "134265322558622858",
+                                                                        "LintPassed":  true
+                                                                    },
+                     "Modules/UI/UI_HelpCenter.frx":  {
+                                                          "Length":  2584,
+                                                          "LastWriteTime":  "134185099800719051"
+                                                      },
+                     "Modules/Commands/FeatCmd_CreateSheet.cls":  {
+                                                                      "Length":  1980,
+                                                                      "LastWriteTime":  "134239174748955295",
+                                                                      "LintPassed":  true
+                                                                  },
+                     "Modules/Infrastructure/Infra_UIFactory.bas":  {
+                                                                        "Length":  38495,
+                                                                        "LastWriteTime":  "134259960683162575",
+                                                                        "Tests":  [
+
+                                                                                  ],
+                                                                        "LintPassed":  true
+                                                                    },
+                     "Modules/Core/Infra_CleanDataRequest.cls":  {
+                                                                     "Length":  1385,
+                                                                     "LastWriteTime":  "134258405989352321",
+                                                                     "LintPassed":  true
+                                                                 },
+                     "Modules/Infrastructure/Infra_Enums.bas":  {
+                                                                    "Length":  671,
+                                                                    "LastWriteTime":  "134251360311360141",
+                                                                    "Tests":  [
+
+                                                                              ],
+                                                                    "LintPassed":  true
+                                                                },
+                     "Modules/Infrastructure/IConfig.cls":  {
+                                                                "Length":  665,
+                                                                "LastWriteTime":  "134232044407289283",
+                                                                "LintPassed":  true
+                                                            },
+                     "Modules/UI/UI_OptionPicker.frx":  {
+                                                            "Length":  3096,
+                                                            "LastWriteTime":  "134258907426292788"
+                                                        },
+                     "Modules/Libraries/Lib_Tests_CommandInfrastructure.bas":  {
+                                                                                   "Length":  3698,
+                                                                                   "LastWriteTime":  "134259199673564612",
+                                                                                   "Tests":  [
+                                                                                                 "Test_CommandRegistryResolvesRibbonEntries",
+                                                                                                 "Test_CommandRegistryResolvesHotkeyEntries",
+                                                                                                 "Test_CommandContextIncludesMetadataAndActionContext",
+                                                                                                 "Test_CommandRegistryCreatesKnownCommands"
+                                                                                             ],
+                                                                                   "LintPassed":  true
+                                                                               },
+                     "Modules/Commands/FeatCmd_BreakExternalLinks.cls":  {
+                                                                             "Length":  17548,
+                                                                             "LastWriteTime":  "134260176992194980",
+                                                                             "LintPassed":  true
+                                                                         },
+                     "Modules/Core/AppContainer.cls":  {
+                                                           "Length":  3758,
+                                                           "LastWriteTime":  "134265292074139817",
+                                                           "LintPassed":  true
+                                                       },
+                     "Modules/Infrastructure/Infra_AppStateGuard.cls":  {
+                                                                            "Length":  4578,
+                                                                            "LastWriteTime":  "134254907070465999",
+                                                                            "LintPassed":  true
+                                                                        },
+                     "Modules/Commands/FeatCmd_HelloWorld.cls":  {
+                                                                     "Length":  1595,
+                                                                     "LastWriteTime":  "134265346916779440",
+                                                                     "LintPassed":  true
+                                                                 },
+                     "Modules/Core/ICommand.cls":  {
+                                                       "Length":  600,
+                                                       "LastWriteTime":  "134220044155573776",
+                                                       "LintPassed":  true
+                                                   },
+                     "Modules/Infrastructure/Infra_CommandSupport.bas":  {
+                                                                             "Length":  19393,
+                                                                             "LastWriteTime":  "134259958596452706",
+                                                                             "Tests":  [
+
+                                                                                       ],
+                                                                             "LintPassed":  true
+                                                                         },
+                     "Modules/Core/CommandExecutionPolicy.cls":  {
+                                                                     "Length":  818,
+                                                                     "LastWriteTime":  "134220043093614248",
+                                                                     "LintPassed":  true
+                                                                 },
+                     "Modules/Infrastructure/Infra_OperationContext.cls":  {
+                                                                               "Length":  1168,
+                                                                               "LastWriteTime":  "134241538681197675",
+                                                                               "LintPassed":  true
+                                                                           },
+                     "Modules/Commands/FeatCmd_ExportImageOrPdf.cls":  {
+                                                                           "Length":  15117,
+                                                                           "LastWriteTime":  "134259960618644499",
+                                                                           "LintPassed":  true
+                                                                       },
+                     "Modules/Commands/FeatCmd_Wrap.cls":  {
+                                                               "Length":  20051,
+                                                               "LastWriteTime":  "134258194096290026",
+                                                               "LintPassed":  true
+                                                           },
+                     "Modules/Commands/FeatCmd_ModifyData.cls":  {
+                                                                     "Length":  20905,
+                                                                     "LastWriteTime":  "134265322689999446",
+                                                                     "LintPassed":  true
+                                                                 },
+                     "Modules/Core/Infra_ModifyDataRequest.cls":  {
+                                                                      "Length":  573,
+                                                                      "LastWriteTime":  "134258329472552138",
+                                                                      "LintPassed":  true
+                                                                  },
+                     "Modules/Infrastructure/Infra_ErrorContext.cls":  {
+                                                                           "Length":  1197,
+                                                                           "LastWriteTime":  "134188180630716932",
+                                                                           "LintPassed":  true
+                                                                       },
+                     "Modules/Core/Infra_ExportRequest.cls":  {
+                                                                  "Length":  626,
+                                                                  "LastWriteTime":  "134239173883715164",
+                                                                  "LintPassed":  true
+                                                              },
+                     "Modules/Libraries/Lib_TestManifest.bas":  {
+                                                                    "Length":  9076,
+                                                                    "LastWriteTime":  "134265346687821466",
+                                                                    "LintPassed":  true
+                                                                },
+                     "Modules/Infrastructure/Infra_Hotkeys.bas":  {
+                                                                      "Length":  4676,
+                                                                      "LastWriteTime":  "134254141108588473",
+                                                                      "Tests":  [
+
+                                                                                ],
+                                                                      "LintPassed":  true
+                                                                  },
+                     "Modules/Infrastructure/Infra_Error.cls":  {
+                                                                    "Length":  14796,
+                                                                    "LastWriteTime":  "134265327688577094",
+                                                                    "LintPassed":  true
+                                                                },
+                     "Modules/Core/CommandValidationResult.cls":  {
+                                                                      "Length":  716,
+                                                                      "LastWriteTime":  "134220043093614248",
+                                                                      "LintPassed":  true
+                                                                  },
+                     "Modules/Infrastructure/Infra_Progress.bas":  {
+                                                                       "Length":  5204,
+                                                                       "LastWriteTime":  "134241544495761472",
+                                                                       "Tests":  [
+
+                                                                                 ],
+                                                                       "LintPassed":  true
+                                                                   },
+                     "Modules/Infrastructure/Infra_ConfigModel.cls":  {
+                                                                          "Length":  6052,
+                                                                          "LastWriteTime":  "134251422211613290",
+                                                                          "LintPassed":  true
+                                                                      },
+                     "Modules/Infrastructure/Infra_Interaction.bas":  {
+                                                                          "Length":  10273,
+                                                                          "LastWriteTime":  "134265205288416775",
+                                                                          "Tests":  [
+
+                                                                                    ],
+                                                                          "LintPassed":  true
+                                                                      },
+                     "Modules/Libraries/Lib_Tests_Features.bas":  {
+                                                                      "Length":  102451,
+                                                                      "LastWriteTime":  "134265328707988514",
+                                                                      "Tests":  [
+                                                                                    "Test_HelloWorld_Execution_And_Undo",
+                                                                                    "Test_Friends_Execution_And_Undo",
+                                                                                    "Test_MakePermanent_SpillHandling_And_Undo",
+                                                                                    "Test_MakePermanent_LegacyArray_And_Undo",
+                                                                                    "Test_ValueConversion_ResolveSpillExpandedRange",
+                                                                                    "Test_CleanData_TrimmingAndNumericalFixing",
+                                                                                    "Test_CleanData_CheckboxOptions",
+                                                                                    "Test_CleanData_NewEnhancements",
+                                                                                    "Test_CleanData_UserRequestedEnhancements",
+                                                                                    "Test_BreakExternalLinks_Execution",
+                                                                                    "Test_BreakExternalLinks_SpillHandling",
+                                                                                    "Test_XFilter_Features",
+                                                                                    "Test_XUnpivot_Features",
+                                                                                    "Test_UdfRegistry_And_HelpCenter",
+                                                                                    "Test_FillDown_Features",
+                                                                                    "Test_Backspace_LargeRange_Undo",
+                                                                                    "Test_Wrap_CellAndPatternModes",
+                                                                                    "Test_StaticSheetWorkbook_Execution",
+                                                                                    "Test_CreateSheet_PlacementAndNaming",
+                                                                                    "Test_ApplyCustomNumberFormat_Execution",
+                                                                                    "Test_PasteFormat_Execution",
+                                                                                    "Test_FormatRange_Execution",
+                                                                                    "Test_Delete_Execution_And_Undo",
+                                                                                    "Test_FilterByCell_Execution",
+                                                                                    "Test_HighlightData_InconsistentFormulasAndDuplicates",
+                                                                                    "Test_ModifyData_Casing",
+                                                                                    "Test_ModifyData_DateStandardization",
+                                                                                    "Test_ModifyData_Undo",
+                                                                                    "Test_HighlightData_FormulaLimitSafety",
+                                                                                    "Test_HighlightData_Errors",
+                                                                                    "Test_HighlightData_HardcodedValues",
+                                                                                    "Test_FormatRange_WholeSheetSafety",
+                                                                                    "Test_CleanData_LargeSelectionSafety",
+                                                                                    "Test_GetChunkedRanges_And_SpillExpansion",
+                                                                                    "Test_UI_OptionPicker_DynamicLayout",
+                                                                                    "Test_UI_OptionPicker_KeyboardNavigation",
+                                                                                    "Test_ModifyData_MixedFormats",
+                                                                                    "Test_FormatRange_ErrorSafety",
+                                                                                    "Test_TableOfContents_Generation",
+                                                                                    "Test_CommandResolution_NewMenus",
+                                                                                    "Test_UnmergeFill_Execution_And_Undo",
+                                                                                    "Test_ForceNumber_Execution_And_Undo",
+                                                                                    "Test_Export_Pdf_Backup_And_MultiRange",
+                                                                                    "Test_CleanWorkbookNames_BrokenAndExternal",
+                                                                                    "Test_TryConvertToNumber_Unification"
+                                                                                ],
+                                                                      "LintPassed":  true
+                                                                  },
+                     "Modules/Core/Infra_ActionContext.cls":  {
+                                                                  "Length":  728,
+                                                                  "LastWriteTime":  "134239173734435767",
+                                                                  "LintPassed":  true
+                                                              },
+                     "Modules/Commands/FeatCmd_Friends.cls":  {
+                                                                  "Length":  1630,
+                                                                  "LastWriteTime":  "134265292103972002",
+                                                                  "LintPassed":  true
+                                                              },
+                     "Modules/Infrastructure/Infra_ValueConversion.bas":  {
+                                                                              "Length":  17006,
+                                                                              "LastWriteTime":  "134265322443222371",
+                                                                              "Tests":  [
+
+                                                                                        ],
+                                                                              "LintPassed":  true
+                                                                          },
+                     "Modules/Core/ICommandContext.cls":  {
+                                                              "Length":  693,
+                                                              "LastWriteTime":  "134220023650176700",
+                                                              "LintPassed":  true
+                                                          },
+                     "Modules/Commands/FeatCmd_CleanData.cls":  {
+                                                                    "Length":  16949,
+                                                                    "LastWriteTime":  "134259959218587566",
+                                                                    "LintPassed":  true
+                                                                },
+                     "Modules/Infrastructure/Infra_Diagnostics.bas":  {
+                                                                          "Length":  2957,
+                                                                          "LastWriteTime":  "134265332446770619",
+                                                                          "Tests":  [
+
+                                                                                    ],
+                                                                          "LintPassed":  true
+                                                                      },
+                     "Modules/Infrastructure/Infra_Undo.bas":  {
+                                                                   "Length":  11529,
+                                                                   "LastWriteTime":  "134259952558532940",
+                                                                   "Tests":  [
+
+                                                                             ],
+                                                                   "LintPassed":  true
+                                                               },
+                     "Modules/Infrastructure/Infra_Config.cls":  {
+                                                                     "Length":  14785,
+                                                                     "LastWriteTime":  "134251422319818789",
+                                                                     "LintPassed":  true
+                                                                 },
+                     "Modules/Infrastructure/Infra_TestResult.cls":  {
+                                                                         "Length":  547,
+                                                                         "LastWriteTime":  "134188180630716932",
+                                                                         "LintPassed":  true
+                                                                     },
+                     "Modules/Libraries/Lib_Tests.bas":  {
+                                                             "Length":  9557,
+                                                             "LastWriteTime":  "134265326809311012",
+                                                             "Tests":  [
+                                                                           "Test_Infrastructure_Basics",
+                                                                           "Test_ConfigProvidesTypedHotkeys",
+                                                                           "Test_TranslateHotkeyHandlesModifiers"
+                                                                       ],
+                                                             "LintPassed":  true
+                                                         },
+                     "Modules/Infrastructure/Infra_PageSetupBackup.cls":  {
+                                                                              "Length":  2616,
+                                                                              "LastWriteTime":  "134259894326762853",
+                                                                              "LintPassed":  true
+                                                                          },
+                     "Modules/Commands/FeatCmd_StaticSheetWorkbook.cls":  {
+                                                                              "Length":  4859,
+                                                                              "LastWriteTime":  "134259242444520289",
+                                                                              "LintPassed":  true
+                                                                          },
+                     "ThisWorkbook.cls":  {
+                                              "Length":  1465,
+                                              "LastWriteTime":  "134220023650227122",
+                                              "LintPassed":  true
+                                          },
+                     "Modules/Commands/FeatCmd_FormatRange.cls":  {
+                                                                      "Length":  7045,
+                                                                      "LastWriteTime":  "134259142010165845",
+                                                                      "LintPassed":  true
+                                                                  },
+                     "Modules/Core/IBatchProcessor.cls":  {
+                                                              "Length":  582,
+                                                              "LastWriteTime":  "134259233834022052",
+                                                              "LintPassed":  true
+                                                          },
+                     "Modules/Infrastructure/Infra_BatchProcessor.cls":  {
+                                                                             "Length":  3544,
+                                                                             "LastWriteTime":  "134259233960801546",
+                                                                             "LintPassed":  true
+                                                                         },
+                     "Modules/Core/BasicCommandContext.cls":  {
+                                                                  "Length":  2177,
+                                                                  "LastWriteTime":  "134220023650176700",
+                                                                  "LintPassed":  true
+                                                              },
+                     "Modules/Libraries/Lib_JsonConverter.bas":  {
+                                                                     "Length":  10793,
+                                                                     "LastWriteTime":  "134182565901641108",
+                                                                     "Tests":  [
+
+                                                                               ],
+                                                                     "LintPassed":  true
+                                                                 },
+                     "Modules/UI/UI_Hotkeys.bas":  {
+                                                       "Length":  3766,
+                                                       "LastWriteTime":  "134265346687372625",
+                                                       "Tests":  [
+
+                                                                 ],
+                                                       "LintPassed":  true
+                                                   },
+                     "Modules/Commands/FeatCmd_PasteFormat.cls":  {
+                                                                      "Length":  4569,
+                                                                      "LastWriteTime":  "134259133814064219",
+                                                                      "LintPassed":  true
+                                                                  },
+                     "Modules/UI/UI_HelpCenter.frm":  {
+                                                          "Length":  10045,
+                                                          "LastWriteTime":  "134254152432111556",
+                                                          "LintPassed":  true
+                                                      },
+                     "Modules/Infrastructure/Infra_ContextTracker.cls":  {
+                                                                             "Length":  795,
+                                                                             "LastWriteTime":  "134187266094960603",
+                                                                             "LintPassed":  true
+                                                                         },
+                     "Modules/Infrastructure/Infra_ProgressState.cls":  {
+                                                                            "Length":  567,
+                                                                            "LastWriteTime":  "134188138472161201",
+                                                                            "LintPassed":  true
+                                                                        },
+                     "Modules/UI/UI_Ribbon.bas":  {
+                                                      "Length":  8829,
+                                                      "LastWriteTime":  "134265346687173820",
+                                                      "Tests":  [
+
+                                                                ],
+                                                      "LintPassed":  true
+                                                  },
+                     "Modules/Commands/FeatCmd_Backspace.cls":  {
+                                                                    "Length":  1435,
+                                                                    "LastWriteTime":  "134254578613679140",
+                                                                    "LintPassed":  true
+                                                                },
+                     "Modules/Libraries/Lib_UdfRegistry.bas":  {
+                                                                   "Length":  2978,
+                                                                   "LastWriteTime":  "134250378847238279",
+                                                                   "Tests":  [
+
+                                                                             ],
+                                                                   "LintPassed":  true
+                                                               },
+                     "Modules/Commands/FeatCmd_MakePermanent.cls":  {
+                                                                        "Length":  1895,
+                                                                        "LastWriteTime":  "134254578379367246",
+                                                                        "LintPassed":  true
+                                                                    },
+                     "Modules/Commands/FeatCmd_FillDown.cls":  {
+                                                                   "Length":  7042,
+                                                                   "LastWriteTime":  "134265327621359191",
+                                                                   "LintPassed":  true
+                                                               },
+                     "Modules/Commands/FeatCmd_TableOfContents.cls":  {
+                                                                          "Length":  8381,
+                                                                          "LastWriteTime":  "134259242394645482",
+                                                                          "LintPassed":  true
+                                                                      },
+                     "Modules/Core/ExcelContextProvider.cls":  {
+                                                                   "Length":  2389,
+                                                                   "LastWriteTime":  "134220049491227208",
+                                                                   "LintPassed":  true
+                                                               },
+                     "Modules/Infrastructure/Infra_AppState.bas":  {
+                                                                       "Length":  6396,
+                                                                       "LastWriteTime":  "134254906986794224",
+                                                                       "Tests":  [
+
+                                                                                 ],
+                                                                       "LintPassed":  true
+                                                                   },
+                     "Modules/Core/Infra_HighlightDataRequest.cls":  {
+                                                                         "Length":  901,
+                                                                         "LastWriteTime":  "134259164903117121",
+                                                                         "LintPassed":  true
+                                                                     },
+                     "Modules/Commands/FeatCmd_ApplyCustomNumberFormat.cls":  {
+                                                                                  "Length":  1569,
+                                                                                  "LastWriteTime":  "134254578566633478",
+                                                                                  "LintPassed":  true
+                                                                              },
+                     "Modules/Commands/FeatCmd_ForceNumber.cls":  {
+                                                                      "Length":  3475,
+                                                                      "LastWriteTime":  "134259959376082796",
+                                                                      "LintPassed":  true
+                                                                  },
+                     "Modules/Commands/FeatCmd_Delete.cls":  {
+                                                                 "Length":  2907,
+                                                                 "LastWriteTime":  "134254578662960240",
+                                                                 "LintPassed":  true
+                                                             },
+                     "Modules/Commands/FeatCmd_UnmergeFill.cls":  {
+                                                                      "Length":  3538,
+                                                                      "LastWriteTime":  "134259229657801186",
+                                                                      "LintPassed":  true
+                                                                  },
+                     "Modules/Libraries/Lib_XUnpivotFunction.bas":  {
+                                                                        "Length":  4769,
+                                                                        "LastWriteTime":  "134251359565176295",
+                                                                        "Tests":  [
+
+                                                                                  ],
+                                                                        "LintPassed":  true
+                                                                    },
+                     "Modules/Infrastructure/Infra_CommandRegistry.bas":  {
+                                                                              "Length":  6537,
+                                                                              "LastWriteTime":  "134265346686939231",
+                                                                              "Tests":  [
+
+                                                                                        ],
+                                                                              "LintPassed":  true
+                                                                          },
+                     "Modules/Commands/FeatCmd_ShowHelpCenter.cls":  {
+                                                                         "Length":  1221,
+                                                                         "LastWriteTime":  "134249292246159569",
+                                                                         "LintPassed":  true
+                                                                     },
+                     "Modules/Commands/FeatCmd_FilterByCell.cls":  {
+                                                                       "Length":  7569,
+                                                                       "LastWriteTime":  "134239175068259417",
+                                                                       "LintPassed":  true
+                                                                   },
+                     "Modules/Commands/FeatCmd_Duplicate.cls":  {
+                                                                    "Length":  3421,
+                                                                    "LastWriteTime":  "134259938650575665",
+                                                                    "LintPassed":  true
+                                                                },
+                     "Modules/Core/CommandInvoker.cls":  {
+                                                             "Length":  1908,
+                                                             "LastWriteTime":  "134220180958643636",
+                                                             "LintPassed":  true
+                                                         },
+                     "Modules/Libraries/Lib_XFilterFunction.bas":  {
+                                                                       "Length":  3942,
+                                                                       "LastWriteTime":  "134251359483112802",
+                                                                       "Tests":  [
+
+                                                                                 ],
+                                                                       "LintPassed":  true
+                                                                   },
+                     "features.json":  {
+                                           "Length":  21873,
+                                           "LastWriteTime":  "134265282804019239"
+                                       },
+                     "Modules/Core/Infra_ScopedRequest.cls":  {
+                                                                  "Length":  549,
+                                                                  "LastWriteTime":  "134254577668474699",
+                                                                  "LintPassed":  true
+                                                              }
+                 },
+    "TestsPassed":  true
+}

@@ -1,6 +1,13 @@
-# Script:   Test.ps1
-# Purpose:  Runs runtime verification including Ribbon UI checks and internal unit tests.
-# ==============================================================================
+[CmdletBinding()]
+param(
+    [switch]$CheckRibbon,
+    [string]$Filter,
+    [switch]$ListTests,
+    [switch]$Visible
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
 
 . (Join-Path $PSScriptRoot "BuildSupport.ps1")
 
@@ -14,16 +21,59 @@ function Reset-StructuredTestResults {
     }
 }
 
+function Get-TestProcedureLocation {
+    param([string]$ProcName)
+
+    if ([string]::IsNullOrWhiteSpace($ProcName)) { return $null }
+
+    # Strip any module prefix if present
+    $cleanProcName = $ProcName
+    if ($ProcName -match "\.([^.]+)$") {
+        $cleanProcName = $Matches[1]
+    }
+
+    $projectRoot = Split-Path $PSScriptRoot -Parent
+    $vbaFiles = Get-ChildItem -Path $modulesDir -Filter *.bas -Recurse
+    foreach ($file in $vbaFiles) {
+        $lines = Get-Content $file.FullName
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "^\s*Public Sub\s+$cleanProcName\s*\(") {
+                $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
+                return [pscustomobject]@{
+                    File = $file.FullName
+                    LineNumber = $i + 1
+                    RelativePath = $relPath
+                }
+            }
+        }
+    }
+    return $null
+}
+
 function Write-StructuredTestResultsSummary {
     param([pscustomobject]$StructuredResults)
 
     Write-Host ("  Structured test results: total={0}, passed={1}, failed={2}" -f $StructuredResults.Summary.Total, $StructuredResults.Summary.Passed, $StructuredResults.Summary.Failed) -ForegroundColor Cyan
 
+    $failedCount = 0
     foreach ($result in @($StructuredResults.Results)) {
-        $resultColor = if ($result.Passed) { "Green" } else { "Yellow" }
-        $resultStatus = if ($result.Passed) { "PASS" } else { "FAIL" }
-        $messageText = if ([string]::IsNullOrWhiteSpace($result.Message)) { "" } else { " - $($result.Message)" }
-        Write-Host ("    [{0}] {1} ({2} ms, {3}){4}" -f $resultStatus, $result.Name, $result.DurationMs, $result.Category, $messageText) -ForegroundColor $resultColor
+        if (-not $result.Passed) {
+            $failedCount++
+            Write-Host ("    [FAIL] {0} ({1} ms)" -f $result.Name, $result.DurationMs) -ForegroundColor Red
+            
+            # Retrieve definition file and line
+            $loc = Get-TestProcedureLocation -ProcName $result.Name
+            if ($null -ne $loc) {
+                Write-Host ("           Location: {0} (Line {1})" -f $loc.RelativePath, $loc.LineNumber) -ForegroundColor DarkYellow
+            }
+            
+            $messageText = if ([string]::IsNullOrWhiteSpace($result.Message)) { "No assertion message provided." } else { $result.Message }
+            Write-Host ("           Details:  {0}" -f $messageText) -ForegroundColor Red
+        }
+    }
+
+    if ($failedCount -eq 0) {
+        Write-Host "    All assertions passed successfully." -ForegroundColor Green
     }
 }
 
@@ -171,158 +221,136 @@ function Set-RibbonUiErrors {
     Set-ItemProperty -Path $regPath -Name "ShowErrors" -Value $val -Type DWord -Force
 }
 
-# --- WindowScraper C# Code ---
 
-$scraperCode = @"
-using System;
-using System.Text;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-
-public class WindowScraper {
-    public delegate bool EnumThreadDelegate(IntPtr hWnd, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    public static extern bool EnumWindows(EnumThreadDelegate lpfn, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    public static extern bool EnumChildWindows(IntPtr hWndParent, EnumThreadDelegate lpfn, IntPtr lParam);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-
-    [DllImport("user32.dll")]
-    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
-
-    public static string ScrapeAndClose(int processId, int timeoutSeconds, string signalFilePath) {
-        var result = new StringBuilder();
-        var seenTexts = new HashSet<string>();
-        var startTime = DateTime.Now;
-
-        while ((DateTime.Now - startTime).TotalSeconds < timeoutSeconds) {
-            if (!string.IsNullOrEmpty(signalFilePath) && System.IO.File.Exists(signalFilePath)) {
-                break;
-            }
-            EnumWindows((hWnd, lParam) => {
-                int windowPid;
-                GetWindowThreadProcessId(hWnd, out windowPid);
-                if (windowPid == processId) {
-                    var title = new StringBuilder(256);
-                    GetWindowText(hWnd, title, 256);
-                    string sTitle = title.ToString();
-                    
-                    if (sTitle.Contains("Microsoft Excel") || 
-                        sTitle.Contains("Custom UI") || 
-                        sTitle.Contains("Runtime Error") ||
-                        (sTitle.Contains("Microsoft Visual Basic") && !sTitle.Contains("for Applications"))) {
-                        
-                        bool foundNewText = false;
-                        EnumChildWindows(hWnd, (hChild, lChild) => {
-                            var text = new StringBuilder(1024);
-                            GetWindowText(hChild, text, 1024);
-                            var sText = text.ToString().Trim();
-                            if (sText.Length > 0 && 
-                                !sText.Equals("OK", StringComparison.OrdinalIgnoreCase) && 
-                                !sText.Equals("Cancel", StringComparison.OrdinalIgnoreCase) && 
-                                !sText.Equals("Close", StringComparison.OrdinalIgnoreCase) &&
-                                !sText.Equals("Help", StringComparison.OrdinalIgnoreCase) &&
-                                !sText.StartsWith("MsoDock", StringComparison.OrdinalIgnoreCase) &&
-                                !sText.Equals("Standard", StringComparison.OrdinalIgnoreCase) &&
-                                !sText.Equals("Menu Bar", StringComparison.OrdinalIgnoreCase) &&
-                                !sText.Contains("VBAProject") &&
-                                !sText.Contains("Project Window") &&
-                                !sText.Contains("Properties") &&
-                                !seenTexts.Contains(sText)) {
-                                result.AppendLine(sText);
-                                seenTexts.Add(sText);
-                                foundNewText = true;
-                            }
-                            return true;
-                        }, IntPtr.Zero);
-
-                        if (foundNewText || sTitle.Contains("Visual Basic")) {
-                            PostMessage(hWnd, 0x0010, IntPtr.Zero, IntPtr.Zero);
-                        }
-                    }
-                }
-                return true;
-            }, IntPtr.Zero);
-            
-            System.Threading.Thread.Sleep(500);
-        }
-        return result.ToString().Trim();
-    }
-}
-"@
-Add-Type -TypeDefinition $scraperCode -ErrorAction SilentlyContinue
 
 # --- Execution ---
 
+if ($ListTests) {
+    Write-Host "Discovering tests in modules..." -ForegroundColor Cyan
+    $tests = Get-AllTestProcedures -SourceDir $modulesDir
+    if ($tests.Count -eq 0) {
+        Write-Host "No tests found." -ForegroundColor Yellow
+        exit 0
+    }
+    
+    $filtered = $tests
+    if ($Filter) {
+        $filterPatterns = $Filter -split ","
+        $filtered = @()
+        foreach ($t in $tests) {
+            $matchesFilter = $false
+            foreach ($pat in $filterPatterns) {
+                $globPat = $pat.Trim()
+                if ($globPat -and $globPat -notmatch '^\*|\*$') { $globPat = "*$globPat*" }
+                if ($t.FullName -like $globPat) {
+                    $matchesFilter = $true
+                    break
+                }
+            }
+            if ($matchesFilter) { $filtered += $t }
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "Available tests:" -ForegroundColor Cyan
+    $grouped = $filtered | Group-Object Module
+    foreach ($grp in $grouped | Sort-Object Name) {
+        Write-Host "  [$($grp.Name)]" -ForegroundColor Yellow
+        foreach ($t in $grp.Group | Sort-Object Procedure) {
+            Write-Host "    - $($t.Procedure)" -ForegroundColor Gray
+        }
+    }
+    Write-Host ""
+    Write-Host "Total tests found: $($filtered.Count) (out of $($tests.Count) total)" -ForegroundColor Cyan
+    exit 0
+}
+
 $sharedExcel = $null
+$excelWasAlreadyOpen = $false
 
 try {
     Invoke-Stage -Stage "runtime_tests" -Action {
         Write-Host "Starting Runtime Testing..." -ForegroundColor Cyan
         Reset-StructuredTestResults -Path $structuredTestResultsPath
 
-        if ($null -eq $sharedExcel) {
-            $script:sharedExcel = Start-ExcelApplication -Purpose "runtime testing"
-        }
-        $testExcel = $sharedExcel
-        $testExcel.Visible = $false
-        $testExcel.DisplayAlerts = $false
-        $testWorkbook = $null
+        $session = Initialize-ExcelWorkbookSession -Purpose "runtime testing" -Visible:$Visible
+        $testExcel = $session.Excel
+        $testWorkbook = $session.Workbook
+        $wasAlreadyOpen = $session.WasAlreadyOpen
+        $script:excelWasAlreadyOpen = $wasAlreadyOpen
+        $script:sharedExcel = $testExcel
+
         $watcher = $null
         $ribbonUiErrorsEnabled = $false
         $testExcelPid = 0
         $signalFile = Join-Path $env:TEMP ("BeaverRibbonSignal_" + [System.Guid]::NewGuid().ToString("N") + ".tmp")
 
         try {
-            Set-RibbonUiErrors -Enabled $true
-            $ribbonUiErrorsEnabled = $true
+            if ($CheckRibbon) {
+                Set-RibbonUiErrors -Enabled $true
+                $ribbonUiErrorsEnabled = $true
 
-            $testExcelPid = Get-ExcelProcessId -ExcelApplication $testExcel
+                $testExcelPid = Get-ExcelProcessId -ExcelApplication $testExcel
 
-            if ($testExcelPid -gt 0) {
-                $watcher = Start-Job -ScriptBlock {
-                    param($ProcessIdToScrape, $code, $SignalPath)
-                    Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
-                    return [WindowScraper]::ScrapeAndClose($ProcessIdToScrape, 20, $SignalPath)
-                } -ArgumentList $testExcelPid, $scraperCode, $signalFile
+                if ($testExcelPid -gt 0) {
+                    $null = Start-ExcelWindowWatcher -ExcelPid $testExcelPid -SignalPath $signalFile -TimeoutSeconds 20
 
-                Write-Host "Opening workbook and checking for Ribbon UI errors..."
-                $testExcel.Visible = $false
-                $testExcel.DisplayAlerts = $true
+                    Write-Host "Opening workbook and checking for Ribbon UI errors..."
+                    if (-not $Visible) { $testExcel.Visible = $false }
+                    $testExcel.DisplayAlerts = $true
 
-                $testWorkbook = $testExcel.Workbooks.Open($excelPath)
+                    $testWorkbook = $testExcel.Workbooks.Open($excelPath)
 
-                $testExcel.Visible = $true
+                    $testExcel.Visible = $true
 
-                $null = New-Item -Path $signalFile -ItemType File -Force
-                $ribbonError = Receive-Job -Job $watcher -Wait
-                Remove-Job $watcher -Force
-                $watcher = $null
-                if (Test-Path $signalFile) {
-                    Remove-Item -Path $signalFile -Force -ErrorAction SilentlyContinue
+                    $null = New-Item -Path $signalFile -ItemType File -Force
+                    $ribbonError = [WindowScraper]::StopAndGetResult()
+                    if (Test-Path $signalFile) {
+                        Remove-Item -Path $signalFile -Force -ErrorAction SilentlyContinue
+                    }
+
+                    if (-not $Visible) { $testExcel.Visible = $false }
+                    $testExcel.DisplayAlerts = $false
+
+                    if ($ribbonError) {
+                        Write-Host "  ERROR: Ribbon UI Validation failed." -ForegroundColor Red
+                        $cleanError = $ribbonError -replace "\r\n+", " | " -replace "\s+", " "
+                        Write-Host "  [Diagnostics] $cleanError" -ForegroundColor Yellow
+                        throw "Ribbon UI Error: $cleanError"
+                    }
+
+                    Write-Host "  Ribbon UI loaded without errors." -ForegroundColor Green
+                } else {
+                    $testWorkbook = $testExcel.Workbooks.Open($excelPath)
                 }
-
-                $testExcel.Visible = $false
-                $testExcel.DisplayAlerts = $false
-
-                if ($ribbonError) {
-                    Write-Host "  ERROR: Ribbon UI Validation failed." -ForegroundColor Red
-                    $cleanError = $ribbonError -replace "\r\n+", " | " -replace "\s+", " "
-                    Write-Host "  [Diagnostics] $cleanError" -ForegroundColor Yellow
-                    throw "Ribbon UI Error: $cleanError"
-                }
-
-                Write-Host "  Ribbon UI loaded without errors." -ForegroundColor Green
             } else {
-                $testWorkbook = $testExcel.Workbooks.Open($excelPath)
+                if ($null -eq $testWorkbook) {
+                    $testWorkbook = $testExcel.Workbooks.Open($excelPath)
+                }
+                Write-Host "  Skipped Ribbon UI validation." -ForegroundColor Yellow
             }
+
+            if ($testWorkbook.ReadOnly) {
+                throw "The workbook '$excelPath' was opened as Read-Only. Please ensure that no other Excel process is locking the file."
+            }
+
+            # Prepare filter pattern
+            $filterPattern = $Filter
+            if ($filterPattern) {
+                $parts = $filterPattern -split ","
+                $wrappedParts = foreach ($part in $parts) {
+                    $trimmed = $part.Trim()
+                    if ($trimmed -and $trimmed -notmatch '^\*|\*$') {
+                        "*$trimmed*"
+                    } else {
+                        $trimmed
+                    }
+                }
+                $filterPattern = ($wrappedParts | Where-Object { $_ }) -join ","
+            }
+
+            # Temporarily hide Excel to prevent COM hangs and speed up test runner
+            if (-not $Visible) { $testExcel.Visible = $false }
 
             Write-Host "Running internal unit tests..." -ForegroundColor Cyan
             try {
@@ -331,7 +359,12 @@ try {
                 $runCompleted = $false
                 while (-not $runCompleted -and $retryCount -lt $maxRetries) {
                     try {
-                        $testExcel.Run("Lib_Tests.RunAllTests")
+                        if ($filterPattern) {
+                            Write-Host "  Running tests matching filter: '$filterPattern'..." -ForegroundColor Cyan
+                            $testExcel.Run("Lib_Tests.RunTestsFilter", $filterPattern)
+                        } else {
+                            $testExcel.Run("Lib_Tests.RunAllTests")
+                        }
                         $runCompleted = $true
                     } catch {
                         $errMsg = $_.Exception.Message + " " + $_.Exception.InnerException.Message
@@ -373,14 +406,20 @@ try {
                 throw $_
             }
 
-            $headlessCallbacks = Get-EnabledHeadlessCallbacks -ManifestPath $featureManifestPath
-            Invoke-HeadlessCallbackTests -ExcelApplication $testExcel -Callbacks $headlessCallbacks | Out-Null
+            if (-not $Filter) {
+                $headlessCallbacks = Get-EnabledHeadlessCallbacks -ManifestPath $featureManifestPath
+                Invoke-HeadlessCallbackTests -ExcelApplication $testExcel -Callbacks $headlessCallbacks | Out-Null
+            } else {
+                Write-Host "  Skipped headless callback tests (Filter active)." -ForegroundColor Yellow
+            }
+
+            $testExcel.Visible = $true
 
             Write-Host "Runtime testing completed with structured test collection." -ForegroundColor Green
             return (Get-StructuredTestResultsDetails -StructuredResults $structuredResults)
         } finally {
-            if ($watcher) {
-                Remove-Job $watcher -Force -ErrorAction SilentlyContinue
+            if ($testExcelPid -gt 0) {
+                $null = [WindowScraper]::StopAndGetResult()
             }
             if (Test-Path $signalFile) {
                 Remove-Item -Path $signalFile -Force -ErrorAction SilentlyContinue
@@ -388,11 +427,12 @@ try {
             if ($ribbonUiErrorsEnabled) {
                 Set-RibbonUiErrors -Enabled $false
             }
-            if ($testWorkbook) {
-                try { $testWorkbook.Close($false) } catch { }
+            if ($testExcel -and $excelWasAlreadyOpen) {
+                try {
+                    $testExcel.Visible = $true
+                    $testExcel.DisplayAlerts = $true
+                } catch { }
             }
-            Release-ComObjectSafely $testWorkbook
-            $testWorkbook = $null
         }
     } | Out-Null
 
@@ -400,9 +440,24 @@ try {
 } catch {
     Stop-Script $_.Exception.Message
 } finally {
-    if ($null -ne $sharedExcel) {
-        Write-Host "Closing Excel application..." -ForegroundColor Gray
-        try { $sharedExcel.Quit() } catch { }
+    if (-not $global:BeaverOrchestratorActive -and $null -ne $sharedExcel) {
+        if (-not $excelWasAlreadyOpen) {
+            try {
+                foreach ($wb in $sharedExcel.Workbooks) {
+                    if ($wb.FullName -eq $excelPath) {
+                        $wb.Close($false)
+                    }
+                }
+            } catch { }
+            try {
+                $sharedExcel.Quit()
+            } catch { }
+        } else {
+            try {
+                $sharedExcel.Visible = $true
+                $sharedExcel.DisplayAlerts = $true
+            } catch { }
+        }
         Release-ComObjectSafely $sharedExcel
         $sharedExcel = $null
     }

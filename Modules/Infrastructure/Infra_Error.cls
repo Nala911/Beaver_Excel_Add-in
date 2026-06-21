@@ -91,7 +91,29 @@ Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As
     
     ' 2. Optional enrichers
     TryCopyToClipboard errorMsg
-    TryShowErrorDialog errorMsg, ctx
+    
+    Dim showDialog As Boolean
+    showDialog = True
+    
+    On Error Resume Next
+    If Lib_Tests.IsRunning Then
+        showDialog = False
+        If category = "runtime" And severity = "fatal" Then
+            Dim testName As String
+            testName = GetCallingTest()
+            If testName = "Unknown" And Left$(procedureName, 5) = "Test_" Then
+                testName = procedureName
+            End If
+            If testName <> "Unknown" Then
+                Lib_Tests.RecordRuntimeError testName, errNum, errDesc
+            End If
+        End If
+    End If
+    On Error GoTo 0
+    
+    If showDialog Then
+        TryShowErrorDialog errorMsg, ctx
+    End If
 
     ' 3. Clear Stack
     Set pStack = Nothing
@@ -121,6 +143,22 @@ End Function
 
 Public Function CurrentBreadcrumbs() As String
     CurrentBreadcrumbs = GetBreadcrumbs()
+End Function
+
+Public Function GetCallingTest() As String
+    If pStack Is Nothing Then
+        GetCallingTest = "Unknown"
+        Exit Function
+    End If
+    
+    Dim i As Long
+    For i = pStack.Count To 1 Step -1
+        If Left$(pStack(i), 5) = "Test_" Then
+            GetCallingTest = pStack(i)
+            Exit Function
+        End If
+    Next i
+    GetCallingTest = "Unknown"
 End Function
 
 Public Function NewStateInfo() As Collection

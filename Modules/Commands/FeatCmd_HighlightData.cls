@@ -169,6 +169,9 @@ Private Sub HighlightInconsistentFormulasInArea(ByVal area As Range)
     Dim cell As Range
     Dim unionRange As Range
     
+    Dim addrList As String
+    Dim cellAddr As String
+    
     For Each cell In formulaCells.Cells
         Dim isInc As Boolean
         isInc = False
@@ -177,18 +180,38 @@ Private Sub HighlightInconsistentFormulasInArea(ByVal area As Range)
         On Error GoTo 0
         
         If isInc Then
-            If unionRange Is Nothing Then
-                Set unionRange = cell
+            cellAddr = cell.Address(False, False)
+            If Len(addrList) + Len(cellAddr) + 1 > 240 Then
+                If unionRange Is Nothing Then
+                    Set unionRange = area.Parent.Range(addrList)
+                Else
+                    Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
+                End If
+                addrList = cellAddr
             Else
-                Set unionRange = Application.Union(unionRange, cell)
+                if addrList = "" then
+                    addrList = cellAddr
+                else
+                    addrList = addrList & "," & cellAddr
+                end if
             End If
             
-            If unionRange.Areas.Count >= 500 Then
-                unionRange.Interior.Color = RGB(255, 255, 153) ' Soft Yellow
-                Set unionRange = Nothing
+            If Not unionRange Is Nothing Then
+                If unionRange.Areas.Count >= 500 Then
+                    unionRange.Interior.Color = RGB(255, 255, 153) ' Soft Yellow
+                    Set unionRange = Nothing
+                End If
             End If
         End If
     Next cell
+    
+    If addrList <> "" Then
+        If unionRange Is Nothing Then
+            Set unionRange = area.Parent.Range(addrList)
+        Else
+            Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
+        End If
+    End If
     
     If Not unionRange Is Nothing Then
         unionRange.Interior.Color = RGB(255, 255, 153) ' Soft Yellow
@@ -230,6 +253,9 @@ Private Sub HighlightDuplicatesInArea(ByVal area As Range)
     
     ' Second pass: highlight cells with count > 1
     Dim unionRange As Range
+    Dim addrList As String
+    Dim cellAddr As String
+    
     For r = 1 To UBound(dataArr, 1)
         For c = 1 To UBound(dataArr, 2)
             val = dataArr(r, c)
@@ -237,21 +263,41 @@ Private Sub HighlightDuplicatesInArea(ByVal area As Range)
                 key = Trim$(CStr(val))
                 If key <> "" Then
                     If valCount(key) > 1 Then
-                        If unionRange Is Nothing Then
-                            Set unionRange = area.Cells(r, c)
+                        cellAddr = area.Cells(r, c).Address(False, False)
+                        If Len(addrList) + Len(cellAddr) + 1 > 240 Then
+                            If unionRange Is Nothing Then
+                                Set unionRange = area.Parent.Range(addrList)
+                            Else
+                                Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
+                            End If
+                            addrList = cellAddr
                         Else
-                            Set unionRange = Application.Union(unionRange, area.Cells(r, c))
+                            If addrList = "" Then
+                                addrList = cellAddr
+                            Else
+                                addrList = addrList & "," & cellAddr
+                            End If
                         End If
                         
-                        If unionRange.Areas.Count >= 500 Then
-                            unionRange.Interior.Color = RGB(255, 199, 206) ' Soft Red/Pink
-                            Set unionRange = Nothing
+                        If Not unionRange Is Nothing Then
+                            If unionRange.Areas.Count >= 500 Then
+                                unionRange.Interior.Color = RGB(255, 199, 206) ' Soft Red/Pink
+                                Set unionRange = Nothing
+                            End If
                         End If
                     End If
                 End If
             End If
         Next c
     Next r
+    
+    If addrList <> "" Then
+        If unionRange Is Nothing Then
+            Set unionRange = area.Parent.Range(addrList)
+        Else
+            Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
+        End If
+    End If
     
     If Not unionRange Is Nothing Then
         unionRange.Interior.Color = RGB(255, 199, 206) ' Soft Red/Pink
@@ -319,7 +365,6 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
         Exit Sub
     End If
     
-    Dim cell As Range
     Dim unionRange As Range
     Dim re As Object
     
@@ -327,26 +372,99 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
     re.Global = True
     re.IgnoreCase = True
     
-    For Each cell In formulaCells.Cells
-        Dim hasHardcoded As Boolean
-        hasHardcoded = False
-        On Error Resume Next
-        hasHardcoded = HasHardcodedValue(CStr(cell.Formula2), re)
-        On Error GoTo 0
+    Dim subArea As Range
+    Dim addrList As String
+    Dim cellAddr As String
+    
+    For Each subArea In formulaCells.Areas
+        Dim formulaArr As Variant
+        Dim isArray As Boolean
         
-        If hasHardcoded Then
-            If unionRange Is Nothing Then
-                Set unionRange = cell
-            Else
-                Set unionRange = Application.Union(unionRange, cell)
-            End If
+        If subArea.Cells.CountLarge = 1 Then
+            formulaArr = subArea.Formula2
+            isArray = False
+        Else
+            formulaArr = subArea.Formula2
+            isArray = True
+        End If
+        
+        If isArray Then
+            Dim r As Long, c As Long
+            For r = 1 To UBound(formulaArr, 1)
+                For c = 1 To UBound(formulaArr, 2)
+                    Dim hasHardcoded As Boolean
+                    hasHardcoded = False
+                    On Error Resume Next
+                    hasHardcoded = HasHardcodedValue(CStr(formulaArr(r, c)), re)
+                    On Error GoTo 0
+                    
+                    If hasHardcoded Then
+                        cellAddr = subArea.Cells(r, c).Address(False, False)
+                        If Len(addrList) + Len(cellAddr) + 1 > 240 Then
+                            If unionRange Is Nothing Then
+                                Set unionRange = area.Parent.Range(addrList)
+                            Else
+                                Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
+                            End If
+                            addrList = cellAddr
+                        Else
+                            If addrList = "" Then
+                                addrList = cellAddr
+                            Else
+                                addrList = addrList & "," & cellAddr
+                            End If
+                        End If
+                        
+                        If Not unionRange Is Nothing Then
+                            if unionRange.Areas.Count >= 500 then
+                                unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
+                                Set unionRange = Nothing
+                            end if
+                        End If
+                    End If
+                Next c
+            Next r
+        Else
+            Dim singleHasHardcoded As Boolean
+            singleHasHardcoded = False
+            On Error Resume Next
+            singleHasHardcoded = HasHardcodedValue(CStr(formulaArr), re)
+            On Error GoTo 0
             
-            If unionRange.Areas.Count >= 500 Then
-                unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
-                Set unionRange = Nothing
+            If singleHasHardcoded Then
+                cellAddr = subArea.Address(False, False)
+                If Len(addrList) + Len(cellAddr) + 1 > 240 Then
+                    If unionRange Is Nothing Then
+                        Set unionRange = area.Parent.Range(addrList)
+                    Else
+                        Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
+                    End If
+                    addrList = cellAddr
+                Else
+                    If addrList = "" Then
+                        addrList = cellAddr
+                    Else
+                        addrList = addrList & "," & cellAddr
+                    End If
+                End If
+                
+                If Not unionRange Is Nothing Then
+                    if unionRange.Areas.Count >= 500 then
+                        unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
+                        Set unionRange = Nothing
+                    end if
+                End If
             End If
         End If
-    Next cell
+    Next subArea
+    
+    If addrList <> "" Then
+        If unionRange Is Nothing Then
+            Set unionRange = area.Parent.Range(addrList)
+        Else
+            Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
+        End If
+    End If
     
     If Not unionRange Is Nothing Then
         unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple

@@ -24,7 +24,7 @@
                       },
     "FeatureFlags":  {
                          "ManifestFile":  "features.json",
-                         "GeneratedFeatureCount":  22
+                         "GeneratedFeatureCount":  23
                      },
     "Hotkeys":  [
                     {
@@ -101,6 +101,7 @@
                   "BtnExportPdf":  "Export",
                   "BtnHelpCenter":  "Help",
                   "BtnHelloWorld":  "HappyFace",
+                  "BtnFriends":  "HappyFace",
                   "BtnReportGenerator":  "TableProperties",
                   "BtnTableOfContents":  "TableOfContentsDialog",
                   "BtnUnmergeFill":  "TableProperties",

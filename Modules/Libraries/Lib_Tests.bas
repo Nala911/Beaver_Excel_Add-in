@@ -11,6 +11,10 @@ Private pResults As Collection
 Private pSuiteStartTime As Double
 Private Const TEST_RESULTS_FILE_NAME As String = "BeaverAddin.TestResults.tsv"
 
+Public Property Get IsRunning() As Boolean
+    IsRunning = Not (pResults Is Nothing)
+End Property
+
 ' --- PUBLIC INTERFACE ---
 
 ' Main entry point for the test runner.
@@ -23,16 +27,44 @@ Public Sub RunAllTests()
     pSuiteStartTime = Timer
     Debug.Print "--- BEAVER ADD-IN: STARTING UNIT TESTS ---"
     ClearPersistedResults
+    
+    Infra_Bootstrap.EnsureStarted
 
-    Lib_TestManifest.RunGeneratedTests
+    Lib_TestManifest.RunGeneratedTests ""
     
     ReportResults
 
 CleanExit:
+    Set pResults = Nothing
     Exit Sub
 
 ErrHandler:
     Infra_Error.HandleError "RunAllTests", Err
+    Resume CleanExit
+End Sub
+
+' Runs a subset of tests matching a specific pattern (e.g. "*CleanData*").
+Public Sub RunTestsFilter(ByVal filterPattern As String)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("RunTestsFilter")
+    On Error GoTo ErrHandler
+    
+    Set pResults = New Collection
+    pSuiteStartTime = Timer
+    Debug.Print "--- BEAVER ADD-IN: RUNNING TESTS MATCHING: " & filterPattern & " ---"
+    ClearPersistedResults
+    
+    Infra_Bootstrap.EnsureStarted
+
+    Lib_TestManifest.RunGeneratedTests filterPattern
+    
+    ReportResults
+
+CleanExit:
+    Set pResults = Nothing
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "RunTestsFilter", Err
     Resume CleanExit
 End Sub
 
@@ -137,8 +169,12 @@ Private Sub LogResult(ByVal testName As String, ByVal Passed As Boolean, ByVal m
     Dim tracker As Object: Set tracker = Infra_Error.Track("LogResult")
     On Error GoTo ErrHandler
     
+    Dim callingTest As String
+    callingTest = Infra_Error.GetCallingTest()
+    If callingTest = "Unknown" Then callingTest = testName
+    
     Dim res As New Infra_TestResult
-    res.Name = testName
+    res.Name = callingTest
     res.Passed = Passed
     res.Message = msg
     res.DurationMs = CLng(TimerElapsedMilliseconds(pSuiteStartTime))
@@ -158,6 +194,30 @@ CleanExit:
 
 ErrHandler:
     Infra_Error.HandleError "LogResult", Err
+    Resume CleanExit
+End Sub
+
+' Registers a runtime/unhandled error in a test as a failure.
+Public Sub RecordRuntimeError(ByVal testName As String, ByVal errNum As Long, ByVal errDesc As String)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("RecordRuntimeError")
+    On Error GoTo ErrHandler
+    
+    Dim res As New Infra_TestResult
+    res.Name = testName
+    res.Passed = False
+    res.Message = "Runtime Error " & errNum & ": " & errDesc
+    res.DurationMs = CLng(TimerElapsedMilliseconds(pSuiteStartTime))
+    res.Category = "fail"
+    
+    If pResults Is Nothing Then Set pResults = New Collection
+    pResults.Add res
+    
+    Debug.Print "  [FAIL] Runtime Error in " & testName & ": (" & errNum & ") " & errDesc
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "RecordRuntimeError", Err
     Resume CleanExit
 End Sub
 

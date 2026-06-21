@@ -112,11 +112,16 @@ Public Function ConvertWorksheetFormulasToValues(ByVal ws As Worksheet) As Long
                 ConvertWorksheetFormulasToValues = ConvertWorksheetFormulasToValues + area.Cells.Count
             End If
         Else
-            For Each cell In area.Cells
-                If cell.HasFormula Then
+            Dim areaFormulaCells As Range
+            On Error Resume Next
+            Set areaFormulaCells = area.SpecialCells(xlCellTypeFormulas)
+            On Error GoTo ErrHandler
+
+            If Not areaFormulaCells Is Nothing Then
+                For Each cell In areaFormulaCells.Cells
                     ConvertWorksheetFormulasToValues = ConvertWorksheetFormulasToValues + ConvertCellToStatic(cell)
-                End If
-            Next cell
+                Next cell
+            End If
         End If
     Next area
 
@@ -129,7 +134,6 @@ ErrHandler:
 End Function
 
 Public Function ConvertCellToStatic(ByVal cell As Range) As Long
-    Dim tracker As Object: Set tracker = Infra_Error.Track("ConvertCellToStatic")
     On Error GoTo ErrHandler
 
     Dim isSpill As Boolean

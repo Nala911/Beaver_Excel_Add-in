@@ -132,44 +132,38 @@ Excel Add-in\
 - If the value is a stable flag, add a typed property instead of leaving it as a raw `FeatureFlags` lookup.
 
 ### Build & Sync Workflow
-The build and test pipeline is modularized into separate scripts for faster local iteration:
-- **Build Pipeline (`.\Build.ps1`)**: Handles manifest synchronization, syntax linting, module importing, compilation, and Ribbon XML injection.
-- **Test Pipeline (`.\Test.ps1`)**: Spawns Excel, runs WindowScraper checks for Ribbon Custom UI errors, runs the full VBA unit test suite, and tests headless callbacks.
-- **Unified Pipeline (`.\Update.ps1`)**: The orchestrator wrapper that executes both build and testing sequentially.
+The build and test pipeline is modularized into separate scripts and optimized for high-performance development (using MD5 hash-based change detection stored in `.\.build_state.json`):
+
+- **Build Pipeline (`.\Build.ps1`)**: Performs validation, generates registries/manifests, compiles, and imports VBA code into `Beaver Add-in.xlsm`.
+- **Test Pipeline (`.\Test.ps1`)**: Verifies Ribbon Custom UI load errors, runs internal VBA unit tests, and executes headless callbacks.
+- **Unified Pipeline (`.\Update.ps1`)**: The orchestrator wrapper that runs both the build and test pipelines sequentially.
+
+#### Pipeline Execution Modes
+
+The pipeline operates in an automated, highly-optimized manner without requiring any manual execution mode switches:
+- **Incremental Import & Reload (Default)**: If only VBA code changes, the scripts attach to the active Excel application process (if already running), remove only the modified modules (using actual component name parsing to prevent duplication), re-import them in-place, and run tests. If Excel was already open before running the pipeline, it remains open; if the script started a new Excel instance, it saves the workbook and quits Excel upon completion to prevent background file locks.
+- **Auto-Detect Manifest Changes**: If `features.json` is modified, the script automatically closes the workbook to unlock the file, performs manifest/registry regeneration and Ribbon XML zip injection, reopens the workbook, and executes the Ribbon XML validation check.
+- **Smart Test Filtering (Auto-Filter)**: When running a standard incremental build of command modules, the pipeline automatically detects which command files were changed and configures a default targeted filter to execute *only* the tests relevant to those features. This accelerates test cycles from ~4 seconds to ~1 second. It automatically falls back to running the full test suite if any core, library, or infrastructure files are modified.
+- **Targeted Testing (`-Filter` Parameter)**: Allows executing specific tests or a subset of tests using wildcard pattern matching (e.g. `*CleanData*` or `*Undo*`) dynamically inside the VBA runner.
 
 Use the following commands from PowerShell:
 ```powershell
-# Standard build, compile, and full test run (sequential orchestration)
+# Unified Run: Runs incremental or full build and runs ALL tests in the active Excel session
 .\Update.ps1
 
-# Build and compile only, skipping runtime tests (same as running .\Build.ps1)
+# Targeted Iteration: Run incremental build and only tests matching "CleanData"
+.\Update.ps1 -Filter "CleanData"
+
+# Build Only: Performs the build, synchronization, and compile stages but skips tests
 .\Update.ps1 -SkipRuntimeTests
 
-# Independent execution of build tasks (sync manifest, import, compile, inject XML)
-.\Build.ps1
-
-# Independent execution of runtime tests (Ribbon UI check and unit tests)
-.\Test.ps1
+# Run specific tests on the active Excel session directly without rebuilding
+.\Test.ps1 -Filter "*CleanData*"
 ```
 
-`Build.ps1` automates:
-- Validating Ribbon XML schema and logic.
-- Synchronizing `features.json` into `ribbon.xml`.
-- Synchronizing `Hotkeys`, `Icons`, and `FeatureFlags` into `config.json`.
-- Generating `Modules\Libraries\Lib_TestManifest.bas` from `Public Sub Test_*` procedures.
-- Verifying Ribbon callbacks exist in exported VBA.
-- Enforcing structure checks, `Option Explicit` checks, and module metadata headers.
-- Gracefully closing Excel if it has the workbook locked.
-- Re-importing all managed VBA components from disk into `Beaver Add-in.xlsm`.
-- Replacing `ThisWorkbook` from `ThisWorkbook.cls`.
-- Compiling the VBA project (with enhanced line mapping and source code context diagnostics on compilation failures).
-- Injecting `ribbon.xml` into the workbook archive as `customUI/customUI14.xml` and updating `_rels/.rels`.
-
-`Test.ps1` automates:
-- Spawns the WindowScraper background scraper thread to check for Excel Ribbon Custom UI errors.
-- Opens the compiled workbook (initially hidden, then visible to catch Custom UI errors).
-- Runs the internal unit tests (`Lib_Tests.RunAllTests`) inside Excel.
-- Validates headless callback macros.
+#### Guidelines for AI Agents:
+1. **Iterate with Filtered Tests**: When developing or refactoring, always use `.\Update.ps1 -Filter <FeatureName>` to compile and verify changes in under 1.5 seconds.
+2. **Final Verification**: Before completing any task, you **MUST** run the full `.\Update.ps1` (with no filters or flags) to verify clean compilation, Ribbon UI validation, and that all 300+ unit tests pass successfully.
 
 #### Prerequisites:
 - Excel must allow "Trust access to the VBA project object model".
@@ -178,9 +172,8 @@ Use the following commands from PowerShell:
 ### Validation Order
 When validating changes, verify in this order:
 1. **Manifest/config consistency**: Ensure JSON files are valid and match each other.
-2. **VBA export/import and compilation**: Run `.\Build.ps1` (or `.\Update.ps1 -SkipRuntimeTests`) and verify the compilation completes without error.
-3. **Ribbon callback alignment**: Ensure Ribbon action bindings exist in `UI_Ribbon.bas`.
-4. **Runtime smoke tests**: Run `.\Test.ps1` (or the full `.\Update.ps1`) to verify actual command execution and unit tests.
+2. **Standard Validation**: Run `.\Update.ps1 -Filter <FeatureName>` to quickly verify compile and unit test success.
+3. **Full Production Validation**: Run `.\Update.ps1` to ensure the final clean compilation and full test suite execution pass cleanly.
 
 ---
 
@@ -257,6 +250,7 @@ graph TD
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf` (Acts as the command class for `ExportPng` and `ExportPdf`)
 - `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter` (Displays guidance, hotkeys, and diagnostics in a scrollable UserForm)
 - `HelloWorld` -> `FeatCmd_HelloWorld`
+- `Friends` -> `FeatCmd_Friends` (Puts 'Hello friends , this is just testing' in the active cell)
 - `TableOfContents` -> `FeatCmd_TableOfContents` (Creates a hyperlinked index sheet at the beginning of the workbook)
 - `UnmergeFill` -> `FeatCmd_UnmergeFill` (Unmerges the selected cells and fills the parent value to all unmerged cells)
 - `ForceNumber` -> `FeatCmd_ForceNumber` (Forces text-formatted numbers in the selection to become actual numeric values)
@@ -300,7 +294,7 @@ graph TD
 - **Ribbon Icon Selection**: When choosing or modifying icons (`imageMso`) in `features.json`, you must only use identifiers that are natively verified and loaded in Microsoft Excel (e.g., `TableProperties`, `TableOfContentsDialog`, `ErrorChecking`, `FunctionWizard`, `CalculateNow`, `Clear`, `ChangeCase`, `ConditionalFormattingMenu`, `WorkbookLinks`, `FileSaveAs`, `Export`, `Help`, `HappyFace`). Do not use Access-only, Word-only, or custom application-specific icons (like `ReportInsert`, `InsertTableOfContents`, `StatusSpreadsheet`, or `DocumentInspector`) as they will throw runtime Custom UI XML errors when Excel loads the add-in.
 
 #### Ribbon controls in `features.json`
-- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`, `BtnReportGenerator`, `BtnTableOfContents`, `BtnUnmergeFill`, `BtnForceNumber`.
+- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`, `BtnFriends`, `BtnReportGenerator`, `BtnTableOfContents`, `BtnUnmergeFill`, `BtnForceNumber`.
 
 #### Hotkeys in `config.json`
 - `^+4` -> `UI_Hotkeys.Hotkey_ApplyCustomNumberFormat`
@@ -375,6 +369,7 @@ graph TD
     "BtnExportPdf": "Export",
     "BtnHelpCenter": "Help",
     "BtnHelloWorld": "HappyFace",
+    "BtnFriends": "HappyFace",
     "BtnReportGenerator": "TableProperties",
     "BtnTableOfContents": "TableOfContentsDialog",
     "BtnUnmergeFill": "TableProperties",

@@ -13,7 +13,13 @@ Public Function ShowMessage(ByVal message As String, Optional ByVal style As VbM
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowMessage")
     On Error GoTo ErrHandler
 
-    If Application.Visible Then
+    Dim isTestRunning As Boolean
+    isTestRunning = False
+    On Error Resume Next
+    isTestRunning = Lib_Tests.IsRunning
+    On Error GoTo 0
+
+    If Application.Visible And Not isTestRunning Then
         ShowMessage = MsgBox(message, style, ResolveTitle(title))
     Else
         Debug.Print "BEAVER [INTERACTION]: (" & style & ") " & message

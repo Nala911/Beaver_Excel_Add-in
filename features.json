@@ -57,7 +57,8 @@
                        "Label":  "Hello World Group",
                        "TabId":  "OfficeToolsTab",
                        "Features":  [
-                                        "BtnHelloWorld"
+                                        "BtnHelloWorld",
+                                        "BtnFriends"
                                     ]
                    }
                ],
@@ -295,6 +296,18 @@
                          "Keytip":  "HW",
                          "Screentip":  "Say Hello World",
                          "Supertip":  "Puts 'Hello world' into A1 cell.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnFriends",
+                         "Label":  "Friends",
+                         "OnAction":  "Ribbon_OnFriends",
+                         "Macro":  "UI_Ribbon.Ribbon_OnFriends",
+                         "CommandName":  "Friends",
+                         "Icon":  "HappyFace",
+                         "Keytip":  "FR",
+                         "Screentip":  "Say Hello Friends",
+                         "Supertip":  "Puts 'Hello friends , this is just testing' in the active cell.",
                          "RuntimeTestMode":  "interactive"
                      },
                      {

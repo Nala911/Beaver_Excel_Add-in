@@ -222,6 +222,19 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Ribbon_OnFriends(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnFriends")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnFriends", "Ribbon_OnFriends", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnFriends", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Ribbon_OnTableOfContents(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnTableOfContents")
     On Error GoTo ErrHandler

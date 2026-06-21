@@ -214,9 +214,39 @@ Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_Mo
                 area.NumberFormat = Infra_Config.Model.DisplayDateFormat
             Else
                 Dim cellObj As Variant
+                Dim unionRange As Range
+                Dim addrList As String
+                Dim cellAddr As String
+                
                 For Each cellObj In changedCells
-                    cellObj.NumberFormat = Infra_Config.Model.DisplayDateFormat
+                    cellAddr = cellObj.Address(False, False)
+                    If Len(addrList) + Len(cellAddr) + 1 > 240 Then
+                        If unionRange Is Nothing Then
+                            Set unionRange = area.Parent.Range(addrList)
+                        Else
+                            Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
+                        End If
+                        addrList = cellAddr
+                    Else
+                        If addrList = "" Then
+                            addrList = cellAddr
+                        Else
+                            addrList = addrList & "," & cellAddr
+                        End If
+                    End If
                 Next cellObj
+                
+                If addrList <> "" Then
+                    If unionRange Is Nothing Then
+                        Set unionRange = area.Parent.Range(addrList)
+                    Else
+                        Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
+                    End If
+                End If
+                
+                If Not unionRange Is Nothing Then
+                    unionRange.NumberFormat = Infra_Config.Model.DisplayDateFormat
+                End If
             End If
         End If
         

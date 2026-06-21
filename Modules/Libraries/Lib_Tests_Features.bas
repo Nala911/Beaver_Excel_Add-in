@@ -30,8 +30,8 @@ Public Sub Test_HelloWorld_Execution_And_Undo()
     ' Execute the command directly
     cmd.Execute ctx
     
-    ' Assert that cell A1 contains "Hello world"
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "Hello world", "HelloWorld command should update A1 to 'Hello world'"
+    ' Assert that cell A1 contains "Hello world!"
+    Lib_Tests.AssertEqual ws.Range("A1").Value2, "Hello world!", "HelloWorld command should update A1 to 'Hello world!'"
 
     ' Now register and perform undo
     Infra_Undo.RegisterPendingUndo
@@ -55,6 +55,59 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_HelloWorld_Execution_And_Undo", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_Friends_Execution_And_Undo()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_Friends_Execution_And_Undo")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_Friends"
+    ws.Range("B2").Value2 = "Original Cell Content"
+
+    Dim ctx As ICommandContext
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    Set ctx = AppContainer.CreateCommandContext("Friends")
+    
+    ' Set the context refs directly to point to our newly created worksheet and cell B2
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.ActiveCellRef = ws.Range("B2")
+    Set ctx.ActionContext.SelectionRange = ws.Range("B2")
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("Friends")
+    
+    ' Execute the command directly
+    cmd.Execute ctx
+    
+    ' Assert that cell B2 contains "Hello friends , this is just testing"
+    Lib_Tests.AssertEqual ws.Range("B2").Value2, "Hello friends , this is just testing", "Friends command should update B2 to 'Hello friends , this is just testing'"
+
+    ' Now register and perform undo
+    Infra_Undo.RegisterPendingUndo
+    Infra_Undo.PerformUndo
+    
+    ' Assert that cell B2 returned to its original content
+    Lib_Tests.AssertEqual ws.Range("B2").Value2, "Original Cell Content", "Undo Friends should restore B2 to its original content"
+
+    ' Cleanup the temporary worksheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_Friends_Execution_And_Undo", Err
     Resume CleanExit
 End Sub
 
@@ -2420,6 +2473,9 @@ Public Sub Test_Export_Pdf_Backup_And_MultiRange()
 
     Dim wb As Workbook: Set wb = Workbooks.Add
     Dim ws As Worksheet: Set ws = wb.Worksheets(1)
+    If wb.Worksheets.Count = 1 Then
+        wb.Worksheets.Add After:=ws
+    End If
 
     ' 1. Test PageSetup Backup & Restore
     Dim backupObj As New Infra_PageSetupBackup
@@ -2445,7 +2501,9 @@ Public Sub Test_Export_Pdf_Backup_And_MultiRange()
     ' 2. Test Multi-Range print area generation logic
     ' Let's write some dummy values
     ws.Range("A1").Value = "A"
+    ws.Range("B2").Value = "A"
     ws.Range("D1").Value = "B"
+    ws.Range("E2").Value = "B"
     ' Selection with multi-areas
     Dim selRng As Range
     Set selRng = Union(ws.Range("A1:B2"), ws.Range("D1:E2"))

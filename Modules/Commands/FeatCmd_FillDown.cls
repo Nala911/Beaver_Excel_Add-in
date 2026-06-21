@@ -188,6 +188,10 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    Infra_Error.HandleError "FillDown.Execute", Err
+    If Err.Number = vbObjectError + 1001 Then
+        Infra_Error.HandleErrorDetailed "FillDown.Execute", Err, Nothing, Infra_Error.CATEGORY_VALIDATION, Infra_Error.SEVERITY_WARNING
+    Else
+        Infra_Error.HandleError "FillDown.Execute", Err
+    End If
     Resume CleanExit
 End Sub
