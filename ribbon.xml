@@ -47,8 +47,7 @@
       </tab>
       <tab id="OfficeToolsTab" label="Office Tools" keytip="O">
         <group id="GrpHelloWorld" label="Hello World Group">
-          <button id="BtnHelloWorld" label="Hello World" imageMso="HappyFace" size="large" onAction="Ribbon_OnHelloWorld" keytip="HW" screentip="Say Hello World" supertip="Puts &apos;Hello world&apos; into A1 cell." />
-          <button id="BtnFriends" label="Friends" imageMso="HappyFace" size="large" onAction="Ribbon_OnFriends" keytip="FR" screentip="Say Hello Friends" supertip="Puts &apos;Hello friends , this is just testing&apos; in the active cell." />
+          <button id="BtnHelloWorld" label="Hello World" imageMso="HappyFace" size="large" onAction="Ribbon_OnHelloWorld" keytip="HW" screentip="Say Hello World" supertip="Puts &apos;Hello world&apos; into the active cell." />
         </group>
       </tab>
     </tabs>

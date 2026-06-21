@@ -11,7 +11,7 @@ Option Explicit
 
 ' @Module: FeatCmd_HelloWorld
 ' @Category: Feature
-' @Description: Puts Hello World in cell A1 of the active worksheet.
+' @Description: Puts Hello World in the active cell of the active worksheet.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: ICommand, ICommandContext, Infra_Error, Infra_CommandSupport, Infra_Undo
 
@@ -35,10 +35,9 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
 
-    If Not Infra_Undo.SaveStateOrConfirm(ctx.WorksheetRef.Range("A1"), "Hello World") Then GoTo CleanExit
+    If Not Infra_Undo.SaveStateOrConfirm(ctx.ActiveCellRef, "Hello World") Then GoTo CleanExit
 
-    ' Test comment for incremental compile optimized
-    ctx.WorksheetRef.Range("A1").Value2 = "Hello world!"
+    ctx.ActiveCellRef.Value2 = "Hello world!"
 
 CleanExit:
     Exit Sub

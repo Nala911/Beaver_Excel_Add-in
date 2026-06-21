@@ -38,7 +38,6 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Features.Test_FormatRange_ErrorSafety", filterPattern) Then Lib_Tests_Features.Test_FormatRange_ErrorSafety
     If MatchesFilter("Lib_Tests_Features.Test_FormatRange_Execution", filterPattern) Then Lib_Tests_Features.Test_FormatRange_Execution
     If MatchesFilter("Lib_Tests_Features.Test_FormatRange_WholeSheetSafety", filterPattern) Then Lib_Tests_Features.Test_FormatRange_WholeSheetSafety
-    If MatchesFilter("Lib_Tests_Features.Test_Friends_Execution_And_Undo", filterPattern) Then Lib_Tests_Features.Test_Friends_Execution_And_Undo
     If MatchesFilter("Lib_Tests_Features.Test_GetChunkedRanges_And_SpillExpansion", filterPattern) Then Lib_Tests_Features.Test_GetChunkedRanges_And_SpillExpansion
     If MatchesFilter("Lib_Tests_Features.Test_HelloWorld_Execution_And_Undo", filterPattern) Then Lib_Tests_Features.Test_HelloWorld_Execution_And_Undo
     If MatchesFilter("Lib_Tests_Features.Test_HighlightData_Errors", filterPattern) Then Lib_Tests_Features.Test_HighlightData_Errors

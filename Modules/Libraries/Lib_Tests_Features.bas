@@ -14,15 +14,17 @@ Public Sub Test_HelloWorld_Execution_And_Undo()
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets.Add
     ws.Name = "Test_Temp_HelloWorld"
-    ws.Range("A1").Value2 = "Original Content"
+    ws.Range("B2").Value2 = "Original Content"
 
     Dim ctx As ICommandContext
     AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
     Set ctx = AppContainer.CreateCommandContext("HelloWorld")
     
-    ' Set the context refs directly to point to our newly created worksheet
+    ' Set the context refs directly to point to our newly created worksheet and cell B2
     Set ctx.ActionContext.WorksheetRef = ws
     Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.ActiveCellRef = ws.Range("B2")
+    Set ctx.ActionContext.SelectionRange = ws.Range("B2")
 
     Dim cmd As ICommand
     Set cmd = AppContainer.ResolveCommand("HelloWorld")
@@ -30,15 +32,15 @@ Public Sub Test_HelloWorld_Execution_And_Undo()
     ' Execute the command directly
     cmd.Execute ctx
     
-    ' Assert that cell A1 contains "Hello world!"
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "Hello world!", "HelloWorld command should update A1 to 'Hello world!'"
+    ' Assert that the active cell (B2) contains "Hello world!"
+    Lib_Tests.AssertEqual ws.Range("B2").Value2, "Hello world!", "HelloWorld command should update active cell to 'Hello world!'"
 
     ' Now register and perform undo
     Infra_Undo.RegisterPendingUndo
     Infra_Undo.PerformUndo
     
-    ' Assert that cell A1 returned to its original content
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "Original Content", "Undo HelloWorld should restore A1 to its original content"
+    ' Assert that cell B2 returned to its original content
+    Lib_Tests.AssertEqual ws.Range("B2").Value2, "Original Content", "Undo HelloWorld should restore active cell to its original content"
 
     ' Cleanup the temporary worksheet
     Application.DisplayAlerts = False
@@ -58,58 +60,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Public Sub Test_Friends_Execution_And_Undo()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_Friends_Execution_And_Undo")
-    On Error GoTo ErrHandler
 
-    Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets.Add
-    ws.Name = "Test_Temp_Friends"
-    ws.Range("B2").Value2 = "Original Cell Content"
-
-    Dim ctx As ICommandContext
-    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
-    Set ctx = AppContainer.CreateCommandContext("Friends")
-    
-    ' Set the context refs directly to point to our newly created worksheet and cell B2
-    Set ctx.ActionContext.WorksheetRef = ws
-    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
-    Set ctx.ActionContext.ActiveCellRef = ws.Range("B2")
-    Set ctx.ActionContext.SelectionRange = ws.Range("B2")
-
-    Dim cmd As ICommand
-    Set cmd = AppContainer.ResolveCommand("Friends")
-    
-    ' Execute the command directly
-    cmd.Execute ctx
-    
-    ' Assert that cell B2 contains "Hello friends , this is just testing"
-    Lib_Tests.AssertEqual ws.Range("B2").Value2, "Hello friends , this is just testing", "Friends command should update B2 to 'Hello friends , this is just testing'"
-
-    ' Now register and perform undo
-    Infra_Undo.RegisterPendingUndo
-    Infra_Undo.PerformUndo
-    
-    ' Assert that cell B2 returned to its original content
-    Lib_Tests.AssertEqual ws.Range("B2").Value2, "Original Cell Content", "Undo Friends should restore B2 to its original content"
-
-    ' Cleanup the temporary worksheet
-    Application.DisplayAlerts = False
-    ws.Delete
-    Application.DisplayAlerts = True
-
-CleanExit:
-    Exit Sub
-
-ErrHandler:
-    On Error Resume Next
-    Application.DisplayAlerts = False
-    ws.Delete
-    Application.DisplayAlerts = True
-    On Error GoTo 0
-    Infra_Error.HandleError "Test_Friends_Execution_And_Undo", Err
-    Resume CleanExit
-End Sub
 
 Public Sub Test_MakePermanent_SpillHandling_And_Undo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_MakePermanent_SpillHandling_And_Undo")

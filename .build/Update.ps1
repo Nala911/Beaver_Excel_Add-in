@@ -71,6 +71,33 @@ try {
             $testsPassed = $true
         }
 
+        # Calculate structural manifest changes
+        $manifestStructureChanged = $false
+        if ($manifestChanged) {
+            $newStructuralHash = Get-ManifestStructuralHash -Path $featureManifestPath
+            $oldStructuralHash = $null
+            if ($buildState.PSObject.Properties.Name.Contains("ManifestStructuralHash")) {
+                $oldStructuralHash = $buildState.ManifestStructuralHash
+            }
+            if ($newStructuralHash -ne $oldStructuralHash) {
+                $manifestStructureChanged = $true
+            }
+        }
+
+        # Calculate if there are any VBA code changes on disk
+        $hasVbaChanges = $false
+        foreach ($file in $changedFiles) {
+            if ($file -match "\.(bas|cls|frm)$" -or $file -eq "ThisWorkbook.cls") {
+                $hasVbaChanges = $true
+                break
+            }
+        }
+        if ($deletedFiles.Count -gt 0) {
+            $hasVbaChanges = $true
+        }
+
+        $skipUnitTests = (-not $hasVbaChanges -and -not $manifestStructureChanged -and -not $Force)
+
         if (-not $hasAnyChanges -and -not $Force -and -not $Filter -and (Test-Path $excelPath) -and $testsPassed) {
             Write-Host "========================================" -ForegroundColor Green
             Write-Host "  BEAVER ADD-IN: PIPELINE UP TO DATE" -ForegroundColor Green
@@ -146,6 +173,9 @@ try {
     }
     if ($manifestChanged) { $testParams["CheckRibbon"] = $true }
     if ($Visible) { $testParams["Visible"] = $true }
+    if ($null -ne $skipUnitTests -and $skipUnitTests) {
+        $testParams["SkipUnitTests"] = $true
+    }
 
     & "$PSScriptRoot\Test.ps1" @testParams
     if (-not $?) {
@@ -155,7 +185,9 @@ try {
     }
 
     # Only mark TestsPassed = true if the full test suite was run and passed successfully
-    if (-not $Filter -and -not $autoFilter) {
+    if ($null -ne $skipUnitTests -and $skipUnitTests) {
+        Set-BuildStateTestsPassed -Passed $testsPassed
+    } elseif (-not $Filter -and -not $autoFilter) {
         Set-BuildStateTestsPassed -Passed $true
     } else {
         Set-BuildStateTestsPassed -Passed $false

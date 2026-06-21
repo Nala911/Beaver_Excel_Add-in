@@ -3,7 +3,8 @@ param(
     [switch]$CheckRibbon,
     [string]$Filter,
     [switch]$ListTests,
-    [switch]$Visible
+    [switch]$Visible,
+    [switch]$SkipUnitTests
 )
 
 Set-StrictMode -Version Latest
@@ -349,74 +350,83 @@ try {
                 $filterPattern = ($wrappedParts | Where-Object { $_ }) -join ","
             }
 
-            # Temporarily hide Excel to prevent COM hangs and speed up test runner
-            if (-not $Visible) { $testExcel.Visible = $false }
+            $structuredResults = $null
+            if (-not $SkipUnitTests) {
+                # Temporarily hide Excel to prevent COM hangs and speed up test runner
+                if (-not $Visible) { $testExcel.Visible = $false }
 
-            Write-Host "Running internal unit tests..." -ForegroundColor Cyan
-            try {
-                $retryCount = 0
-                $maxRetries = 5
-                $runCompleted = $false
-                while (-not $runCompleted -and $retryCount -lt $maxRetries) {
-                    try {
-                        if ($filterPattern) {
-                            Write-Host "  Running tests matching filter: '$filterPattern'..." -ForegroundColor Cyan
-                            $testExcel.Run("Lib_Tests.RunTestsFilter", $filterPattern)
-                        } else {
-                            $testExcel.Run("Lib_Tests.RunAllTests")
-                        }
-                        $runCompleted = $true
-                    } catch {
-                        $errMsg = $_.Exception.Message + " " + $_.Exception.InnerException.Message
-                        if ($errMsg -match "0x800AC472" -or $errMsg -match "800ac472") {
-                            $retryCount++
-                            Write-Host "  Excel is busy (0x800AC472). Retrying in 1s ($retryCount/$maxRetries)..." -ForegroundColor Yellow
-                            Start-Sleep -Seconds 1
-                        } else {
-                            throw $_
+                Write-Host "Running internal unit tests..." -ForegroundColor Cyan
+                try {
+                    $retryCount = 0
+                    $maxRetries = 5
+                    $runCompleted = $false
+                    while (-not $runCompleted -and $retryCount -lt $maxRetries) {
+                        try {
+                            if ($filterPattern) {
+                                Write-Host "  Running tests matching filter: '$filterPattern'..." -ForegroundColor Cyan
+                                $testExcel.Run("Lib_Tests.RunTestsFilter", $filterPattern)
+                            } else {
+                                $testExcel.Run("Lib_Tests.RunAllTests")
+                            }
+                            $runCompleted = $true
+                        } catch {
+                            $errMsg = $_.Exception.Message + " " + $_.Exception.InnerException.Message
+                            if ($errMsg -match "0x800AC472" -or $errMsg -match "800ac472") {
+                                $retryCount++
+                                Write-Host "  Excel is busy (0x800AC472). Retrying in 1s ($retryCount/$maxRetries)..." -ForegroundColor Yellow
+                                Start-Sleep -Seconds 1
+                            } else {
+                                throw $_
+                            }
                         }
                     }
+                    if (-not $runCompleted) {
+                        throw "Failed to run tests because Excel remained busy."
+                    }
+                    Write-Host "  SUCCESS: Unit tests completed." -ForegroundColor Green
+                } catch {
+                    Write-Host "  FAILURE: Unit tests failed." -ForegroundColor Red
+                    
+                    $vbaLogPath = Join-Path $env:TEMP "BeaverAddin_$testExcelPid.log"
+                    if (Test-Path $vbaLogPath) {
+                        Write-Host "`n  --- BEAVER VBA DIAGNOSTIC LOGS ---" -ForegroundColor Yellow
+                        Get-Content $vbaLogPath | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+                        Write-Host "  ----------------------------------`n" -ForegroundColor Yellow
+                    }
+                    throw "Unit tests failed: $($_.Exception.Message)"
                 }
-                if (-not $runCompleted) {
-                    throw "Failed to run tests because Excel remained busy."
+
+                $structuredResults = Read-StructuredTestResults -Path $structuredTestResultsPath
+                try {
+                    Assert-StructuredTestResults -StructuredResults $structuredResults -Path $structuredTestResultsPath | Out-Null
+                } catch {
+                    $vbaLogPath = Join-Path $env:TEMP "BeaverAddin_$testExcelPid.log"
+                    if (Test-Path $vbaLogPath) {
+                        Write-Host "`n  --- BEAVER VBA DIAGNOSTIC LOGS ---" -ForegroundColor Yellow
+                        Get-Content $vbaLogPath | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+                        Write-Host "  ----------------------------------`n" -ForegroundColor Yellow
+                    }
+                    throw $_
                 }
-                Write-Host "  SUCCESS: Unit tests completed." -ForegroundColor Green
-            } catch {
-                Write-Host "  FAILURE: Unit tests failed." -ForegroundColor Red
-                
-                $vbaLogPath = Join-Path $env:TEMP "BeaverAddin_$testExcelPid.log"
-                if (Test-Path $vbaLogPath) {
-                    Write-Host "`n  --- BEAVER VBA DIAGNOSTIC LOGS ---" -ForegroundColor Yellow
-                    Get-Content $vbaLogPath | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
-                    Write-Host "  ----------------------------------`n" -ForegroundColor Yellow
-                }
-                throw "Unit tests failed: $($_.Exception.Message)"
+            } else {
+                Write-Host "  Skipping unit tests (no VBA code changes)." -ForegroundColor Yellow
             }
 
-            $structuredResults = Read-StructuredTestResults -Path $structuredTestResultsPath
-            try {
-                Assert-StructuredTestResults -StructuredResults $structuredResults -Path $structuredTestResultsPath | Out-Null
-            } catch {
-                $vbaLogPath = Join-Path $env:TEMP "BeaverAddin_$testExcelPid.log"
-                if (Test-Path $vbaLogPath) {
-                    Write-Host "`n  --- BEAVER VBA DIAGNOSTIC LOGS ---" -ForegroundColor Yellow
-                    Get-Content $vbaLogPath | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
-                    Write-Host "  ----------------------------------`n" -ForegroundColor Yellow
-                }
-                throw $_
-            }
-
-            if (-not $Filter) {
+            if (-not $Filter -and -not $SkipUnitTests) {
                 $headlessCallbacks = Get-EnabledHeadlessCallbacks -ManifestPath $featureManifestPath
                 Invoke-HeadlessCallbackTests -ExcelApplication $testExcel -Callbacks $headlessCallbacks | Out-Null
             } else {
-                Write-Host "  Skipped headless callback tests (Filter active)." -ForegroundColor Yellow
+                Write-Host "  Skipped headless callback tests (Filter or SkipUnitTests active)." -ForegroundColor Yellow
             }
 
             $testExcel.Visible = $true
 
             Write-Host "Runtime testing completed with structured test collection." -ForegroundColor Green
-            return (Get-StructuredTestResultsDetails -StructuredResults $structuredResults)
+            if ($SkipUnitTests) {
+                return "tests=0, passed=0, failed=0"
+            } else {
+                return (Get-StructuredTestResultsDetails -StructuredResults $structuredResults)
+            }
         } finally {
             if ($testExcelPid -gt 0) {
                 $null = [WindowScraper]::StopAndGetResult()

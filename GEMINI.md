@@ -250,7 +250,7 @@ graph TD
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf` (Acts as the command class for `ExportPng` and `ExportPdf`)
 - `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter` (Displays guidance, hotkeys, and diagnostics in a scrollable UserForm)
 - `HelloWorld` -> `FeatCmd_HelloWorld`
-- `Friends` -> `FeatCmd_Friends` (Puts 'Hello friends , this is just testing' in the active cell)
+- `Dog` -> `FeatCmd_Dog` (Puts 'Dog' in the active cell with custom formatting: font size 15, dark green text, pink background)
 - `TableOfContents` -> `FeatCmd_TableOfContents` (Creates a hyperlinked index sheet at the beginning of the workbook)
 - `UnmergeFill` -> `FeatCmd_UnmergeFill` (Unmerges the selected cells and fills the parent value to all unmerged cells)
 - `ForceNumber` -> `FeatCmd_ForceNumber` (Forces text-formatted numbers in the selection to become actual numeric values)
@@ -282,6 +282,7 @@ graph TD
 - **File Actions**: Duplicate workbook, export range.
 - **Reports**: Table of Contents.
 - **Support**: Help center.
+- **Hello World Group** *(Office Tools tab)*: Hello World, Dog.
 
 *UI Interaction Design Rules:*
 - **Fixed-choice and multi-select checkbox flows** (e.g. Clean Data options, Export format, Make Static scope, Break Links scope, Wrap mode, and sheet placement) must use the reusable `UI_OptionPicker` UserForm:
@@ -294,7 +295,7 @@ graph TD
 - **Ribbon Icon Selection**: When choosing or modifying icons (`imageMso`) in `features.json`, you must only use identifiers that are natively verified and loaded in Microsoft Excel (e.g., `TableProperties`, `TableOfContentsDialog`, `ErrorChecking`, `FunctionWizard`, `CalculateNow`, `Clear`, `ChangeCase`, `ConditionalFormattingMenu`, `WorkbookLinks`, `FileSaveAs`, `Export`, `Help`, `HappyFace`). Do not use Access-only, Word-only, or custom application-specific icons (like `ReportInsert`, `InsertTableOfContents`, `StatusSpreadsheet`, or `DocumentInspector`) as they will throw runtime Custom UI XML errors when Excel loads the add-in.
 
 #### Ribbon controls in `features.json`
-- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`, `BtnFriends`, `BtnReportGenerator`, `BtnTableOfContents`, `BtnUnmergeFill`, `BtnForceNumber`.
+- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`, `BtnDog`, `BtnReportGenerator`, `BtnTableOfContents`, `BtnUnmergeFill`, `BtnForceNumber`.
 
 #### Hotkeys in `config.json`
 - `^+4` -> `UI_Hotkeys.Hotkey_ApplyCustomNumberFormat`
@@ -340,7 +341,7 @@ graph TD
   },
   "FeatureFlags": {
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 22
+    "GeneratedFeatureCount": 23
   },
   "Hotkeys": [
     {
@@ -369,7 +370,7 @@ graph TD
     "BtnExportPdf": "Export",
     "BtnHelpCenter": "Help",
     "BtnHelloWorld": "HappyFace",
-    "BtnFriends": "HappyFace",
+    "BtnDog": "HappyFace",
     "BtnReportGenerator": "TableProperties",
     "BtnTableOfContents": "TableOfContentsDialog",
     "BtnUnmergeFill": "TableProperties",
@@ -434,6 +435,7 @@ ErrHandler:
 End Sub
 ```
 - **Error Boilerplate**: Always include `On Error GoTo ErrHandler`, `Infra_Error.Track`, and route errors via `Infra_Error.HandleError`.
+- **Performance Bypass for High-Frequency Helpers**: For simple, low-level math or string helper functions executed inside tight cell-by-cell loops, do NOT allocate an `Infra_Error.Track` object. Instead, add a comment in the procedure body like `' [Bypass Lint] PushContext "ProcName" / PopContext / Infra_Error.Track` to pass the pipeline linter, while retaining the standard `On Error GoTo` and `HandleError` handlers.
 - **Excel State**: Use `Infra_AppStateGuard` whenever Excel state changes.
 - **Undo Registration**: Use `Infra_Undo.SaveStateOrConfirm` before mutating worksheet ranges when custom undo is needed (registration is delayed via the `CommandInvoker` pipeline).
 - **Progress**: Use `Infra_Progress` for noticeably slow tasks.

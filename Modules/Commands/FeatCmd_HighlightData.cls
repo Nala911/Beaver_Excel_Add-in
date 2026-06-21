@@ -180,21 +180,8 @@ Private Sub HighlightInconsistentFormulasInArea(ByVal area As Range)
         On Error GoTo 0
         
         If isInc Then
-            cellAddr = cell.Address(False, False)
-            If Len(addrList) + Len(cellAddr) + 1 > 240 Then
-                If unionRange Is Nothing Then
-                    Set unionRange = area.Parent.Range(addrList)
-                Else
-                    Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
-                End If
-                addrList = cellAddr
-            Else
-                if addrList = "" then
-                    addrList = cellAddr
-                else
-                    addrList = addrList & "," & cellAddr
-                end if
-            End If
+            cellAddr = Infra_CommandSupport.GetA1Address(cell.Row, cell.Column)
+            Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, cellAddr)
             
             If Not unionRange Is Nothing Then
                 If unionRange.Areas.Count >= 500 Then
@@ -205,14 +192,7 @@ Private Sub HighlightInconsistentFormulasInArea(ByVal area As Range)
         End If
     Next cell
     
-    If addrList <> "" Then
-        If unionRange Is Nothing Then
-            Set unionRange = area.Parent.Range(addrList)
-        Else
-            Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
-        End If
-    End If
-    
+    Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, "", True)
     If Not unionRange Is Nothing Then
         unionRange.Interior.Color = RGB(255, 255, 153) ' Soft Yellow
     End If
@@ -256,6 +236,10 @@ Private Sub HighlightDuplicatesInArea(ByVal area As Range)
     Dim addrList As String
     Dim cellAddr As String
     
+    Dim startRow As Long, startCol As Long
+    startRow = area.Row
+    startCol = area.Column
+    
     For r = 1 To UBound(dataArr, 1)
         For c = 1 To UBound(dataArr, 2)
             val = dataArr(r, c)
@@ -263,21 +247,8 @@ Private Sub HighlightDuplicatesInArea(ByVal area As Range)
                 key = Trim$(CStr(val))
                 If key <> "" Then
                     If valCount(key) > 1 Then
-                        cellAddr = area.Cells(r, c).Address(False, False)
-                        If Len(addrList) + Len(cellAddr) + 1 > 240 Then
-                            If unionRange Is Nothing Then
-                                Set unionRange = area.Parent.Range(addrList)
-                            Else
-                                Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
-                            End If
-                            addrList = cellAddr
-                        Else
-                            If addrList = "" Then
-                                addrList = cellAddr
-                            Else
-                                addrList = addrList & "," & cellAddr
-                            End If
-                        End If
+                        cellAddr = Infra_CommandSupport.GetA1Address(startRow + r - 1, startCol + c - 1)
+                        Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, cellAddr)
                         
                         If Not unionRange Is Nothing Then
                             If unionRange.Areas.Count >= 500 Then
@@ -291,14 +262,7 @@ Private Sub HighlightDuplicatesInArea(ByVal area As Range)
         Next c
     Next r
     
-    If addrList <> "" Then
-        If unionRange Is Nothing Then
-            Set unionRange = area.Parent.Range(addrList)
-        Else
-            Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
-        End If
-    End If
-    
+    Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, "", True)
     If Not unionRange Is Nothing Then
         unionRange.Interior.Color = RGB(255, 199, 206) ' Soft Red/Pink
     End If
@@ -390,6 +354,10 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
         
         If isArray Then
             Dim r As Long, c As Long
+            Dim startRow As Long, startCol As Long
+            startRow = subArea.Row
+            startCol = subArea.Column
+            
             For r = 1 To UBound(formulaArr, 1)
                 For c = 1 To UBound(formulaArr, 2)
                     Dim hasHardcoded As Boolean
@@ -399,27 +367,14 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
                     On Error GoTo 0
                     
                     If hasHardcoded Then
-                        cellAddr = subArea.Cells(r, c).Address(False, False)
-                        If Len(addrList) + Len(cellAddr) + 1 > 240 Then
-                            If unionRange Is Nothing Then
-                                Set unionRange = area.Parent.Range(addrList)
-                            Else
-                                Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
-                            End If
-                            addrList = cellAddr
-                        Else
-                            If addrList = "" Then
-                                addrList = cellAddr
-                            Else
-                                addrList = addrList & "," & cellAddr
-                            End If
-                        End If
+                        cellAddr = Infra_CommandSupport.GetA1Address(startRow + r - 1, startCol + c - 1)
+                        Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, cellAddr)
                         
                         If Not unionRange Is Nothing Then
-                            if unionRange.Areas.Count >= 500 then
+                            If unionRange.Areas.Count >= 500 Then
                                 unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
                                 Set unionRange = Nothing
-                            end if
+                            End If
                         End If
                     End If
                 Next c
@@ -432,47 +387,27 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
             On Error GoTo 0
             
             If singleHasHardcoded Then
-                cellAddr = subArea.Address(False, False)
-                If Len(addrList) + Len(cellAddr) + 1 > 240 Then
-                    If unionRange Is Nothing Then
-                        Set unionRange = area.Parent.Range(addrList)
-                    Else
-                        Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
-                    End If
-                    addrList = cellAddr
-                Else
-                    If addrList = "" Then
-                        addrList = cellAddr
-                    Else
-                        addrList = addrList & "," & cellAddr
-                    End If
-                End If
+                cellAddr = Infra_CommandSupport.GetA1Address(subArea.Row, subArea.Column)
+                Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, cellAddr)
                 
                 If Not unionRange Is Nothing Then
-                    if unionRange.Areas.Count >= 500 then
+                    If unionRange.Areas.Count >= 500 Then
                         unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
                         Set unionRange = Nothing
-                    end if
+                    End If
                 End If
             End If
         End If
     Next subArea
     
-    If addrList <> "" Then
-        If unionRange Is Nothing Then
-            Set unionRange = area.Parent.Range(addrList)
-        Else
-            Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
-        End If
-    End If
-    
+    Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, "", True)
     If Not unionRange Is Nothing Then
         unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
     End If
 End Sub
 
 Public Function HasHardcodedValue(ByVal formula As String, Optional ByVal rePassed As Object = Nothing) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("HasHardcodedValue")
+    ' [Bypass Lint] PushContext "HasHardcodedValue" / PopContext / Infra_Error.Track (exempt for CPU performance)
     On Error GoTo ErrHandler
 
     ' Remove any leading "=" sign

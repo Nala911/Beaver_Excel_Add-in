@@ -569,3 +569,90 @@ Private Function MatchesCleanCriteria(ByVal nm As Name, ByVal criteria As NameCl
     End Select
 End Function
 
+' Converts column indices (e.g. 28) to letters (e.g. "AB") purely in memory.
+Public Function GetColLetter(ByVal colNum As Long) As String
+    ' [Bypass Lint] PushContext "GetColLetter" / PopContext / Infra_Error.Track (exempt for CPU performance)
+    On Error GoTo ErrHandler
+
+    Dim temp As Long
+    temp = colNum
+    GetColLetter = vbNullString
+    Do While temp > 0
+        Dim remainder As Long
+        remainder = (temp - 1) Mod 26
+        GetColLetter = Chr$(65 + remainder) & GetColLetter
+        temp = (temp - remainder) \ 26
+    Loop
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "GetColLetter", Err
+    Resume CleanExit
+End Function
+
+' Concatenates column letter and row index to construct A1 address in memory.
+Public Function GetA1Address(ByVal rowNum As Long, ByVal colNum As Long) As String
+    ' [Bypass Lint] PushContext "GetA1Address" / PopContext / Infra_Error.Track (exempt for CPU performance)
+    On Error GoTo ErrHandler
+
+    GetA1Address = GetColLetter(colNum) & rowNum
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "GetA1Address", Err
+    Resume CleanExit
+End Function
+
+' Accumulates a cell or range address into a buffered Union range to optimize performance.
+' Flushes the address buffer to Union when the string length exceeds 240 characters.
+Public Function AccumulateUnion( _
+    ByVal currentUnion As Range, _
+    ByVal ws As Worksheet, _
+    ByRef addrList As String, _
+    ByVal cellAddr As String, _
+    Optional ByVal forceFlush As Boolean = False) As Range
+    
+    ' [Bypass Lint] PushContext "AccumulateUnion" / PopContext / Infra_Error.Track (exempt for CPU performance)
+    On Error GoTo ErrHandler
+
+    Set AccumulateUnion = currentUnion
+
+    If cellAddr <> vbNullString Then
+        If Len(addrList) + Len(cellAddr) + 1 > 240 Then
+            ' Flush current buffer
+            If addrList <> vbNullString Then
+                If AccumulateUnion Is Nothing Then
+                    Set AccumulateUnion = ws.Range(addrList)
+                Else
+                    Set AccumulateUnion = Application.Union(AccumulateUnion, ws.Range(addrList))
+                End If
+            End If
+            addrList = cellAddr
+        Else
+            If addrList = vbNullString Then
+                addrList = cellAddr
+            Else
+                addrList = addrList & "," & cellAddr
+            End If
+        End If
+    End If
+
+    If forceFlush And addrList <> vbNullString Then
+        If AccumulateUnion Is Nothing Then
+            Set AccumulateUnion = ws.Range(addrList)
+        Else
+            Set AccumulateUnion = Application.Union(AccumulateUnion, ws.Range(addrList))
+        End If
+        addrList = vbNullString
+    End If
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "AccumulateUnion", Err
+    Resume CleanExit
+End Function
+

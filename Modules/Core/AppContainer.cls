@@ -21,7 +21,8 @@ Private pContextProvider As ExcelContextProvider
 Private pIsInitialized As Boolean
 
 Private Sub Class_Initialize()
-    ' Wait until explicit Init() is called so we can inject mocks if needed
+    ' Wait until explicit Init() is called so we can inject mocks if needed.
+    ' This lazy initialization pattern ensures dependencies are loaded correctly.
 End Sub
 
 Public Sub Initialize(ByVal cfg As IConfig, ByVal errTrk As Infra_Error, ByVal contextProvider As ExcelContextProvider)

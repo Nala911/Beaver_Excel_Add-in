@@ -173,8 +173,9 @@ Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_Mo
     colMin = LBound(vals, 2)
     colMax = UBound(vals, 2)
     
-    Dim changedCells As Collection
-    Set changedCells = New Collection
+    Dim dateChangeCount As Long
+    Dim unionRange As Range
+    Dim addrList As String
     
     For r = rowMin To rowMax
         For c = colMin To colMax
@@ -182,7 +183,9 @@ Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_Mo
             Dim oldFormat As String
             oldVal = vals(r, c)
             
-            If VarType(oldVal) <> vbDate Then
+            If request.Operation <> "Date Standardization" Then
+                oldFormat = vbNullString
+            ElseIf VarType(oldVal) <> vbDate Then
                 oldFormat = vbNullString
             ElseIf isFmtsArray Then
                 oldFormat = CStr(fmts(r, c))
@@ -201,7 +204,10 @@ Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_Mo
                 hasChanged = True
                 
                 If request.Operation = "Date Standardization" And newFormat <> vbNullString Then
-                    changedCells.Add area.Cells(r, c)
+                    dateChangeCount = dateChangeCount + 1
+                    Dim cellAddr As String
+                    cellAddr = Infra_CommandSupport.GetA1Address(area.Row + r - 1, area.Column + c - 1)
+                    Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, cellAddr)
                 End If
             End If
         Next c
@@ -209,41 +215,11 @@ Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_Mo
     
     If hasChanged Then
         ' Apply format optimization before writing values
-        If changedCells.Count > 0 Then
-            If changedCells.Count / area.Cells.CountLarge > 0.5 Then
+        If dateChangeCount > 0 Then
+            If dateChangeCount / area.Cells.CountLarge > 0.5 Then
                 area.NumberFormat = Infra_Config.Model.DisplayDateFormat
             Else
-                Dim cellObj As Variant
-                Dim unionRange As Range
-                Dim addrList As String
-                Dim cellAddr As String
-                
-                For Each cellObj In changedCells
-                    cellAddr = cellObj.Address(False, False)
-                    If Len(addrList) + Len(cellAddr) + 1 > 240 Then
-                        If unionRange Is Nothing Then
-                            Set unionRange = area.Parent.Range(addrList)
-                        Else
-                            Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
-                        End If
-                        addrList = cellAddr
-                    Else
-                        If addrList = "" Then
-                            addrList = cellAddr
-                        Else
-                            addrList = addrList & "," & cellAddr
-                        End If
-                    End If
-                Next cellObj
-                
-                If addrList <> "" Then
-                    If unionRange Is Nothing Then
-                        Set unionRange = area.Parent.Range(addrList)
-                    Else
-                        Set unionRange = Application.Union(unionRange, area.Parent.Range(addrList))
-                    End If
-                End If
-                
+                Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, "", True)
                 If Not unionRange Is Nothing Then
                     unionRange.NumberFormat = Infra_Config.Model.DisplayDateFormat
                 End If

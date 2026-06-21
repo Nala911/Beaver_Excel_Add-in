@@ -118,9 +118,28 @@ Public Function ConvertWorksheetFormulasToValues(ByVal ws As Worksheet) As Long
             On Error GoTo ErrHandler
 
             If Not areaFormulaCells Is Nothing Then
-                For Each cell In areaFormulaCells.Cells
-                    ConvertWorksheetFormulasToValues = ConvertWorksheetFormulasToValues + ConvertCellToStatic(cell)
-                Next cell
+                Dim expanded As Range
+                Set expanded = ResolveSpillExpandedRange(area)
+                
+                Dim bulkSucceeded As Boolean
+                bulkSucceeded = False
+                
+                If Not expanded Is Nothing Then
+                    On Error Resume Next
+                    expanded.Value = expanded.Value
+                    If Err.Number = 0 Then
+                        bulkSucceeded = True
+                        ConvertWorksheetFormulasToValues = ConvertWorksheetFormulasToValues + areaFormulaCells.Cells.CountLarge
+                    End If
+                    Err.Clear
+                    On Error GoTo ErrHandler
+                End If
+                
+                If Not bulkSucceeded Then
+                    For Each cell In areaFormulaCells.Cells
+                        ConvertWorksheetFormulasToValues = ConvertWorksheetFormulasToValues + ConvertCellToStatic(cell)
+                    Next cell
+                End If
             End If
         End If
     Next area
@@ -295,54 +314,91 @@ Public Function ResolveSpillExpandedRange(ByVal sourceRange As Range) As Range
     On Error Resume Next
     Set scanRange = Application.Intersect(sourceRange, ws.UsedRange)
     On Error GoTo ErrHandler
+    
+    Dim formulaCount As Long
+    Dim sheetFormulas As Range
+    On Error Resume Next
+    Set sheetFormulas = ws.UsedRange.SpecialCells(xlCellTypeFormulas)
+    If Not sheetFormulas Is Nothing Then
+        formulaCount = sheetFormulas.Cells.CountLarge
+    End If
+    On Error GoTo ErrHandler
 
     If Not scanRange Is Nothing Then
         If AreaHasSpill(scanRange) Then
             Dim processedSpills As Range
-            For Each cell In scanRange.Cells
-                Dim shouldCheck As Boolean
-                shouldCheck = True
-                
-                If Not processedSpills Is Nothing Then
-                    If Not Application.Intersect(cell, processedSpills) Is Nothing Then
-                        shouldCheck = False
-                    End If
-                End If
-                
-                If shouldCheck Then
-                    Dim hasSpillVal As Boolean
-                    hasSpillVal = False
-                    
+            
+            If formulaCount > 0 And formulaCount < scanRange.Cells.CountLarge Then
+                ' Optimization: Scan only the formula cells on the sheet
+                Dim fCell As Range
+                For Each fCell In sheetFormulas.Cells
+                    Dim isSpill As Boolean
+                    isSpill = False
                     On Error Resume Next
-                    hasSpillVal = cell.HasSpill
+                    isSpill = fCell.HasSpill
                     On Error GoTo ErrHandler
                     
-                    If hasSpillVal Then
-                        Dim spillParentCell As Range
+                    If isSpill Then
+                        Dim spRange As Range
                         On Error Resume Next
-                        Set spillParentCell = cell.SpillParent
+                        Set spRange = fCell.SpillingToRange
                         On Error GoTo ErrHandler
                         
-                        If spillParentCell Is Nothing Then
-                            Set spillParentCell = cell
-                        End If
-                        
-                        Dim spillRange As Range
-                        On Error Resume Next
-                        Set spillRange = spillParentCell.SpillingToRange
-                        On Error GoTo ErrHandler
-                        
-                        If Not spillRange Is Nothing Then
-                            Set expanded = Application.Union(expanded, spillRange)
-                            If processedSpills Is Nothing Then
-                                Set processedSpills = spillRange
-                            Else
-                                Set processedSpills = Application.Union(processedSpills, spillRange)
+                        If Not spRange Is Nothing Then
+                            ' Check if this spill range intersects our scanRange
+                            If Not Application.Intersect(scanRange, spRange) Is Nothing Then
+                                Set expanded = Application.Union(expanded, spRange)
                             End If
                         End If
                     End If
-                End If
-            Next cell
+                Next fCell
+            Else
+                ' Default path: Scan each cell in scanRange
+                For Each cell In scanRange.Cells
+                    Dim shouldCheck As Boolean
+                    shouldCheck = True
+                    
+                    If Not processedSpills Is Nothing Then
+                        If Not Application.Intersect(cell, processedSpills) Is Nothing Then
+                            shouldCheck = False
+                        End If
+                    End If
+                    
+                    If shouldCheck Then
+                        Dim hasSpillVal As Boolean
+                        hasSpillVal = False
+                        
+                        On Error Resume Next
+                        hasSpillVal = cell.HasSpill
+                        On Error GoTo ErrHandler
+                        
+                        If hasSpillVal Then
+                            Dim spillParentCell As Range
+                            On Error Resume Next
+                            Set spillParentCell = cell.SpillParent
+                            On Error GoTo ErrHandler
+                            
+                            If spillParentCell Is Nothing Then
+                                Set spillParentCell = cell
+                            End If
+                            
+                            Dim spillRange As Range
+                            On Error Resume Next
+                            Set spillRange = spillParentCell.SpillingToRange
+                            On Error GoTo ErrHandler
+                            
+                            If Not spillRange Is Nothing Then
+                                Set expanded = Application.Union(expanded, spillRange)
+                                If processedSpills Is Nothing Then
+                                    Set processedSpills = spillRange
+                                Else
+                                    Set processedSpills = Application.Union(processedSpills, spillRange)
+                                End If
+                            End If
+                        End If
+                    End If
+                Next cell
+            End If
         End If
     End If
 
@@ -452,7 +508,6 @@ End Function
 ' Attempts to convert a string or value to a numeric double, handling trailing minus, percent, and currency signs.
 ' Avoids octal or hexadecimal representations like &H.
 Public Function TryConvertToNumber(ByVal rawVal As Variant, ByRef outVal As Variant) As Boolean
-    Dim tracker As Object: Set tracker = Infra_Error.Track("TryConvertToNumber")
     On Error GoTo ErrHandler
 
     TryConvertToNumber = False

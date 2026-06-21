@@ -35,6 +35,21 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim textCells As Range
     Dim cell As Range
     Dim changeCount As Long
+    Dim area As Range
+    Dim vals As Variant
+    Dim r As Long, c As Long
+    Dim areaRows As Long, areaCols As Long
+    Dim cellVal As Variant
+    Dim formatRange As Range
+    Dim valChanged As Boolean
+    Dim outVal As Variant
+    Dim cellAddr As String
+    Dim isUniform As Boolean
+    Dim areaFmtVal As Variant
+    Dim areaNeedsGeneral As Boolean
+    Dim addrList As String
+    Dim startRow As Long
+    Dim startCol As Long
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
@@ -74,16 +89,71 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Infra_Progress.UpdateProgress 10
 
     changeCount = 0
-    Dim outVal As Variant
-    For Each cell In textCells.Cells
-        If Infra_ValueConversion.TryConvertToNumber(cell.Value2, outVal) Then
-            If InStr(1, cell.NumberFormat, "@") > 0 Or LCase$(cell.NumberFormat) = "text" Then
-                cell.NumberFormat = "General"
+    For Each area In textCells.Areas
+        areaRows = area.Rows.Count
+        areaCols = area.Columns.Count
+        
+        If areaRows = 1 And areaCols = 1 Then
+            If Infra_ValueConversion.TryConvertToNumber(area.Value2, outVal) Then
+                If InStr(1, area.NumberFormat, "@") > 0 Or LCase$(area.NumberFormat) = "text" Then
+                    area.NumberFormat = "General"
+                End If
+                area.Value2 = outVal
+                changeCount = changeCount + 1
             End If
-            cell.Value2 = outVal
-            changeCount = changeCount + 1
+        Else
+            vals = area.Value2
+            valChanged = False
+            
+            areaFmtVal = area.NumberFormat
+            If Not IsNull(areaFmtVal) Then
+                isUniform = True
+                Dim areaFmtStr As String
+                areaFmtStr = CStr(areaFmtVal)
+                areaNeedsGeneral = (InStr(1, areaFmtStr, "@") > 0 Or LCase$(areaFmtStr) = "text")
+            Else
+                isUniform = False
+                areaNeedsGeneral = False
+            End If
+            
+            addrList = vbNullString
+            Set formatRange = Nothing
+            startRow = area.Row
+            startCol = area.Column
+            
+            For r = 1 To areaRows
+                For c = 1 To areaCols
+                    cellVal = vals(r, c)
+                    If Infra_ValueConversion.TryConvertToNumber(cellVal, outVal) Then
+                        If Not isUniform Then
+                            Set cell = area.Cells(r, c)
+                            If InStr(1, cell.NumberFormat, "@") > 0 Or LCase$(cell.NumberFormat) = "text" Then
+                                cellAddr = Infra_CommandSupport.GetA1Address(startRow + r - 1, startCol + c - 1)
+                                Set formatRange = Infra_CommandSupport.AccumulateUnion(formatRange, area.Parent, addrList, cellAddr)
+                            End If
+                        End If
+                        vals(r, c) = outVal
+                        valChanged = True
+                        changeCount = changeCount + 1
+                    End If
+                Next c
+            Next r
+            
+            If valChanged Then
+                If isUniform Then
+                    If areaNeedsGeneral Then
+                        area.NumberFormat = "General"
+                    End If
+                Else
+                    Set formatRange = Infra_CommandSupport.AccumulateUnion(formatRange, area.Parent, addrList, "", True)
+                    If Not formatRange Is Nothing Then
+                        formatRange.NumberFormat = "General"
+                    End If
+                End If
+                area.Value2 = vals
+            End If
         End If
-    Next cell
+    Next area
 
     Infra_Progress.UpdateProgress 100
     Infra_Progress.EndProgress

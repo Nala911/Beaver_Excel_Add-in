@@ -407,14 +407,8 @@ Private Function CountLinkSourceReferences(ByVal wb As Workbook, ByVal linkName 
                 Set foundCell = formulaCells.Find(What:=fileName, LookIn:=xlFormulas, LookAt:=xlPart)
                 On Error GoTo 0
                 If Not foundCell Is Nothing Then
-                    firstAddress = foundCell.Address
-                    Do
-                        refCount = refCount + 1
-                        On Error Resume Next
-                        Set foundCell = formulaCells.FindNext(foundCell)
-                        On Error GoTo 0
-                        If foundCell Is Nothing Then Exit Do
-                    Loop While foundCell.Address <> firstAddress
+                    refCount = 1
+                    Exit For
                 End If
             End If
         End If

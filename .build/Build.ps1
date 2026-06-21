@@ -615,8 +615,8 @@ function Invoke-VbaSyntaxCheck {
         $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
         
         $cachedPassed = $false
-        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.$relPath) {
-            $meta = $buildState.Metadata.$relPath
+        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
+            $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
             if ($meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
                 $cachedPassed = $true
             }
@@ -721,8 +721,8 @@ function Invoke-EnhancedLinting {
         $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
         
         $cachedPassed = $false
-        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.$relPath) {
-            $meta = $buildState.Metadata.$relPath
+        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
+            $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
             if ($meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
                 $cachedPassed = $true
             }
@@ -868,8 +868,8 @@ function Test-FormFilesValidity {
         $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
         
         $cachedPassed = $false
-        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.$relPath) {
-            $meta = $buildState.Metadata.$relPath
+        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
+            $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
             if ($meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
                 $cachedPassed = $true
             }
@@ -985,7 +985,21 @@ try {
         exit 0
     }
 
-    $forceFullBuild = ($manifestChanged -or -not (Test-Path $excelPath) -or $Force)
+    $manifestStructureChanged = $false
+    if ($manifestChanged) {
+        $newStructuralHash = Get-ManifestStructuralHash -Path $featureManifestPath
+        $oldStructuralHash = $null
+        if ($null -ne $buildState -and $buildState.PSObject.Properties.Name.Contains("ManifestStructuralHash")) {
+            $oldStructuralHash = $buildState.ManifestStructuralHash
+        }
+        if ($newStructuralHash -ne $oldStructuralHash) {
+            $manifestStructureChanged = $true
+        } else {
+            Write-Host "  Manifest changed but structure is identical (metadata-only update)." -ForegroundColor Yellow
+        }
+    }
+
+    $forceFullBuild = ($manifestStructureChanged -or -not (Test-Path $excelPath) -or $Force)
 
     if ($forceFullBuild) {
         Write-Host "Performing clean full build..." -ForegroundColor Cyan
@@ -995,7 +1009,7 @@ try {
     }
 
     Invoke-Stage -Stage "manifest_sync" -Action {
-        if ($forceFullBuild) {
+        if ($forceFullBuild -or $manifestChanged) {
             Sync-FeatureManifest -ManifestPath $featureManifestPath -ConfigPath $configPath -RibbonPath $ribbonXmlPath
             return "features synced from features.json"
         } else {
@@ -1042,7 +1056,7 @@ try {
 
     Invoke-Stage -Stage "validation" -Action {
         $filesToValidate = if ($forceFullBuild) { $null } else { $changedFiles }
-        $validRibbon = if ($forceFullBuild) { Test-RibbonValidity -XmlPath $ribbonXmlPath -ModulesDir $modulesDir } else { $true }
+        $validRibbon = if ($forceFullBuild -or $manifestChanged) { Test-RibbonValidity -XmlPath $ribbonXmlPath -ModulesDir $modulesDir } else { $true }
         
         $validVba = $true
         $validLint = $true
@@ -1073,71 +1087,93 @@ try {
             throw "Excel file not found: $excelPath"
         }
 
-        if ($forceFullBuild) {
-            $lockFile = Join-Path $projectRoot ("~$" + (Split-Path $excelPath -Leaf))
-            if (-not (Test-Path $lockFile)) {
+        if ($forceFullBuild -or $manifestChanged) {
+            # 1. Check if the file is actually locked
+            if (-not (Test-FileLocked -Path $excelPath)) {
+                # If not locked but a lock file exists, it's orphaned. We can safely remove it.
+                $lockFile = Join-Path $projectRoot ("~$" + (Split-Path $excelPath -Leaf))
+                if (Test-Path $lockFile) {
+                    Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
+                }
                 return "workbook available"
             }
 
-            Write-Host "Excel file is open. Attempting to close it..." -ForegroundColor Yellow
+            Write-Host "Excel workbook is locked. Attempting to close it..." -ForegroundColor Yellow
+            $closedGracefully = $false
+            
             try {
-                $activeExcel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
-                try {
+                $activeWbInfo = Get-ActiveExcelWorkbook -WorkbookPath $excelPath
+                if ($null -ne $activeWbInfo) {
+                    $activeExcel = $activeWbInfo.Excel
+                    $wbFound = $activeWbInfo.Workbook
+                    
                     $activeExcel.DisplayAlerts = $false
-                    $wbFound = $null
-                    foreach ($wb in $activeExcel.Workbooks) {
-                        if ($wb.FullName -eq $excelPath) {
-                            $wbFound = $wb
-                            break
-                        }
-                    }
-
-                    if ($null -ne $wbFound) {
-                        $otherVisibleWorkbooks = 0
-                        foreach ($otherWb in $activeExcel.Workbooks) {
-                            if ($otherWb.FullName -ne $excelPath) {
-                                $hasVisibleWindow = $false
-                                try {
-                                    foreach ($win in $otherWb.Windows) {
-                                        if ($win.Visible) {
-                                            $hasVisibleWindow = $true
-                                            break
-                                        }
+                    
+                    $otherVisibleWorkbooks = 0
+                    foreach ($otherWb in $activeExcel.Workbooks) {
+                        if ($otherWb.FullName -ne $excelPath) {
+                            $hasVisibleWindow = $false
+                            try {
+                                foreach ($win in $otherWb.Windows) {
+                                    if ($win.Visible) {
+                                        $hasVisibleWindow = $true
+                                        break
                                     }
-                                } catch {
-                                    $hasVisibleWindow = $true
                                 }
-                                if ($hasVisibleWindow) {
-                                    $otherVisibleWorkbooks++
-                                }
+                            } catch {
+                                $hasVisibleWindow = $true
+                            }
+                            if ($hasVisibleWindow) {
+                                $otherVisibleWorkbooks++
                             }
                         }
-
-                        $wbFound.Close($true)
-                        Write-Host "  Closed $($wbFound.Name) successfully." -ForegroundColor Green
-
-                        if ($otherVisibleWorkbooks -eq 0) {
-                            Write-Host "  No other visible workbooks open. Closing Excel application..." -ForegroundColor Green
-                            $activeExcel.Quit()
-                        }
                     }
-                } finally {
-                    try {
-                        $activeExcel.DisplayAlerts = $true
-                    } catch { }
-                    [System.Runtime.InteropServices.Marshal]::ReleaseComObject($activeExcel) | Out-Null
+
+                    $wbFound.Close($true)
+                    Write-Host "  Closed $($wbFound.Name) successfully." -ForegroundColor Green
+                    $closedGracefully = $true
+
+                    if ($otherVisibleWorkbooks -eq 0) {
+                        Write-Host "  No other visible workbooks open. Closing Excel application..." -ForegroundColor Green
+                        $activeExcel.Quit()
+                    }
+                    
+                    Release-ComObjectSafely $wbFound
+                    Release-ComObjectSafely $activeExcel
                 }
             } catch {
-                Write-Warning "Could not close gracefully via COM. Force closing Excel..."
-                Stop-Process -Name "EXCEL" -Force -ErrorAction SilentlyContinue
+                Write-Warning "Graceful close via COM failed: $($_.Exception.Message)"
             }
 
-            Start-Sleep -Seconds 2
-            if (Test-Path $lockFile) {
-                throw "Excel file is still open. Please close it manually and retry."
+            # 3. If still locked, handle termination safety
+            if (Test-FileLocked -Path $excelPath) {
+                # Check for visible Excel windows
+                $excelProcesses = @(Get-Process -Name "EXCEL" -ErrorAction SilentlyContinue)
+                $visibleExcel = @(
+                    $excelProcesses | Where-Object {
+                        $_.MainWindowHandle -ne 0 -or -not [string]::IsNullOrWhiteSpace($_.MainWindowTitle)
+                    }
+                )
+
+                if ($visibleExcel.Count -gt 0) {
+                    throw "The workbook '$excelPath' is open and locked in a visible Excel window. Please save your work, close Excel, and rerun the script."
+                }
+
+                if ($excelProcesses.Count -gt 0) {
+                    Write-Host "  Found background Excel process(es) holding the lock. Cleaning up..." -ForegroundColor Yellow
+                    foreach ($process in $excelProcesses) {
+                        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                    }
+                    Start-Sleep -Seconds 2
+                }
             }
 
-            return "lock file cleared"
+            # Final verify
+            if (Test-FileLocked -Path $excelPath) {
+                throw "Excel file is still open and locked. Please close it manually and retry."
+            }
+
+            return "lock cleared"
         } else {
             return "skipped (in-place reload active)"
         }
@@ -1145,6 +1181,41 @@ try {
 
     # --- workbook_update ---
     Invoke-Stage -Stage "workbook_update" -Action {
+        $compsToRemove = @()
+        $filesToImport = @()
+        $thisWorkbookChanged = ($changedFiles -contains "ThisWorkbook.cls")
+
+        if (-not $forceFullBuild) {
+            # Incremental Mode: Calculate components to remove/import
+            foreach ($relPath in ($changedFiles + $deletedFiles)) {
+                if ($relPath -eq "features.json" -or $relPath -eq "ThisWorkbook.cls") { continue }
+                
+                $filePath = Join-Path $projectRoot $relPath
+                $compName = $null
+                
+                if ($changedFiles -contains $relPath) {
+                    $compName = Get-VbaComponentNameFromFile -FilePath $filePath
+                } else {
+                    $fileName = Split-Path $relPath -Leaf
+                    $compName = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
+                }
+                
+                if ($null -ne $compName) {
+                    $compsToRemove += $compName
+                }
+                
+                if ($changedFiles -contains $relPath -and $relPath -match "\.(bas|cls|frm)$") {
+                    $filesToImport += $filePath
+                }
+            }
+        }
+
+        $hasVbaChanges = ($forceFullBuild -or $compsToRemove.Count -gt 0 -or $filesToImport.Count -gt 0 -or $thisWorkbookChanged)
+
+        if (-not $hasVbaChanges) {
+            return "skipped (no VBA code changes)"
+        }
+
         $session = Initialize-ExcelWorkbookSession -Purpose "workbook update"
         $excel = $session.Excel
         $workbook = $session.Workbook
@@ -1160,49 +1231,33 @@ try {
 
         try {
             Write-Host "Updating modules..."
-            $compsToRemove = @()
-            $filesToImport = @()
             
             if ($forceFullBuild) {
                 # Purge all components
+                $compsToRemoveList = @()
                 for ($i = 1; $i -le $vbaProject.VBComponents.Count; $i++) {
                     $comp = $vbaProject.VBComponents.Item($i)
                     if (($comp.Type -ge 1 -and $comp.Type -le 3) -and ($comp.Name -ne "ThisWorkbook")) {
-                        $compsToRemove += $comp
+                        $compsToRemoveList += $comp
                     }
                 }
                 $vbaSourceFiles = Get-ChildItem -Path $modulesDir -Recurse | Where-Object { $_.Extension -match "\.(bas|cls|frm)$" }
                 $filesToImport = @($vbaSourceFiles | ForEach-Object { $_.FullName })
+                $compsToRemove = $compsToRemoveList
             } else {
-                # Incremental Mode: Remove only modified/deleted components
-                foreach ($relPath in ($changedFiles + $deletedFiles)) {
-                    if ($relPath -eq "features.json" -or $relPath -eq "ThisWorkbook.cls") { continue }
-                    
-                    $filePath = Join-Path $projectRoot $relPath
-                    $compName = $null
-                    
-                    if ($changedFiles -contains $relPath) {
-                        $compName = Get-VbaComponentNameFromFile -FilePath $filePath
-                    } else {
-                        $fileName = Split-Path $relPath -Leaf
-                        $compName = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
-                    }
-                    
-                    if ($null -ne $compName) {
-                        try {
-                            $comp = $vbaProject.VBComponents.Item($compName)
-                            if ($null -ne $comp) {
-                                $compsToRemove += $comp
-                            }
-                        } catch {
-                            # Component doesn't exist
+                # Incremental Mode: convert component names to VBComponent COM objects
+                $compsToRemoveList = @()
+                foreach ($compName in $compsToRemove) {
+                    try {
+                        $comp = $vbaProject.VBComponents.Item($compName)
+                        if ($null -ne $comp) {
+                            $compsToRemoveList += $comp
                         }
-                    }
-                    
-                    if ($changedFiles -contains $relPath -and $relPath -match "\.(bas|cls|frm)$") {
-                        $filesToImport += $filePath
+                    } catch {
+                        # Component doesn't exist
                     }
                 }
+                $compsToRemove = $compsToRemoveList
             }
 
             foreach ($comp in $compsToRemove) {
@@ -1424,7 +1479,7 @@ try {
     } | Out-Null
 
     Invoke-Stage -Stage "ribbon_injection" -Action {
-        if ($forceFullBuild) {
+        if ($forceFullBuild -or $manifestChanged) {
             Update-RibbonInWorkbook -WorkbookPath $excelPath -RibbonXmlPath $ribbonXmlPath
             return "customUI14.xml refreshed"
         } else {

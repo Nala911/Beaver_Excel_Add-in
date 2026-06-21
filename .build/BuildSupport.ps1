@@ -217,6 +217,19 @@ function Remove-OrphanedExcelProcesses {
     return $stoppedAny
 }
 
+function Test-FileLocked {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return $false }
+    try {
+        $file = [System.IO.File]::Open($Path, 'Open', 'Write', 'None')
+        $file.Close()
+        $file.Dispose()
+        return $false
+    } catch {
+        return $true
+    }
+}
+
 function Clear-ExcelDisabledItems {
     $regPath = "HKCU:\Software\Microsoft\Office\16.0\Excel\Resiliency\DisabledItems"
     if (Test-Path $regPath) {
@@ -383,8 +396,8 @@ function Save-BuildState {
                 $meta["Tests"] = $global:BeaverTestManifestCache[$relPath]
             } else {
                 $oldState = Get-BuildState
-                if ($null -ne $oldState -and $null -ne $oldState.Metadata -and $null -ne $oldState.Metadata.$relPath) {
-                    $oldMeta = $oldState.Metadata.$relPath
+                if ($null -ne $oldState -and $null -ne $oldState.Metadata -and $null -ne $oldState.Metadata.PSObject.Properties[$relPath]) {
+                    $oldMeta = $oldState.Metadata.PSObject.Properties[$relPath].Value
                     if ($oldMeta.PSObject.Properties.Name -contains "Tests" -and $null -ne $oldMeta.Tests) {
                         $meta["Tests"] = @($oldMeta.Tests)
                     }
@@ -396,8 +409,8 @@ function Save-BuildState {
                 $meta["LintPassed"] = $global:BeaverLintStatusCache[$relPath]
             } else {
                 $oldState = Get-BuildState
-                if ($null -ne $oldState -and $null -ne $oldState.Metadata -and $null -ne $oldState.Metadata.$relPath) {
-                    $oldMeta = $oldState.Metadata.$relPath
+                if ($null -ne $oldState -and $null -ne $oldState.Metadata -and $null -ne $oldState.Metadata.PSObject.Properties[$relPath]) {
+                    $oldMeta = $oldState.Metadata.PSObject.Properties[$relPath].Value
                     if ($oldMeta.PSObject.Properties.Name -contains "LintPassed" -and $null -ne $oldMeta.LintPassed) {
                         $meta["LintPassed"] = [bool]$oldMeta.LintPassed
                     }
@@ -412,6 +425,7 @@ function Save-BuildState {
         LastBuildTime = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssK")
         Files = $FileHashes
         Metadata = $metadata
+        ManifestStructuralHash = (Get-ManifestStructuralHash -Path $featureManifestPath)
     }
     $stateJson = $state | ConvertTo-Json -Depth 10
     [System.IO.File]::WriteAllText($buildStatePath, $stateJson, [System.Text.Encoding]::ASCII)
@@ -465,14 +479,14 @@ function Get-SourceFileHashes {
         if (-not (Test-Path $filePath)) { return "" }
         $file = Get-Item $filePath
         
-        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.$relPath) {
-            $meta = $buildState.Metadata.$relPath
+        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
+            $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
             $currentSize = $file.Length
             $currentMtime = $file.LastWriteTime.ToFileTime().ToString()
             if ($null -ne $meta.Length -and $null -ne $meta.LastWriteTime -and 
                 $meta.Length -eq $currentSize -and $meta.LastWriteTime -eq $currentMtime) {
-                if ($null -ne $buildState.Files -and $null -ne $buildState.Files.$relPath) {
-                    return $buildState.Files.$relPath
+                if ($null -ne $buildState.Files -and $null -ne $buildState.Files.PSObject.Properties[$relPath]) {
+                    return $buildState.Files.PSObject.Properties[$relPath].Value
                 }
             }
         }
@@ -532,8 +546,8 @@ function Get-AllTestProcedures {
         
         # Check cache
         $cachedTests = $null
-        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.$relPath) {
-            $meta = $buildState.Metadata.$relPath
+        if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
+            $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
             $currentSize = $file.Length
             $currentMtime = $file.LastWriteTime.ToFileTime().ToString()
             if ($null -ne $meta.Length -and $null -ne $meta.LastWriteTime -and 
@@ -831,4 +845,95 @@ function Initialize-ExcelWorkbookSession {
         WasAlreadyOpen = $wasAlreadyOpen
     }
 }
+
+function Get-ManifestStructuralHash {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return "" }
+    
+    $manifest = $null
+    try {
+        $manifest = Get-Content $Path -Raw | ConvertFrom-Json
+    } catch {
+        return ""
+    }
+
+    $getSafeProp = {
+        param($obj, $name)
+        if ($null -ne $obj -and $null -ne $obj.PSObject.Properties[$name]) {
+            return $obj.$name
+        }
+        return $null
+    }
+
+    $tabs = @()
+    if ($null -ne $manifest) {
+        $mTabs = & $getSafeProp $manifest "Tabs"
+        if ($null -eq $mTabs) {
+            $mTabs = & $getSafeProp $manifest "Tab"
+        }
+        if ($null -ne $mTabs) {
+            $tabs = @($mTabs | ForEach-Object { & $getSafeProp $_ "Id" })
+        }
+    }
+
+    $groups = @()
+    if ($null -ne $manifest -and $null -ne $manifest.Groups) {
+        $groups = @($manifest.Groups | ForEach-Object {
+            [pscustomobject]@{
+                Id = & $getSafeProp $_ "Id"
+                TabId = & $getSafeProp $_ "TabId"
+                Features = @($_.Features)
+            }
+        })
+    }
+
+    $features = @()
+    if ($null -ne $manifest -and $null -ne $manifest.Features) {
+        $features = @($manifest.Features | ForEach-Object {
+            $menuItems = & $getSafeProp $_ "MenuItems"
+            [pscustomobject]@{
+                ControlId = & $getSafeProp $_ "ControlId"
+                Type = & $getSafeProp $_ "Type"
+                OnAction = & $getSafeProp $_ "OnAction"
+                Macro = & $getSafeProp $_ "Macro"
+                CommandName = & $getSafeProp $_ "CommandName"
+                CommandClass = & $getSafeProp $_ "CommandClass"
+                RuntimeTestMode = & $getSafeProp $_ "RuntimeTestMode"
+                MenuItems = if ($null -ne $menuItems) { @($menuItems) } else { $null }
+            }
+        })
+    }
+
+    $hotkeys = @()
+    if ($null -ne $manifest -and $null -ne $manifest.Hotkeys) {
+        $hotkeys = @($manifest.Hotkeys | ForEach-Object {
+            [pscustomobject]@{
+                Key = & $getSafeProp $_ "Key"
+                Macro = & $getSafeProp $_ "Macro"
+                CommandName = & $getSafeProp $_ "CommandName"
+            }
+        })
+    }
+
+    $canonicalStruct = [pscustomobject]@{
+        Tabs = $tabs
+        Groups = $groups
+        Features = $features
+        Hotkeys = $hotkeys
+    }
+
+    $json = $canonicalStruct | ConvertTo-Json -Depth 10
+
+    $md5 = [System.Security.Cryptography.MD5]::Create()
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+    $hashBytes = $md5.ComputeHash($bytes)
+    $md5.Dispose()
+
+    $sb = [System.Text.StringBuilder]::new()
+    foreach ($b in $hashBytes) {
+        [void]$sb.Append($b.ToString("x2"))
+    }
+    return $sb.ToString().ToUpperInvariant()
+}
+
 
