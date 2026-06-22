@@ -167,7 +167,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function PromptOption(ByVal promptMsg As String, ByVal title As String, ByVal defaultChoice As String, ByVal options As Variant, ByRef outResult As String) As Boolean
+Public Function PromptOption(ByVal promptMsg As String, ByVal title As String, ByVal defaultChoice As String, ByVal options As Variant, ByRef outResult As String, Optional ByVal prefNamespace As String = vbNullString) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptOption")
     On Error GoTo ErrHandler
 
@@ -195,7 +195,7 @@ Public Function PromptOption(ByVal promptMsg As String, ByVal title As String, B
         GoTo CleanExit
     End If
 
-    frm.ConfigureOptionPicker ResolveTitle(title), promptMsg, defaultChoice, options
+    frm.ConfigureOptionPicker ResolveTitle(title), promptMsg, defaultChoice, options, prefNamespace
     frm.Show
 
     On Error Resume Next
@@ -233,7 +233,8 @@ Public Function PromptMultiOption( _
     ByVal title As String, _
     ByVal options As Variant, _
     ByVal defaultChecked As Variant, _
-    ByRef outSelectedIndices As Variant) As Boolean
+    ByRef outSelectedIndices As Variant, _
+    Optional ByVal prefNamespace As String = vbNullString) As Boolean
     
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptMultiOption")
     On Error GoTo ErrHandler
@@ -276,7 +277,7 @@ Public Function PromptMultiOption( _
         GoTo CleanExit
     End If
 
-    frm.ConfigureMultiOptionPicker ResolveTitle(title), promptMsg, options, defaultChecked
+    frm.ConfigureMultiOptionPicker ResolveTitle(title), promptMsg, options, defaultChecked, prefNamespace
     frm.Show
 
     On Error Resume Next

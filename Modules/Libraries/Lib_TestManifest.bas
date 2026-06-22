@@ -54,6 +54,8 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Features.Test_ModifyData_MixedFormats", filterPattern) Then Lib_Tests_Features.Test_ModifyData_MixedFormats
     If MatchesFilter("Lib_Tests_Features.Test_ModifyData_Undo", filterPattern) Then Lib_Tests_Features.Test_ModifyData_Undo
     If MatchesFilter("Lib_Tests_Features.Test_PasteFormat_Execution", filterPattern) Then Lib_Tests_Features.Test_PasteFormat_Execution
+    If MatchesFilter("Lib_Tests_Features.Test_ProtectedSheet_CanModifyContext", filterPattern) Then Lib_Tests_Features.Test_ProtectedSheet_CanModifyContext
+    If MatchesFilter("Lib_Tests_Features.Test_ProtectedSheet_CommandValidators", filterPattern) Then Lib_Tests_Features.Test_ProtectedSheet_CommandValidators
     If MatchesFilter("Lib_Tests_Features.Test_SingleCell_Bugs_Regression", filterPattern) Then Lib_Tests_Features.Test_SingleCell_Bugs_Regression
     If MatchesFilter("Lib_Tests_Features.Test_StaticSheetWorkbook_Execution", filterPattern) Then Lib_Tests_Features.Test_StaticSheetWorkbook_Execution
     If MatchesFilter("Lib_Tests_Features.Test_TableOfContents_Generation", filterPattern) Then Lib_Tests_Features.Test_TableOfContents_Generation

@@ -95,7 +95,8 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
         "Clean Data Options", _
         cleanOptionsList, _
         cleanDefaultsChecked, _
-        selectedIndices) Then
+        selectedIndices, _
+        "CleanDataOptions") Then
         GoTo CleanExit
     End If
 
@@ -175,7 +176,8 @@ Public Function ShowModifyDataDialog(ByVal ctx As Infra_ActionContext, Optional 
             "Modify Data Options", _
             "Date Fixer", _
             toolOptions, _
-            selectedTool) Then
+            selectedTool, _
+            "ModifyDataToolOptions") Then
             GoTo CleanExit
         End If
     End If
@@ -217,7 +219,8 @@ Public Function ShowModifyDataDialog(ByVal ctx As Infra_ActionContext, Optional 
             "Case Fixer Options", _
             "UPPERCASE", _
             caseOptions, _
-            selectedCase) Then
+            selectedCase, _
+            "CaseFixerCasingOptions") Then
             GoTo CleanExit
         End If
         
@@ -324,7 +327,8 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext, Option
                 "Highlight Data Option", _
                 "Highlight Inconsistent Formulas (yellow)", _
                 highlightOptionsList, _
-                chosenOption) Then
+                chosenOption, _
+                "HighlightDataOptions") Then
                 GoTo CleanExit
             End If
     End Select
@@ -398,7 +402,7 @@ Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext, Optional ByVa
                 "PNG - High-resolution image" & vbCrLf & _
                 "PDF - Print-ready document" & vbCrLf & vbCrLf & _
                 "Choose PNG or PDF.", _
-                BuildDialogTitle("Export"), "PNG", Array("PNG", "PDF"), exportChoice) Then GoTo CleanExit
+                BuildDialogTitle("Export"), "PNG", Array("PNG", "PDF"), exportChoice, "ExportOptions") Then GoTo CleanExit
 
             normalizedChoice = NormalizeChoiceText(exportChoice)
             Select Case normalizedChoice
@@ -523,7 +527,7 @@ Public Function PromptForSheetInsertPosition(ByVal ctx As Infra_ActionContext, B
             "Where should the new sheet be inserted?" & vbCrLf & _
             "Before Current - Place it before the active sheet" & vbCrLf & _
             "After Current  - Place it after the active sheet", _
-            BuildDialogTitle("Create Sheet"), defaultChoice, BuildChoiceArray("Before Current", "After Current"), userChoice) Then GoTo CleanExit
+            BuildDialogTitle("Create Sheet"), defaultChoice, BuildChoiceArray("Before Current", "After Current"), userChoice, "CreateSheetInsertPositionOptions") Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(userChoice)
         If normalizedChoice = "" Then normalizedChoice = UCase$(defaultChoice)
@@ -733,8 +737,8 @@ Private Function ShowInputBox(ByVal promptMsg As String, ByVal title As String, 
     ShowInputBox = Infra_Interaction.PromptText(promptMsg, title, defaultText, outResult)
 End Function
 
-Private Function ShowOptionPicker(ByVal promptMsg As String, ByVal title As String, ByVal defaultChoice As String, ByVal options As Variant, ByRef outResult As String) As Boolean
-    ShowOptionPicker = Infra_Interaction.PromptOption(promptMsg, title, defaultChoice, options, outResult)
+Private Function ShowOptionPicker(ByVal promptMsg As String, ByVal title As String, ByVal defaultChoice As String, ByVal options As Variant, ByRef outResult As String, Optional ByVal prefNamespace As String = vbNullString) As Boolean
+    ShowOptionPicker = Infra_Interaction.PromptOption(promptMsg, title, defaultChoice, options, outResult, prefNamespace)
 End Function
 
 Public Function PromptForWrapMode(ByVal ctx As Infra_ActionContext) As Long
@@ -751,7 +755,7 @@ Public Function PromptForWrapMode(ByVal ctx As Infra_ActionContext) As Long
             "Cell  - Reuse a wrapper formula from another cell" & vbCrLf & _
             "Type  - Enter a formula pattern manually using [value]" & vbCrLf & vbCrLf & _
             "Choose Cell or Type.", _
-            BuildDialogTitle("Wrap"), "Type", Array("Cell", "Type"), userInput) Then GoTo CleanExit
+            BuildDialogTitle("Wrap"), "Type", Array("Cell", "Type"), userInput, "WrapOptions") Then GoTo CleanExit
 
         normalizedChoice = NormalizeChoiceText(userInput)
         If normalizedChoice = "" Then normalizedChoice = "TYPE"
@@ -918,7 +922,7 @@ Private Function PromptForScopeSelection( _
     Dim normalizedChoice As String
 
     Do
-        If Not ShowOptionPicker(promptMsg, BuildDialogTitle(dialogName), defaultChoice, options, userChoice) Then
+        If Not ShowOptionPicker(promptMsg, BuildDialogTitle(dialogName), defaultChoice, options, userChoice, Replace(dialogName, " ", "") & "ScopeOptions") Then
             PromptForScopeSelection = False
             GoTo CleanExit
         End If

@@ -28,7 +28,6 @@ End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("HelloWorld.Execute")
-    Dim guard As New Infra_AppStateGuard
     On Error GoTo ErrHandler
 
     Dim ctx As Infra_ActionContext

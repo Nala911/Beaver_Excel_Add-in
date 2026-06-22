@@ -326,6 +326,33 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+Public Function ValidateWorksheetNotProtected(ByVal context As ICommandContext, Optional ByVal message As String = "The active worksheet is protected. Please unprotect the sheet and try again.") As CommandValidationResult
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateWorksheetNotProtected")
+    On Error GoTo ErrHandler
+
+    Dim ctx As Infra_ActionContext
+    Set ctx = ActionContextFromCommandContext(context)
+
+    If Not ctx Is Nothing Then
+        If Not ctx.WorksheetRef Is Nothing Then
+            If ctx.WorksheetRef.ProtectContents Then
+                Set ValidateWorksheetNotProtected = ValidationFailure(message)
+                Exit Function
+            End If
+        End If
+    End If
+
+    Set ValidateWorksheetNotProtected = ValidationSuccess()
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "ValidateWorksheetNotProtected", Err
+    Set ValidateWorksheetNotProtected = ValidationFailure("Failed to validate worksheet protection.")
+    Resume CleanExit
+End Function
+
+
 Public Function ResolveWorksheetsToProcess(ByVal context As Infra_ActionContext, ByVal scope As TargetScope) As Collection
     Dim tracker As Object: Set tracker = Infra_Error.Track("ResolveWorksheetsToProcess")
     On Error GoTo ErrHandler

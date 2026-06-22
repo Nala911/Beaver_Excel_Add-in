@@ -64,7 +64,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
             Dim choice As String
             If Not Infra_Interaction.PromptOption( _
                 "What would you like to export as PDF?", _
-                "Export PDF", "Sheet", Array("Sheet", "Workbook"), choice) Then
+                "Export PDF", "Sheet", Array("Sheet", "Workbook"), choice, _
+                "ExportPdfOptions") Then
                 GoTo CleanExit
             End If
             exportMode = choice

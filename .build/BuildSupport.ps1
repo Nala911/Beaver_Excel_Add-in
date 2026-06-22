@@ -577,7 +577,11 @@ function Get-FeatureManifest {
     if (-not (Test-Path $ManifestPath)) {
         throw "Feature manifest not found: $ManifestPath"
     }
-    return Get-Content $ManifestPath -Raw | ConvertFrom-Json
+    if ($null -ne $global:BeaverFeatureManifestCache) {
+        return $global:BeaverFeatureManifestCache
+    }
+    $global:BeaverFeatureManifestCache = Get-Content $ManifestPath -Raw | ConvertFrom-Json
+    return $global:BeaverFeatureManifestCache
 }
 
 function Get-ActiveExcelWorkbook {
@@ -622,10 +626,14 @@ function Get-ActiveExcelWorkbook {
 $buildStatePath = Join-Path $PSScriptRoot ".build_state.json"
 
 function Get-BuildState {
+    if ($null -ne $global:BeaverBuildStateCache) {
+        return $global:BeaverBuildStateCache
+    }
     if (Test-Path $buildStatePath) {
         try {
             $content = Get-Content $buildStatePath -Raw
-            return $content | ConvertFrom-Json
+            $global:BeaverBuildStateCache = $content | ConvertFrom-Json
+            return $global:BeaverBuildStateCache
         } catch {
             return $null
         }
@@ -701,7 +709,8 @@ function Save-BuildState {
         ExcelPid = $excelPid
     }
     $stateJson = $state | ConvertTo-Json -Depth 10
-    [System.IO.File]::WriteAllText($buildStatePath, $stateJson, [System.Text.Encoding]::ASCII)
+    [System.IO.File]::WriteAllText($buildStatePath, $stateJson, [System.Text.Encoding]::UTF8)
+    $global:BeaverBuildStateCache = $state
 }
 
 function Set-BuildStateTestsPassed {
@@ -712,7 +721,8 @@ function Set-BuildStateTestsPassed {
     if ($null -ne $buildState) {
         $buildState | Add-Member -NotePropertyName TestsPassed -NotePropertyValue $Passed -Force
         $stateJson = $buildState | ConvertTo-Json -Depth 10
-        [System.IO.File]::WriteAllText($buildStatePath, $stateJson, [System.Text.Encoding]::ASCII)
+        [System.IO.File]::WriteAllText($buildStatePath, $stateJson, [System.Text.Encoding]::UTF8)
+        $global:BeaverBuildStateCache = $buildState
     }
 }
 

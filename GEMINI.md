@@ -62,11 +62,14 @@ Excel Add-in\
 |- ribbon.xml
 |- features.json
 |- config.json
-|- Update.ps1            (Unified pipeline orchestrator)
-|- Build.ps1             (Compilation & XML injection pipeline)
-|- Test.ps1              (VBA unit tests & Ribbon scraper validation)
-|- BuildSupport.ps1      (Shared build & COM execution utilities)
+|- Update.ps1            (Unified pipeline orchestrator stub)
 |- GEMINI.md             (Consolidated project guide)
+|- .build\
+|  |- Update.ps1         (Core orchestrator implementing build & test coordination)
+|  |- Build.ps1          (Compilation & XML injection pipeline)
+|  |- Test.ps1           (VBA unit tests & Ribbon scraper validation runner)
+|  |- BuildSupport.ps1   (Shared build & COM execution utilities)
+|  \- Linter.ps1         (Syntax, style guide, and MSForms Form validation)
 \- Modules\
    |- Commands\
    |  \- FeatCmd_*.cls         ICommand feature implementations
@@ -134,9 +137,10 @@ Excel Add-in\
 ### Build & Sync Workflow
 The build and test pipeline is modularized into separate scripts and optimized for high-performance development (using MD5 hash-based change detection stored in `.\.build_state.json`):
 
-- **Build Pipeline (`.\Build.ps1`)**: Performs validation, generates registries/manifests, compiles, and imports VBA code into `Beaver Add-in.xlsm`.
-- **Test Pipeline (`.\Test.ps1`)**: Verifies Ribbon Custom UI load errors, runs internal VBA unit tests, and executes headless callbacks.
-- **Unified Pipeline (`.\Update.ps1`)**: The orchestrator wrapper that runs both the build and test pipelines sequentially.
+- **Build Pipeline (`.build\Build.ps1`)**: Performs validation, generates registries/manifests, compiles, and imports VBA code into `Beaver Add-in.xlsm`.
+- **Test Pipeline (`.build\Test.ps1`)**: Verifies Ribbon Custom UI load errors, runs internal VBA unit tests, and executes headless callbacks.
+- **Syntax & Style Linter (`.build\Linter.ps1`)**: Performs syntax parsing, style guide compliance checks (such as verifying error handling structures and context tracking), and form companion (`.frx`) file integrity validation.
+- **Unified Pipeline (`.\Update.ps1` stub / `.build\Update.ps1` orchestrator)**: Orchestrates the build, synchronization, linter execution, and test runs.
 
 #### Pipeline Execution Modes
 
@@ -150,7 +154,7 @@ The pipeline operates in an automated, highly-optimized manner without requiring
 
 Use the following commands from PowerShell:
 ```powershell
-# Unified Run: Runs incremental or full build and runs ALL tests in the active Excel session
+# Unified Run: Runs incremental or full build, lint check, and ALL tests in the active Excel session
 .\Update.ps1
 
 # Fast-Iteration: Keeps Excel session open so subsequent runs are extremely fast (<1.5s)
@@ -163,7 +167,7 @@ Use the following commands from PowerShell:
 .\Update.ps1 -SkipRuntimeTests
 
 # Run specific tests on the active Excel session directly without rebuilding
-.\Test.ps1 -Filter "*CleanData*"
+.\.build\Test.ps1 -Filter "*CleanData*"
 ```
 
 #### Guidelines for AI Agents:
@@ -299,6 +303,7 @@ graph TD
   - **Single-Select Behavior**: In single-select mode, clicking or double-clicking any list option immediately confirms the selection and hides the picker. It uses a row height based on font size + 5, and is capped at a maximum height of 8 visible options.
   - **Multi-Select Behavior**: In multi-select mode, options display in a custom checklist format (using Unicode ballot box checkbox prefixes `☐` and `☑`) inside a single-select list box, ensuring standard blue selection highlights for visible keyboard arrow navigation. The list box font is programmatically configured to **Segoe UI** to support Unicode checkbox characters natively without fallback height mismatches. Clicking (on `MouseUp`) or pressing `Spacebar` toggles the checked prefix state, while keyboard arrow keys safely navigate and select items without toggling them. It uses a row height of font size + 8, and is capped at a maximum height of 12 visible options. Confirming is done via pressing Enter or clicking OK, and cancelling is done via pressing Escape, clicking Cancel, or closing the window.
   - **Keyboard Navigation**: Active focus is programmatically set to the list box control (`lstHotkeys.SetFocus`) on form activation. It supports visual non-selectable section headers prefixed with a diamond bullet (`◆`), which are automatically skipped during arrow-key navigation. Pressing Enter (`vbKeyReturn`) confirms the selection, and Escape (`vbKeyEscape`) cancels.
+  - **Preference Namespacing**: Use the optional `prefNamespace` parameter in `UI_OptionPicker` configuration and corresponding helper APIs (`PromptOption`, `PromptMultiOption`) to save and load user preference keys under distinct namespace prefixes in the registry. This keeps choice preferences completely isolated across different features.
 - **Free-form inputs** (e.g. formula patterns) must use text prompts.
 - **Save destinations** (e.g. duplicate/export flows) must use a shared Save As picker with Desktop-based defaults and overwrite confirmation.
 - **Ribbon Icon Selection**: When choosing or modifying icons (`imageMso`) in `features.json`, you must only use identifiers that are natively verified and loaded in Microsoft Excel (e.g., `TableProperties`, `TableOfContentsDialog`, `ErrorChecking`, `FunctionWizard`, `CalculateNow`, `Clear`, `ChangeCase`, `ConditionalFormattingMenu`, `WorkbookLinks`, `FileSaveAs`, `Export`, `Help`, `HappyFace`). Do not use Access-only, Word-only, or custom application-specific icons (like `ReportInsert`, `InsertTableOfContents`, `StatusSpreadsheet`, or `DocumentInspector`) as they will throw runtime Custom UI XML errors when Excel loads the add-in.
@@ -421,7 +426,9 @@ graph TD
 - Use `Infra_Undo.SaveStateOrConfirm` before mutating worksheet ranges to check and register undo buffers. This unified helper automatically verifies if the range size is within safety limits and prompts/warns the user if it is not.
 - Use `Infra_CommandSupport.GetSafeProcessingRange` to limit active selection/target processing ranges to the worksheet's active `UsedRange` based on config-defined safety thresholds, preventing performance degradation on whole column/row selections.
 - Use `Infra_CommandSupport.GetSheetBreakableCounts` to count external formulas, links, pivot tables, and query tables on a sheet, preventing duplicate cell scanning logic across features.
-- Flexible linter checks inside `Update.ps1` scan the entire procedure body to verify `Infra_Error.Track` is used, supporting descriptive comments at the top of public procedures.
+- Enforce worksheet protection validations using `Infra_CommandSupport.ValidateWorksheetNotProtected` during command validation (`ICommand_Validate`) to prevent runtime failures on locked sheets.
+- Use `ExcelContextProvider.CanModifyContext` to safely check if the active selection range is modifiable on protected sheets, properly accounting for mixed cell locking configurations.
+- Flexible linter checks inside `.build\Linter.ps1` (integrated with `Build.ps1`) scan the entire procedure body to verify `Infra_Error.Track` is used, supporting descriptive comments at the top of public procedures.
 - Do not manually edit generated files (`UI_Ribbon.bas`, `UI_Hotkeys.bas`, `Infra_CommandRegistry.bas`, `Lib_TestManifest.bas`).
 - Always check `Application.Visible` or use standardized `Infra_Interaction` wrappers when displaying warning or information message boxes, to prevent automated/headless test suites or background processes from hanging on modal dialog prompts.
 

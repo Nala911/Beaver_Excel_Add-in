@@ -26,7 +26,30 @@ Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
 End Property
 
 Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
-    Set ICommand_Validate = Infra_CommandSupport.ValidateHasWorksheet(context)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ModifyData.Validate")
+    On Error GoTo ErrHandler
+
+    Dim result As CommandValidationResult
+    Set result = Infra_CommandSupport.ValidateHasWorksheet(context)
+    If Not result.IsExecutable Then
+        Set ICommand_Validate = result
+        Exit Function
+    End If
+
+    Set result = Infra_CommandSupport.ValidateWorksheetNotProtected(context, "Cannot modify data on a protected worksheet. Please unprotect the sheet and try again.")
+    If Not result.IsExecutable Then
+        Set ICommand_Validate = result
+        Exit Function
+    End If
+
+    Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "ModifyData.Validate", Err
+    Set ICommand_Validate = Infra_CommandSupport.ValidationFailure("The data cannot be modified right now.")
+    Resume CleanExit
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)

@@ -27,6 +27,7 @@ Private mConfirmed As Boolean
 Private mSelectedValue As String
 Private mIgnoreClick As Boolean
 Private mIsMultiSelectCheckList As Boolean
+Private mPrefNamespace As String
 
 Public Property Get IsIgnoringClick() As Boolean
     IsIgnoringClick = mIgnoreClick
@@ -49,6 +50,7 @@ Private Sub UserForm_Initialize()
     mSelectedValue = vbNullString
     mIgnoreClick = False
     mIsMultiSelectCheckList = False
+    mPrefNamespace = vbNullString
     
     ' Hide controls so they do not show in the option picker window by default
     On Error Resume Next
@@ -58,7 +60,15 @@ Private Sub UserForm_Initialize()
     On Error GoTo 0
 End Sub
 
-Public Sub ConfigureOptionPicker(ByVal dialogTitle As String, ByVal promptText As String, ByVal defaultChoice As String, ByVal options As Variant)
+Private Function GetPreferenceNamespace() As String
+    If mPrefNamespace <> vbNullString Then
+        GetPreferenceNamespace = mPrefNamespace
+    Else
+        GetPreferenceNamespace = Me.Caption
+    End If
+End Function
+
+Public Sub ConfigureOptionPicker(ByVal dialogTitle As String, ByVal promptText As String, ByVal defaultChoice As String, ByVal options As Variant, Optional ByVal prefNamespace As String = vbNullString)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ConfigureOptionPicker")
     On Error GoTo ErrHandler
 
@@ -66,6 +76,7 @@ Public Sub ConfigureOptionPicker(ByVal dialogTitle As String, ByVal promptText A
     mSelectedValue = vbNullString
     mIgnoreClick = False
     mIsMultiSelectCheckList = False
+    mPrefNamespace = prefNamespace
 
     Me.Caption = dialogTitle
     
@@ -91,7 +102,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Public Sub ConfigureMultiOptionPicker(ByVal dialogTitle As String, ByVal promptText As String, ByVal options As Variant, ByVal defaultChecked As Variant)
+Public Sub ConfigureMultiOptionPicker(ByVal dialogTitle As String, ByVal promptText As String, ByVal options As Variant, ByVal defaultChecked As Variant, Optional ByVal prefNamespace As String = vbNullString)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ConfigureMultiOptionPicker")
     On Error GoTo ErrHandler
 
@@ -99,6 +110,7 @@ Public Sub ConfigureMultiOptionPicker(ByVal dialogTitle As String, ByVal promptT
     mSelectedValue = vbNullString
     mIgnoreClick = False
     mIsMultiSelectCheckList = True
+    mPrefNamespace = prefNamespace
 
     Me.Caption = dialogTitle
     
@@ -140,7 +152,7 @@ Private Sub LoadMultiOptionList(ByVal options As Variant, ByVal defaultChecked A
                         .AddItem candidateValue
                     Else
                         ' Load setting from registry if present
-                        regKey = Me.Caption & "_" & candidateValue
+                        regKey = GetPreferenceNamespace() & "_" & candidateValue
                         regKey = Replace(regKey, " ", "_")
                         
                         savedSetting = Infra_Interaction.GetUserPreference("Preferences", regKey, vbNullString)
@@ -415,7 +427,7 @@ Private Sub ConfirmSelection()
             If Not IsHeader(itemText) Then
                 Dim cleanText As String
                 cleanText = Mid$(itemText, PrefixLen + 1)
-                regKey = Me.Caption & "_" & cleanText
+                regKey = GetPreferenceNamespace() & "_" & cleanText
                 regKey = Replace(regKey, " ", "_")
                 
                 Dim isChecked As Boolean
@@ -449,7 +461,7 @@ Private Sub ConfirmSelection()
             
             For i = 0 To lstHotkeys.ListCount - 1
                 itemText = Trim$(CStr(lstHotkeys.List(i)))
-                regKey = Me.Caption & "_" & itemText
+                regKey = GetPreferenceNamespace() & "_" & itemText
                 regKey = Replace(regKey, " ", "_")
                 Infra_Interaction.SaveUserPreference "Preferences", regKey, CStr(lstHotkeys.Selected(i))
             Next i

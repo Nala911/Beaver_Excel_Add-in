@@ -69,7 +69,16 @@ Public Function CanModifyContext(ByVal ctx As Infra_ActionContext) As Boolean
     If Not ctx.WorksheetRef.ProtectContents Then
         CanModifyContext = True
     Else
-        CanModifyContext = Not ctx.ActiveCellRef.Locked
+        Dim hasLocked As Boolean
+        If ctx.SelectionRange.Cells.CountLarge = 1 Then
+            hasLocked = ctx.SelectionRange.Locked
+        Else
+            hasLocked = IsNull(ctx.SelectionRange.Locked)
+            If Not hasLocked Then
+                hasLocked = ctx.SelectionRange.Locked
+            End If
+        End If
+        CanModifyContext = Not hasLocked
     End If
 
 CleanExit:

@@ -29,6 +29,9 @@ $global:BeaverSourceHashes = $null
 $global:BeaverSharedExcel = $null
 $global:BeaverExcelWasAlreadyOpen = $false
 $global:BeaverWorkbookWasAlreadyOpen = $false
+$global:BeaverBuildStateCache = $null
+$global:BeaverFeatureManifestCache = $null
+$global:BeaverFileContentCache = $null
 
 try {
     if ($ListTests) {

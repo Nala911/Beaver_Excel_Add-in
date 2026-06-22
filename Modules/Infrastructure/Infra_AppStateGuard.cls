@@ -24,7 +24,7 @@ Private m_DisplayAlerts As Boolean
 Private m_Calculation As XlCalculation
 
 Private Sub Class_Initialize()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("AppStateGuard.Class_Initialize")
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Infra_AppStateGuard.Class_Initialize")
     On Error GoTo ErrHandler
 
     ' Capture Current State
@@ -57,7 +57,7 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    Infra_Error.HandleError "AppStateGuard.Class_Initialize", Err
+    Infra_Error.HandleError "Infra_AppStateGuard.Class_Initialize", Err
     Resume CleanExit
 End Sub
 
@@ -120,7 +120,7 @@ Public Property Let Silent(ByVal val As Boolean)
 End Property
 
 Public Sub UpdateState()
-    Dim tracker As Object: Set tracker = Infra_Error.Track("AppStateGuard.UpdateState")
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Infra_AppStateGuard.UpdateState")
     On Error GoTo ErrHandler
     
     With Application
@@ -134,6 +134,6 @@ CleanExit:
     Exit Sub
 
 ErrHandler:
-    Infra_Error.HandleError "AppStateGuard.UpdateState", Err
+    Infra_Error.HandleError "Infra_AppStateGuard.UpdateState", Err
     Resume CleanExit
 End Sub

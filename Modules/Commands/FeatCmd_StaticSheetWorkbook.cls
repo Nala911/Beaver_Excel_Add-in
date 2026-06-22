@@ -41,6 +41,12 @@ Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandV
         Exit Function
     End If
 
+    Set result = Infra_CommandSupport.ValidateWorksheetNotProtected(context, "Cannot make formulas static on a protected worksheet. Please unprotect the sheet and try again.")
+    If Not result.IsExecutable Then
+        Set ICommand_Validate = result
+        Exit Function
+    End If
+
     Set ICommand_Validate = Infra_CommandSupport.ValidationSuccess()
 
 CleanExit:

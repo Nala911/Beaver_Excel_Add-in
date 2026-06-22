@@ -3013,3 +3013,109 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_ProtectedSheet_CanModifyContext()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ProtectedSheet_CanModifyContext")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim wb As Workbook: Set wb = Workbooks.Add
+    Dim ws As Worksheet: Set ws = wb.Worksheets(1)
+
+    ' Unlock A1, leave B1 locked (default)
+    ws.Range("A1").Locked = False
+    ws.Range("B1").Locked = True
+
+    ' Protect sheet
+    ws.Protect Password:="test"
+
+    ' Setup action context
+    Dim ctx As Infra_ActionContext
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    ' 1. Select A1 (unlocked)
+    ws.Range("A1").Select
+    Set ctx = Infra_AppState.CaptureActionContext()
+    Lib_Tests.AssertTrue Infra_AppState.CanModifyContext(ctx), "Unlocked cell A1 should be modifiable on protected sheet"
+
+    ' 2. Select B1 (locked)
+    ws.Range("B1").Select
+    Set ctx = Infra_AppState.CaptureActionContext()
+    Lib_Tests.AssertTrue Not Infra_AppState.CanModifyContext(ctx), "Locked cell B1 should not be modifiable on protected sheet"
+
+    ' 3. Select A1:B1 (mixed)
+    ws.Range("A1:B1").Select
+    Set ctx = Infra_AppState.CaptureActionContext()
+    Lib_Tests.AssertTrue Not Infra_AppState.CanModifyContext(ctx), "Mixed range A1:B1 should not be modifiable on protected sheet"
+
+    ' Unprotect and check
+    ws.Unprotect Password:="test"
+    ws.Range("A1:B1").Select
+    Set ctx = Infra_AppState.CaptureActionContext()
+    Lib_Tests.AssertTrue Infra_AppState.CanModifyContext(ctx), "Range should be modifiable when worksheet is unprotected"
+
+    wb.Close SaveChanges:=False
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ProtectedSheet_CanModifyContext", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ProtectedSheet_CommandValidators()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ProtectedSheet_CommandValidators")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim wb As Workbook: Set wb = Workbooks.Add
+    Dim ws As Worksheet: Set ws = wb.Worksheets(1)
+
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    
+    ' Protect sheet
+    ws.Protect Password:="test"
+    
+    Dim context As ICommandContext
+    Set context = AppContainer.CreateCommandContext("CleanData", "UI_Ribbon.Ribbon_OnCleanData", "Ribbon_OnCleanData", "Ribbon")
+
+    ' 1. CleanData validation
+    Dim cleanCmd As ICommand: Set cleanCmd = New FeatCmd_CleanData
+    Dim cleanRes As CommandValidationResult
+    Set cleanRes = cleanCmd.Validate(context)
+    Lib_Tests.AssertTrue Not cleanRes.IsExecutable, "CleanData should not validate on protected sheet"
+    
+    ' 2. ModifyData validation
+    Dim modifyCmd As ICommand: Set modifyCmd = New FeatCmd_ModifyData
+    Dim modifyRes As CommandValidationResult
+    Set modifyRes = modifyCmd.Validate(context)
+    Lib_Tests.AssertTrue Not modifyRes.IsExecutable, "ModifyData should not validate on protected sheet"
+
+    ' 3. StaticSheetWorkbook validation
+    Dim staticCmd As ICommand: Set staticCmd = New FeatCmd_StaticSheetWorkbook
+    Dim staticRes As CommandValidationResult
+    Set staticRes = staticCmd.Validate(context)
+    Lib_Tests.AssertTrue Not staticRes.IsExecutable, "StaticSheetWorkbook should not validate on protected sheet"
+
+    ' Unprotect sheet
+    ws.Unprotect Password:="test"
+
+    ' Re-validate CleanData
+    Set cleanRes = cleanCmd.Validate(context)
+    Lib_Tests.AssertTrue cleanRes.IsExecutable, "CleanData should validate on unprotected sheet"
+
+    wb.Close SaveChanges:=False
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ProtectedSheet_CommandValidators", Err
+    Resume CleanExit
+End Sub
+
+
