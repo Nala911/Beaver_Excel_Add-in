@@ -136,9 +136,19 @@ function Invoke-HeadlessCallbackTests {
 
             $ExcelApplication.Run($callbackName, $null)
             Write-Host "    [PASS] $callbackName" -ForegroundColor Green
+            if ($null -ne $global:BeaverBuildLog) {
+                $global:BeaverBuildLog.testResults.headlessCallbacks.passedCount++
+            }
             $passed++
         } catch {
             Write-Host "    [FAIL] $callbackName - $($_.Exception.Message)" -ForegroundColor Red
+            if ($null -ne $global:BeaverBuildLog) {
+                $global:BeaverBuildLog.testResults.headlessCallbacks.status = "failure"
+                [void]$global:BeaverBuildLog.testResults.headlessCallbacks.failures.Add([ordered]@{
+                    name = $callbackName
+                    error = $_.Exception.Message
+                })
+            }
             throw "Headless callback failed for '$callbackName': $($_.Exception.Message)"
         } finally {
             if ($null -ne $originalFormulaBar) {
@@ -154,6 +164,8 @@ function Invoke-HeadlessCallbackTests {
                 } catch {
                     # Best-effort cleanup only.
                 }
+                Release-ComObjectSafely $activeWindow
+                $activeWindow = $null
             }
         }
     }
@@ -317,10 +329,17 @@ try {
                         Write-Host "  ERROR: Ribbon UI Validation failed." -ForegroundColor Red
                         $cleanError = $ribbonError -replace "\r\n+", " | " -replace "\s+", " "
                         Write-Host "  [Diagnostics] $cleanError" -ForegroundColor Yellow
+                        if ($null -ne $global:BeaverBuildLog) {
+                            $global:BeaverBuildLog.testResults.ribbonValidation.status = "failure"
+                            $global:BeaverBuildLog.testResults.ribbonValidation.error = $cleanError
+                        }
                         throw "Ribbon UI Error: $cleanError"
                     }
 
                     Write-Host "  Ribbon UI loaded without errors." -ForegroundColor Green
+                    if ($null -ne $global:BeaverBuildLog) {
+                        $global:BeaverBuildLog.testResults.ribbonValidation.status = "success"
+                    }
                 } else {
                     $testWorkbook = $testExcel.Workbooks.Open($excelPath)
                 }
@@ -329,6 +348,9 @@ try {
                     $testWorkbook = $testExcel.Workbooks.Open($excelPath)
                 }
                 Write-Host "  Skipped Ribbon UI validation." -ForegroundColor Yellow
+                if ($null -ne $global:BeaverBuildLog) {
+                    $global:BeaverBuildLog.testResults.ribbonValidation.status = "skipped"
+                }
             }
 
             if ($testWorkbook.ReadOnly) {
@@ -356,6 +378,7 @@ try {
                 if (-not $Visible) { $testExcel.Visible = $false }
 
                 Write-Host "Running internal unit tests..." -ForegroundColor Cyan
+                $unitTestStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
                 try {
                     $retryCount = 0
                     $maxRetries = 5
@@ -394,9 +417,36 @@ try {
                         Write-Host "  ----------------------------------`n" -ForegroundColor Yellow
                     }
                     throw "Unit tests failed: $($_.Exception.Message)"
+                } finally {
+                    $unitTestStopwatch.Stop()
                 }
 
                 $structuredResults = Read-StructuredTestResults -Path $structuredTestResultsPath
+                if ($null -ne $global:BeaverBuildLog) {
+                    $global:BeaverBuildLog.testResults.runTests = $true
+                    $global:BeaverBuildLog.testResults.filter = $Filter
+                    if ($null -ne $structuredResults) {
+                        $global:BeaverBuildLog.testResults.unitTests.total = $structuredResults.Summary.Total
+                        $global:BeaverBuildLog.testResults.unitTests.passed = $structuredResults.Summary.Passed
+                        $global:BeaverBuildLog.testResults.unitTests.failed = $structuredResults.Summary.Failed
+                        
+                        $failures = New-Object System.Collections.ArrayList
+                        foreach ($res in $structuredResults.Results) {
+                            if (-not $res.Passed) {
+                                [void]$failures.Add([ordered]@{
+                                    name = $res.Name
+                                    category = $res.Category
+                                    message = $res.Message
+                                    durationMs = $res.DurationMs
+                                })
+                            }
+                        }
+                        $global:BeaverBuildLog.testResults.unitTests.failures = $failures
+                        
+                        $testDur = [int]$unitTestStopwatch.Elapsed.TotalMilliseconds
+                        $global:BeaverBuildLog.testResults.unitTests.durationMs = $testDur
+                    }
+                }
                 try {
                     Assert-StructuredTestResults -StructuredResults $structuredResults -Path $structuredTestResultsPath | Out-Null
                 } catch {
@@ -443,10 +493,15 @@ try {
                     $testExcel.DisplayAlerts = $true
                 } catch { }
             }
+            Release-ComObjectSafely $testWorkbook
+            Release-ComObjectSafely $testExcel
+            $testWorkbook = $null
+            $testExcel = $null
         }
     } | Out-Null
 
     Write-StageSummary
+    Save-BuildLog -Status "success"
 } catch {
     Stop-Script $_.Exception.Message
 } finally {
@@ -471,4 +526,5 @@ try {
         Release-ComObjectSafely $sharedExcel
         $sharedExcel = $null
     }
+    Clear-AccumulatedLogs
 }

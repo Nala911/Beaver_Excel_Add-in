@@ -9,6 +9,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
+Implements IRequest
+
 ' @Module: Infra_HighlightDataRequest
 ' @Category: Core
 ' @Description: Typed request describing the target scope, action context, and data highlighting options.
@@ -22,10 +24,22 @@ Public HighlightInconsistentFormulas As Boolean
 Public HighlightDuplicates As Boolean
 Public HighlightErrors As Boolean
 Public HighlightHardcodedValues As Boolean
+Public HighlightDataValidations As Boolean
+Public HighlightConditionalFormatting As Boolean
 
 Private Sub Class_Initialize()
     HighlightInconsistentFormulas = True
     HighlightDuplicates = True
     HighlightErrors = False
     HighlightHardcodedValues = False
+    HighlightDataValidations = False
+    HighlightConditionalFormatting = False
 End Sub
+
+Private Property Get IRequest_Context() As Infra_ActionContext
+    Set IRequest_Context = Me.Context
+End Property
+
+Private Property Get IRequest_Scope() As TargetScope
+    IRequest_Scope = Me.Scope
+End Property

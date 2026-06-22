@@ -142,6 +142,8 @@ The build and test pipeline is modularized into separate scripts and optimized f
 
 The pipeline operates in an automated, highly-optimized manner without requiring any manual execution mode switches:
 - **Incremental Import & Reload (Default)**: If only VBA code changes, the scripts attach to the active Excel application process (if already running), remove only the modified modules (using actual component name parsing to prevent duplication), re-import them in-place, and run tests. If Excel was already open before running the pipeline, it remains open; if the script started a new Excel instance, it saves the workbook and quits Excel upon completion to prevent background file locks.
+- **Fast-Iteration COM Session Keep-Alive (`-KeepAlive`)**: When running with the `-KeepAlive` switch, the script leaves the Excel COM session and workbook open on screen upon completion. Subsequent runs will instantly attach to this running session, reimport modified components, and execute tests in **under 1.5 seconds** (skipping Excel and workbook startup overhead).
+- **Self-Healing Lock Recovery**: If background or orphaned Excel processes lock the workbook file as `Read-Only` during a run, the pipeline automatically detects the state, closes the read-only file, terminates non-responsive/hidden background Excel instances, cleans up orphaned lock files (`~$*.xlsm`), restores the COM session context, and reopens the workbook in write mode to proceed.
 - **Auto-Detect Manifest Changes**: If `features.json` is modified, the script automatically closes the workbook to unlock the file, performs manifest/registry regeneration and Ribbon XML zip injection, reopens the workbook, and executes the Ribbon XML validation check.
 - **Smart Test Filtering (Auto-Filter)**: When running a standard incremental build of command modules, the pipeline automatically detects which command files were changed and configures a default targeted filter to execute *only* the tests relevant to those features. This accelerates test cycles from ~4 seconds to ~1 second. It automatically falls back to running the full test suite if any core, library, or infrastructure files are modified.
 - **Targeted Testing (`-Filter` Parameter)**: Allows executing specific tests or a subset of tests using wildcard pattern matching (e.g. `*CleanData*` or `*Undo*`) dynamically inside the VBA runner.
@@ -151,8 +153,11 @@ Use the following commands from PowerShell:
 # Unified Run: Runs incremental or full build and runs ALL tests in the active Excel session
 .\Update.ps1
 
-# Targeted Iteration: Run incremental build and only tests matching "CleanData"
-.\Update.ps1 -Filter "CleanData"
+# Fast-Iteration: Keeps Excel session open so subsequent runs are extremely fast (<1.5s)
+.\Update.ps1 -KeepAlive
+
+# Targeted Iteration with Caching: Run incremental build and only tests matching "CleanData" while keeping Excel open
+.\Update.ps1 -Filter "CleanData" -KeepAlive
 
 # Build Only: Performs the build, synchronization, and compile stages but skips tests
 .\Update.ps1 -SkipRuntimeTests
@@ -162,7 +167,7 @@ Use the following commands from PowerShell:
 ```
 
 #### Guidelines for AI Agents:
-1. **Iterate with Filtered Tests**: When developing or refactoring, always use `.\Update.ps1 -Filter <FeatureName>` to compile and verify changes in under 1.5 seconds.
+1. **Iterate with Keep-Alive & Filtered Tests**: When developing or refactoring, always use `.\Update.ps1 -Filter <FeatureName> -KeepAlive` to compile, reload, and verify changes in under 1.5 seconds without closing Excel.
 2. **Final Verification**: Before completing any task, you **MUST** run the full `.\Update.ps1` (with no filters or flags) to verify clean compilation, Ribbon UI validation, and that all 300+ unit tests pass successfully.
 
 #### Prerequisites:
@@ -172,7 +177,7 @@ Use the following commands from PowerShell:
 ### Validation Order
 When validating changes, verify in this order:
 1. **Manifest/config consistency**: Ensure JSON files are valid and match each other.
-2. **Standard Validation**: Run `.\Update.ps1 -Filter <FeatureName>` to quickly verify compile and unit test success.
+2. **Standard Validation**: Run `.\Update.ps1 -Filter <FeatureName> -KeepAlive` to quickly verify compile and unit test success.
 3. **Full Production Validation**: Run `.\Update.ps1` to ensure the final clean compilation and full test suite execution pass cleanly.
 
 ---
@@ -244,7 +249,7 @@ graph TD
 - `StaticSheetWorkbook` -> `FeatCmd_StaticSheetWorkbook`
 - `CleanData` -> `FeatCmd_CleanData`
 - `ModifyData` -> `FeatCmd_ModifyData` (Acts as the command class for menus like `DateFixer` and `CaseFixer`)
-- `HighlightData` -> `FeatCmd_HighlightData` (Acts as the command class for `HighlightInconsistentFormulas`, `HighlightDuplicates`, `HighlightErrors`, and `HighlightHardcodedValues`)
+- `HighlightData` -> `FeatCmd_HighlightData` (Acts as the command class for `HighlightInconsistentFormulas`, `HighlightDuplicates`, `HighlightErrors`, `HighlightHardcodedValues`, `HighlightDataValidations`, and `HighlightConditionalFormatting`)
 - `BreakExternalLinks` -> `FeatCmd_BreakExternalLinks`
 - `Duplicate` -> `FeatCmd_Duplicate`
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf` (Acts as the command class for `ExportPng` and `ExportPdf`)
@@ -286,10 +291,10 @@ graph TD
 
 *UI Interaction Design Rules:*
 - **Fixed-choice and multi-select checkbox flows** (e.g. Clean Data options, Export format, Make Static scope, Break Links scope, Wrap mode, and sheet placement) must use the reusable `UI_OptionPicker` UserForm:
-  - **Dynamic Sizing**: The layout and window size of the picker are calculated dynamically (via `ResizeOptionPickerLayout`) based on the length of the longest option text and option count. Standard form elements like title prompts, OK, and Cancel buttons are hidden (`Visible = False`) to prevent extra empty space.
+  - **Dynamic Sizing**: The layout and window size of the picker are calculated dynamically (via `ResizeOptionPickerLayout`) based on the length of the longest option text and option count. Standard form elements like title prompts are hidden to prevent extra empty space. In multi-select mode, OK and Cancel buttons are programmatically displayed and positioned at the bottom of the list box.
   - **Single-Select Behavior**: In single-select mode, clicking or double-clicking any list option immediately confirms the selection and hides the picker. It uses a row height based on font size + 5, and is capped at a maximum height of 8 visible options.
-  - **Multi-Select Behavior**: In multi-select mode, options display with checkboxes. It uses a row height of font size + 8, and is capped at a maximum height of 10 visible options. Confirming is done via pressing Enter, and cancelling is done via pressing Escape or closing the window.
-  - **Keyboard Navigation**: Active focus is programmatically set to the list box control (`lstHotkeys.SetFocus`) on form activation. Pressing Enter (`vbKeyReturn`) confirms the selection, and Escape (`vbKeyEscape`) cancels.
+  - **Multi-Select Behavior**: In multi-select mode, options display in a custom checklist format (using Unicode ballot box checkbox prefixes `☐` and `☑`) inside a single-select list box, ensuring standard blue selection highlights for visible keyboard arrow navigation. The list box font is programmatically configured to **Segoe UI** to support Unicode checkbox characters natively without fallback height mismatches. Clicking (on `MouseUp`) or pressing `Spacebar` toggles the checked prefix state, while keyboard arrow keys safely navigate and select items without toggling them. It uses a row height of font size + 8, and is capped at a maximum height of 12 visible options. Confirming is done via pressing Enter or clicking OK, and cancelling is done via pressing Escape, clicking Cancel, or closing the window.
+  - **Keyboard Navigation**: Active focus is programmatically set to the list box control (`lstHotkeys.SetFocus`) on form activation. It supports visual non-selectable section headers prefixed with a diamond bullet (`◆`), which are automatically skipped during arrow-key navigation. Pressing Enter (`vbKeyReturn`) confirms the selection, and Escape (`vbKeyEscape`) cancels.
 - **Free-form inputs** (e.g. formula patterns) must use text prompts.
 - **Save destinations** (e.g. duplicate/export flows) must use a shared Save As picker with Desktop-based defaults and overwrite confirmation.
 - **Ribbon Icon Selection**: When choosing or modifying icons (`imageMso`) in `features.json`, you must only use identifiers that are natively verified and loaded in Microsoft Excel (e.g., `TableProperties`, `TableOfContentsDialog`, `ErrorChecking`, `FunctionWizard`, `CalculateNow`, `Clear`, `ChangeCase`, `ConditionalFormattingMenu`, `WorkbookLinks`, `FileSaveAs`, `Export`, `Help`, `HappyFace`). Do not use Access-only, Word-only, or custom application-specific icons (like `ReportInsert`, `InsertTableOfContents`, `StatusSpreadsheet`, or `DocumentInspector`) as they will throw runtime Custom UI XML errors when Excel loads the add-in.

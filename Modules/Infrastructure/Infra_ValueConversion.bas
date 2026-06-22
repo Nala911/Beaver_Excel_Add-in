@@ -582,3 +582,42 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+' Centralized helper to map Excel CVErr values to their string representations.
+Public Function GetExcelErrorText(ByVal errVal As Variant) As String
+    If Not IsError(errVal) Then
+        GetExcelErrorText = CStr(errVal)
+        Exit Function
+    End If
+    
+    Select Case errVal
+        Case CVErr(xlErrDiv0): GetExcelErrorText = "#DIV/0!"
+        Case CVErr(xlErrNull): GetExcelErrorText = "#NULL!"
+        Case CVErr(xlErrNA): GetExcelErrorText = "#N/A"
+        Case CVErr(xlErrName): GetExcelErrorText = "#NAME?"
+        Case CVErr(xlErrNum): GetExcelErrorText = "#NUM!"
+        Case CVErr(xlErrRef): GetExcelErrorText = "#REF!"
+        Case CVErr(xlErrValue): GetExcelErrorText = "#VALUE!"
+        Case Else: GetExcelErrorText = "#ERROR!"
+    End Select
+End Function
+
+' Centralized helper to determine local system date pattern (dd-mm-yyyy, mm-dd-yyyy, or yyyy-mm-dd).
+Public Function GetSystemDateFormatPattern() As String
+    Dim dateOrder As Long
+    On Error Resume Next
+    dateOrder = Application.International(xlDateOrder)
+    If Err.Number <> 0 Then
+        dateOrder = 1 ' Default to DMY (1) if not in Excel environment
+        Err.Clear
+    End If
+    On Error GoTo 0
+    
+    Select Case dateOrder
+        Case 0: GetSystemDateFormatPattern = "mm-dd-yyyy"
+        Case 1: GetSystemDateFormatPattern = "dd-mm-yyyy"
+        Case 2: GetSystemDateFormatPattern = "yyyy-mm-dd"
+        Case Else: GetSystemDateFormatPattern = "dd-mm-yyyy"
+    End Select
+End Function
+
+

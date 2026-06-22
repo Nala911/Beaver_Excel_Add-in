@@ -58,21 +58,37 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
     Dim cleanDefaultsChecked As Variant
     Dim selectedIndices As Variant
     Dim idx As Variant
-
     cleanOptionsList = Array( _
-        "Trim extra spaces & non-breaking spaces", _
-        "Remove non-printable characters", _
-        "Standardize invisible chars (zero-width, BOM, thin spaces)", _
-        "Line breaks: Replace with space", _
-        "Line breaks: Remove entirely", _
-        "Line breaks: Standardize to single LF", _
-        "Convert numeric text to numbers", _
-        "Delete broken named ranges (#REF!)", _
-        "Remove special symbols (tabs, bullets, ™, ®, ©)", _
-        "Standardize dashes (convert – — − to -)", _
-        "Remove accents (convert diacritics to standard letters)" _
+        ChrW$(9670) & "  TEXT CLEANING", _
+        "  Trim extra spaces & non-breaking spaces", _
+        "  Remove non-printable characters", _
+        "  Standardize invisible chars (zero-width, BOM, thin spaces)", _
+        "  Standardize dashes (convert – — − to -)", _
+        "  Remove accents (convert diacritics to standard letters)", _
+        ChrW$(9670) & "  LINE BREAKS", _
+        "  Line breaks: Replace with space", _
+        "  Line breaks: Remove entirely", _
+        "  Line breaks: Standardize to single LF", _
+        ChrW$(9670) & "  HYGIENE & FORMATS", _
+        "  Convert numeric text to numbers", _
+        "  Delete broken named ranges (#REF!)", _
+        "  Remove special symbols (tabs, bullets, ™, ®, ©)", _
+        "  Remove comments & notes", _
+        "  Remove data validation rules", _
+        "  Remove conditional formatting", _
+        "  Clear cell formatting (keep values)", _
+        "  Remove shapes & images (keeps charts)", _
+        "  Remove named ranges scoped to this sheet" _
     )
-    cleanDefaultsChecked = Array(True, True, True, False, False, False, False, True, False, False, False)
+    cleanDefaultsChecked = Array( _
+        False, _
+        True, True, True, False, False, _
+        False, _
+        False, False, False, _
+        False, _
+        False, True, False, False, _
+        False, False, False, False, False _
+    )
 
     If Not Infra_Interaction.PromptMultiOption( _
         "Select the data cleaning options to apply:", _
@@ -94,23 +110,34 @@ Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_C
     request.CleanSpecialSymbols = False
     request.CleanStandardizeDashes = False
     request.CleanRemoveAccents = False
+    request.CleanComments = False
+    request.CleanValidation = False
+    request.CleanConditionalFormatting = False
+    request.CleanFormats = False
+    request.CleanShapes = False
+    request.CleanSheetNames = False
 
     For Each idx In selectedIndices
         Select Case idx
-            Case 0: request.CleanTrimSpaces = True
-            Case 1: request.CleanNonPrintables = True
-            Case 2: request.CleanInvisibleChars = True
-            Case 3: request.CleanReplaceLineBreaksWithSpace = True
-            Case 4: request.CleanRemoveLineBreaks = True
-            Case 5: request.CleanStandardizeLineBreaks = True
-            Case 6: request.CleanConvertNumbers = True
-            Case 7: request.CleanBrokenNames = True
-            Case 8: request.CleanSpecialSymbols = True
-            Case 9: request.CleanStandardizeDashes = True
-            Case 10: request.CleanRemoveAccents = True
+            Case 1: request.CleanTrimSpaces = True
+            Case 2: request.CleanNonPrintables = True
+            Case 3: request.CleanInvisibleChars = True
+            Case 4: request.CleanStandardizeDashes = True
+            Case 5: request.CleanRemoveAccents = True
+            Case 7: request.CleanReplaceLineBreaksWithSpace = True
+            Case 8: request.CleanRemoveLineBreaks = True
+            Case 9: request.CleanStandardizeLineBreaks = True
+            Case 11: request.CleanConvertNumbers = True
+            Case 12: request.CleanBrokenNames = True
+            Case 13: request.CleanSpecialSymbols = True
+            Case 14: request.CleanComments = True
+            Case 15: request.CleanValidation = True
+            Case 16: request.CleanConditionalFormatting = True
+            Case 17: request.CleanFormats = True
+            Case 18: request.CleanShapes = True
+            Case 19: request.CleanSheetNames = True
         End Select
     Next idx
-
     Set ShowCleanDataDialog = request
 
 CleanExit:
@@ -277,13 +304,19 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext, Option
             chosenOption = "Highlight Errors (orange)"
         Case "highlighthardcodedvalues"
             chosenOption = "Highlight Hardcoded Values in Formulas (lavender)"
+        Case "highlightdatavalidations"
+            chosenOption = "Highlight Data Validations (soft green)"
+        Case "highlightconditionalformatting"
+            chosenOption = "Highlight Conditional Formatting (soft blue)"
         Case Else
             Dim highlightOptionsList As Variant
             highlightOptionsList = Array( _
                 "Highlight Inconsistent Formulas (yellow)", _
                 "Highlight Duplicates (soft red)", _
                 "Highlight Errors (orange)", _
-                "Highlight Hardcoded Values in Formulas (lavender)" _
+                "Highlight Hardcoded Values in Formulas (lavender)", _
+                "Highlight Data Validations (soft green)", _
+                "Highlight Conditional Formatting (soft blue)" _
             )
 
             If Not Infra_Interaction.PromptOption( _
@@ -300,6 +333,8 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext, Option
     request.HighlightDuplicates = False
     request.HighlightErrors = False
     request.HighlightHardcodedValues = False
+    request.HighlightDataValidations = False
+    request.HighlightConditionalFormatting = False
 
     If chosenOption = "Highlight Inconsistent Formulas (yellow)" Then
         request.HighlightInconsistentFormulas = True
@@ -309,6 +344,10 @@ Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext, Option
         request.HighlightErrors = True
     ElseIf chosenOption = "Highlight Hardcoded Values in Formulas (lavender)" Then
         request.HighlightHardcodedValues = True
+    ElseIf chosenOption = "Highlight Data Validations (soft green)" Then
+        request.HighlightDataValidations = True
+    ElseIf chosenOption = "Highlight Conditional Formatting (soft blue)" Then
+        request.HighlightConditionalFormatting = True
     End If
 
     Set ShowHighlightDataDialog = request

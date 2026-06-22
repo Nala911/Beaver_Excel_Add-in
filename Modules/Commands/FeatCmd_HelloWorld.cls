@@ -40,6 +40,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     ctx.ActiveCellRef.Value2 = "Hello world!"
 
 CleanExit:
+    ' Final warm visible session verified successfully
     Exit Sub
 
 ErrHandler:

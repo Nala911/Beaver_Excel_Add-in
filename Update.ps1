@@ -11,7 +11,8 @@ param(
     [switch]$ListTests,
     [switch]$SkipLint,
     [switch]$Visible,
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$KeepAlive
 )
 
 Set-StrictMode -Version Latest

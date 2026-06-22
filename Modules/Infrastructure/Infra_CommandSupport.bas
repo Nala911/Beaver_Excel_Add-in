@@ -656,3 +656,158 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+Public Function ProcessRangeUnified( _
+    ByVal targetRange As Range, _
+    ByVal transformer As ICellTransformer, _
+    Optional ByVal valueTypes As Long = 3) As Long ' 3 = xlTextValues Or xlNumbers
+    
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ProcessRangeUnified")
+    On Error GoTo ErrHandler
+
+    If targetRange Is Nothing Then GoTo CleanExit
+    If transformer Is Nothing Then GoTo CleanExit
+
+    ' Intersect with UsedRange to prevent scanning millions of cells
+    Dim safeRange As Range
+    Set safeRange = GetSafeProcessingRange(targetRange, 100000, False)
+    If safeRange Is Nothing Then GoTo CleanExit
+
+    Dim targetCells As Range
+    If safeRange.CountLarge = 1 Then
+        If Not safeRange.HasFormula Then
+            Dim vt As Integer
+            vt = VarType(safeRange.Value)
+            ' Check if matches expected types
+            Dim matchesType As Boolean
+            matchesType = False
+            If (valueTypes And xlTextValues) And (vt = vbString) Then matchesType = True
+            If (valueTypes And xlNumbers) And (vt = vbDouble Or vt = vbSingle Or vt = vbInteger Or vt = vbLong Or vt = vbDate) Then matchesType = True
+            
+            If matchesType Then Set targetCells = safeRange
+        End If
+    Else
+        On Error Resume Next
+        Set targetCells = safeRange.SpecialCells(xlCellTypeConstants, valueTypes)
+        On Error GoTo ErrHandler
+    End If
+
+    If targetCells Is Nothing Then GoTo CleanExit
+
+    Dim changeCount As Long
+    
+    ' Split into contiguous ranges and process in chunks
+    Dim chunks As Collection
+    Set chunks = GetChunkedRanges(targetCells, 20000)
+    
+    Dim chunkRange As Range
+    For Each chunkRange In chunks
+        If chunkRange.Cells.CountLarge = 1 Then
+            Dim oldVal As Variant, newVal As Variant
+            Dim oldFormat As String, newFormat As String
+            oldVal = chunkRange.Value
+            oldFormat = chunkRange.NumberFormat
+            
+            If transformer.TransformCell(oldVal, oldFormat, newVal, newFormat) Then
+                If newFormat <> vbNullString And newFormat <> oldFormat Then
+                    chunkRange.NumberFormat = newFormat
+                End If
+                chunkRange.Value = newVal
+                changeCount = changeCount + 1
+            End If
+        Else
+            changeCount = changeCount + ProcessChunkArea(chunkRange, transformer)
+        End If
+        
+        DoEvents
+        If Infra_Progress.UserCancelled Then Exit For
+    Next chunkRange
+
+    ProcessRangeUnified = changeCount
+
+CleanExit:
+    Exit Function
+
+ErrHandler:
+    Infra_Error.HandleError "ProcessRangeUnified", Err
+    Resume CleanExit
+End Function
+
+Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICellTransformer) As Long
+    Dim vals As Variant
+    Dim fmts As Variant
+    vals = area.Value
+    fmts = area.NumberFormat
+    
+    Dim isFmtsArray As Boolean: isFmtsArray = IsArray(fmts)
+    Dim isFmtsNull As Boolean: isFmtsNull = IsNull(fmts)
+    
+    Dim hasChanged As Boolean
+    Dim changeCount As Long
+    
+    Dim r As Long, c As Long
+    Dim rowMin As Long, rowMax As Long
+    Dim colMin As Long, colMax As Long
+    
+    rowMin = LBound(vals, 1)
+    rowMax = UBound(vals, 1)
+    colMin = LBound(vals, 2)
+    colMax = UBound(vals, 2)
+    
+    Dim formatChangeCount As Long
+    Dim unionRange As Range
+    Dim addrList As String
+    Dim commonFormat As String
+    
+    For r = rowMin To rowMax
+        For c = colMin To colMax
+            Dim oldVal As Variant
+            Dim oldFormat As String
+            oldVal = vals(r, c)
+            
+            If isFmtsArray Then
+                oldFormat = CStr(fmts(r, c))
+            ElseIf isFmtsNull Then
+                oldFormat = CStr(area.Cells(r, c).NumberFormat)
+            Else
+                oldFormat = CStr(fmts)
+            End If
+            
+            Dim newVal As Variant
+            Dim newFormat As String
+            
+            If transformer.TransformCell(oldVal, oldFormat, newVal, newFormat) Then
+                vals(r, c) = newVal
+                changeCount = changeCount + 1
+                hasChanged = True
+                
+                If newFormat <> vbNullString And newFormat <> oldFormat Then
+                    formatChangeCount = formatChangeCount + 1
+                    commonFormat = newFormat
+                    Dim cellAddr As String
+                    cellAddr = GetA1Address(area.Row + r - 1, area.Column + c - 1)
+                    Set unionRange = AccumulateUnion(unionRange, area.Parent, addrList, cellAddr)
+                End If
+            End If
+        Next c
+    Next r
+    
+    If hasChanged Then
+        ' Apply format changes efficiently in batches
+        If formatChangeCount > 0 Then
+            If formatChangeCount / area.Cells.CountLarge > 0.5 Then
+                area.NumberFormat = commonFormat
+            Else
+                Set unionRange = AccumulateUnion(unionRange, area.Parent, addrList, "", True)
+                If Not unionRange Is Nothing Then
+                    unionRange.NumberFormat = commonFormat
+                End If
+            End If
+        End If
+        
+        area.Value = vals
+    End If
+    
+    ProcessChunkArea = changeCount
+End Function
+
+

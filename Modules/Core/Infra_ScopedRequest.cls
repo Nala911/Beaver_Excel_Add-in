@@ -9,6 +9,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
+Implements IRequest
+
 ' @Module: Infra_ScopedRequest
 ' @Category: Core
 ' @Description: Typed request describing the target scope and action context for a scoped command execution.
@@ -17,3 +19,11 @@ Option Explicit
 
 Public Context As Infra_ActionContext
 Public Scope As TargetScope
+
+Private Property Get IRequest_Context() As Infra_ActionContext
+    Set IRequest_Context = Me.Context
+End Property
+
+Private Property Get IRequest_Scope() As TargetScope
+    IRequest_Scope = Me.Scope
+End Property

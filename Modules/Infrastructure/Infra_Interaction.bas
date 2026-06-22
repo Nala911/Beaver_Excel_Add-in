@@ -104,6 +104,17 @@ Public Function PromptText(ByVal promptMsg As String, ByVal title As String, ByV
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptText")
     On Error GoTo ErrHandler
 
+    Dim isTestRunning As Boolean: isTestRunning = False
+    On Error Resume Next
+    isTestRunning = Lib_Tests.IsRunning
+    On Error GoTo ErrHandler
+
+    If isTestRunning Then
+        outResult = defaultText
+        PromptText = True
+        GoTo CleanExit
+    End If
+
     Dim result As String
     result = InputBox(promptMsg, ResolveTitle(title), defaultText)
     If StrPtr(result) = 0 Then
@@ -124,6 +135,16 @@ End Function
 Public Function PromptRange(ByVal promptMsg As String, ByVal title As String, ByRef outRange As Range) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptRange")
     On Error GoTo ErrHandler
+
+    Dim isTestRunning As Boolean: isTestRunning = False
+    On Error Resume Next
+    isTestRunning = Lib_Tests.IsRunning
+    On Error GoTo ErrHandler
+
+    If isTestRunning Then
+        PromptRange = False
+        GoTo CleanExit
+    End If
 
     Dim selectedRange As Range
 
@@ -149,6 +170,17 @@ End Function
 Public Function PromptOption(ByVal promptMsg As String, ByVal title As String, ByVal defaultChoice As String, ByVal options As Variant, ByRef outResult As String) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptOption")
     On Error GoTo ErrHandler
+
+    Dim isTestRunning As Boolean: isTestRunning = False
+    On Error Resume Next
+    isTestRunning = Lib_Tests.IsRunning
+    On Error GoTo ErrHandler
+
+    If isTestRunning Then
+        outResult = defaultChoice
+        PromptOption = True
+        GoTo CleanExit
+    End If
 
     Dim frm As Object
     Dim wasConfirmed As Boolean
@@ -206,6 +238,32 @@ Public Function PromptMultiOption( _
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptMultiOption")
     On Error GoTo ErrHandler
 
+    Dim isTestRunning As Boolean: isTestRunning = False
+    On Error Resume Next
+    isTestRunning = Lib_Tests.IsRunning
+    On Error GoTo ErrHandler
+
+    If isTestRunning Then
+        Dim count As Long: count = 0
+        Dim result() As Long
+        Dim i As Long
+        For i = LBound(defaultChecked) To UBound(defaultChecked)
+            If defaultChecked(i) Then
+                ReDim Preserve result(0 To count)
+                result(count) = i
+                count = count + 1
+            End If
+        Next i
+        
+        If count = 0 Then
+            outSelectedIndices = Array()
+        Else
+            outSelectedIndices = result
+        End If
+        PromptMultiOption = True
+        GoTo CleanExit
+    End If
+
     Dim frm As Object
     Dim wasConfirmed As Boolean
 
@@ -253,6 +311,17 @@ End Function
 Public Function PromptSaveAsPath(ByVal dialogTitle As String, ByVal initialPath As String, ByVal fileFilter As String, ByRef outPath As String) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptSaveAsPath")
     On Error GoTo ErrHandler
+
+    Dim isTestRunning As Boolean: isTestRunning = False
+    On Error Resume Next
+    isTestRunning = Lib_Tests.IsRunning
+    On Error GoTo ErrHandler
+
+    If isTestRunning Then
+        outPath = initialPath
+        PromptSaveAsPath = True
+        GoTo CleanExit
+    End If
 
     Dim selectedPath As Variant
 

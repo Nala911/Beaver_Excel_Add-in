@@ -11,6 +11,9 @@ Option Explicit
 
 Implements ICommand
 Implements IBatchProcessor
+Implements ICellTransformer
+
+' Trigger incremental build lock recovery test 2
 
 ' @Module: FeatCmd_CleanData
 ' @Category: Feature
@@ -93,27 +96,132 @@ ErrHandler:
 End Sub
 
 Private Function IBatchProcessor_ProcessRange(ByVal targetRange As Range) As Long
+    If m_CurrentRequest Is Nothing Then
+        IBatchProcessor_ProcessRange = 0
+        Exit Function
+    End If
     IBatchProcessor_ProcessRange = ProcessRangeForClean(targetRange, m_CurrentRequest)
 End Function
 
 Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
+    If m_CurrentRequest Is Nothing Then
+        IBatchProcessor_ProcessWorksheet = 0
+        Exit Function
+    End If
+
+    Dim namesRemoved As Long
+    Dim shapesRemoved As Long
+    
     If m_CurrentRequest.CleanBrokenNames Then
-        Dim namesRemoved As Long
+        Dim tempNamesRemoved As Long
         If m_CurrentRequest.Scope = TargetScopeActiveSheet Then
-            Infra_CommandSupport.CleanWorkbookNames m_CurrentRequest.Context.WorkbookRef, ws, NameCleanCriteriaBroken, namesRemoved
+            Infra_CommandSupport.CleanWorkbookNames m_CurrentRequest.Context.WorkbookRef, ws, NameCleanCriteriaBroken, tempNamesRemoved
         ElseIf m_CurrentRequest.Scope = TargetScopeWorkbook Then
             Dim isFirstSheet As Boolean
             isFirstSheet = (ws.Name = m_CurrentRequest.Context.WorkbookRef.Worksheets(1).Name)
             If isFirstSheet Then
-                Infra_CommandSupport.CleanWorkbookNames m_CurrentRequest.Context.WorkbookRef, Nothing, NameCleanCriteriaBroken, namesRemoved
+                Infra_CommandSupport.CleanWorkbookNames m_CurrentRequest.Context.WorkbookRef, Nothing, NameCleanCriteriaBroken, tempNamesRemoved
             End If
         End If
+        namesRemoved = namesRemoved + tempNamesRemoved
     End If
-    IBatchProcessor_ProcessWorksheet = 0
+    
+    If m_CurrentRequest.CleanSheetNames Then
+        Dim sheetNamesRemoved As Long
+        CleanSheetScopedNames ws, sheetNamesRemoved
+        namesRemoved = namesRemoved + sheetNamesRemoved
+    End If
+    
+    If m_CurrentRequest.CleanShapes And m_CurrentRequest.Scope <> TargetScopeSelection Then
+        CleanWorksheetShapes ws, shapesRemoved
+    End If
+    
+    IBatchProcessor_ProcessWorksheet = namesRemoved + shapesRemoved
 End Function
 
+Private Function IsDeletableShape(ByVal sh As Shape) As Boolean
+    ' Filter out non-deletable shapes (Charts, Slicers, Form Controls, ActiveX, Comments)
+    Select Case sh.Type
+        Case msoChart, msoSlicer, msoFormControl, msoOLEControlObject, msoComment
+            IsDeletableShape = False
+        Case Else
+            IsDeletableShape = True
+    End Select
+End Function
+
+Private Sub CleanShapesInSelection(ByVal targetRange As Range, ByRef outCount As Long)
+    Dim ws As Worksheet
+    Set ws = targetRange.Worksheet
+    Dim sh As Shape
+    Dim i As Long
+    outCount = 0
+    For i = ws.Shapes.Count To 1 Step -1
+        Set sh = ws.Shapes(i)
+        If IsDeletableShape(sh) Then
+            Dim intersectRange As Range
+            On Error Resume Next
+            Set intersectRange = Application.Intersect(sh.TopLeftCell, targetRange)
+            On Error GoTo 0
+            If Not intersectRange Is Nothing Then
+                On Error Resume Next
+                sh.Delete
+                If Err.Number = 0 Then outCount = outCount + 1
+                Err.Clear
+                On Error GoTo 0
+            End If
+        End If
+    Next i
+End Sub
+
+Private Sub CleanWorksheetShapes(ByVal ws As Worksheet, ByRef outCount As Long)
+    Dim sh As Shape
+    Dim i As Long
+    outCount = 0
+    For i = ws.Shapes.Count To 1 Step -1
+        Set sh = ws.Shapes(i)
+        If IsDeletableShape(sh) Then
+            On Error Resume Next
+            sh.Delete
+            If Err.Number = 0 Then outCount = outCount + 1
+            Err.Clear
+            On Error GoTo 0
+        End If
+    Next i
+End Sub
+
+Private Sub CleanSheetScopedNames(ByVal ws As Worksheet, ByRef outCount As Long)
+    Dim i As Long
+    outCount = 0
+    For i = ws.Names.Count To 1 Step -1
+        On Error Resume Next
+        ws.Names(i).Delete
+        If Err.Number = 0 Then outCount = outCount + 1
+        Err.Clear
+        On Error GoTo 0
+    Next i
+End Sub
 
 
+
+
+Private Function ICellTransformer_TransformCell(ByVal rawValue As Variant, ByVal currentFormat As String, ByRef outValue As Variant, ByRef outFormat As String) As Boolean
+    If m_CurrentRequest Is Nothing Then
+        ICellTransformer_TransformCell = False
+        Exit Function
+    End If
+    
+    Dim newVal As Variant
+    newVal = CleanTextValue(rawValue, m_CurrentRequest)
+    
+    ' Check if value changed
+    If CStr(newVal) <> CStr(rawValue) Or TypeName(newVal) <> TypeName(rawValue) Then
+        outValue = newVal
+        outFormat = currentFormat
+        ICellTransformer_TransformCell = True
+    Else
+        ICellTransformer_TransformCell = False
+    End If
+End Function
 
 Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request As Infra_CleanDataRequest) As Long
     ' Note: No tracker here for performance; this is a core processing loop.
@@ -126,68 +234,82 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     Set targetRange = Infra_CommandSupport.GetSafeProcessingRange(targetRange, 100000, False)
     If targetRange Is Nothing Then Exit Function
 
-    Dim textCells As Range
-    Dim changeCount As Long
-    Dim dataArr As Variant
+    ' Temporarily set current request to support direct/test calls
+    Dim prevRequest As Infra_CleanDataRequest
+    Set prevRequest = m_CurrentRequest
+    Set m_CurrentRequest = request
 
-    If targetRange.CountLarge = 1 Then
-        If Not targetRange.HasFormula And VarType(targetRange.Value) = vbString Then
-            Set textCells = targetRange
-        End If
-    Else
+    Dim changeCount As Long
+
+    ' --- Apply cell-level hygiene operations ---
+    If request.CleanComments Then
+        Dim commentCells As Range
         On Error Resume Next
-        Set textCells = targetRange.SpecialCells(xlCellTypeConstants, xlTextValues)
+        Set commentCells = targetRange.SpecialCells(xlCellTypeComments)
+        On Error GoTo 0
+        If Not commentCells Is Nothing Then
+            changeCount = changeCount + commentCells.Cells.CountLarge
+            On Error Resume Next
+            targetRange.ClearComments
+            On Error GoTo 0
+        End If
+    End If
+
+    If request.CleanValidation Then
+        Dim validationCells As Range
+        On Error Resume Next
+        Set validationCells = targetRange.SpecialCells(xlCellTypeAllValidation)
+        On Error GoTo 0
+        If Not validationCells Is Nothing Then
+            changeCount = changeCount + validationCells.Cells.CountLarge
+            On Error Resume Next
+            targetRange.Validation.Delete
+            On Error GoTo 0
+        End If
+    End If
+
+    If request.CleanConditionalFormatting Then
+        Dim cfCells As Range
+        On Error Resume Next
+        Set cfCells = targetRange.SpecialCells(xlCellTypeAllFormatConditions)
+        On Error GoTo 0
+        If Not cfCells Is Nothing Then
+            changeCount = changeCount + cfCells.Cells.CountLarge
+            On Error Resume Next
+            targetRange.FormatConditions.Delete
+            On Error GoTo 0
+        End If
+    End If
+
+    If request.CleanFormats Then
+        changeCount = changeCount + targetRange.Cells.CountLarge
+        On Error Resume Next
+        targetRange.ClearFormats
         On Error GoTo 0
     End If
 
-    If textCells Is Nothing Then Exit Function
+    If request.CleanShapes And request.Scope = TargetScopeSelection Then
+        Dim shapesDeleted As Long
+        CleanShapesInSelection targetRange, shapesDeleted
+        changeCount = changeCount + shapesDeleted
+    End If
 
-    Dim chunks As Collection
-    Set chunks = Infra_CommandSupport.GetChunkedRanges(textCells, 20000)
-    
-    Dim chunkRange As Range
-    For Each chunkRange In chunks
-        If chunkRange.Cells.CountLarge = 1 Then
-            Dim oldVal As Variant, newVal As Variant
-            oldVal = chunkRange.Value
-            newVal = CleanTextValue(oldVal, request)
-            If CStr(newVal) <> CStr(oldVal) Or TypeName(newVal) <> TypeName(oldVal) Then
-                chunkRange.Value = newVal
-                changeCount = changeCount + 1
-            End If
-        Else
-            dataArr = chunkRange.Value
-            changeCount = changeCount + CleanTextArray(dataArr, request)
-            chunkRange.Value = dataArr
-        End If
-        
-        DoEvents
-        If Infra_Progress.UserCancelled Then Exit For
-    Next chunkRange
-    
+    ' --- Apply text-level cleaning operations ---
+    Dim hasTextCleaningOptions As Boolean
+    hasTextCleaningOptions = request.CleanTrimSpaces Or request.CleanNonPrintables Or _
+                             request.CleanInvisibleChars Or request.CleanReplaceLineBreaksWithSpace Or _
+                             request.CleanRemoveLineBreaks Or request.CleanStandardizeLineBreaks Or _
+                             request.CleanConvertNumbers Or request.CleanSpecialSymbols Or _
+                             request.CleanStandardizeDashes Or request.CleanRemoveAccents
+
+    If hasTextCleaningOptions Then
+        changeCount = changeCount + Infra_CommandSupport.ProcessRangeUnified(targetRange, Me, xlTextValues)
+    End If
+
+    ' Restore previous request
+    Set m_CurrentRequest = prevRequest
+
     ProcessRangeForClean = changeCount
-End Function
-
-Private Function CleanTextArray(ByRef dataArr As Variant, ByVal request As Infra_CleanDataRequest) As Long
-    ' Note: No tracker here for performance.
-    Dim rowIndex As Long
-    Dim columnIndex As Long
-    Dim oldVal As Variant
-    Dim newVal As Variant
-    Dim changeCount As Long
-
-    For rowIndex = LBound(dataArr, 1) To UBound(dataArr, 1)
-        For columnIndex = LBound(dataArr, 2) To UBound(dataArr, 2)
-            oldVal = dataArr(rowIndex, columnIndex)
-            newVal = CleanTextValue(oldVal, request)
-            If CStr(newVal) <> CStr(oldVal) Or TypeName(newVal) <> TypeName(oldVal) Then
-                dataArr(rowIndex, columnIndex) = newVal
-                changeCount = changeCount + 1
-            End If
-        Next columnIndex
-    Next rowIndex
-    
-    CleanTextArray = changeCount
 End Function
 
 Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infra_CleanDataRequest) As Variant
@@ -426,5 +548,25 @@ CleanExit:
 
 ErrHandler:
     Infra_Error.HandleError "CleanRangeWithOptionsDirect", Err
+    Resume CleanExit
+End Function
+
+Public Function CleanWorksheetWithOptionsDirect(ByVal ws As Worksheet, ByVal request As Infra_CleanDataRequest) As Long
+    Dim tracker As Object: Set tracker = Infra_Error.Track("CleanWorksheetWithOptionsDirect")
+    On Error GoTo ErrHandler
+    
+    Set m_CurrentRequest = request
+    
+    Dim wsProcessor As IBatchProcessor
+    Set wsProcessor = Me
+    CleanWorksheetWithOptionsDirect = wsProcessor.ProcessWorksheet(ws)
+
+CleanExit:
+    Set m_CurrentRequest = Nothing
+    Exit Function
+
+ErrHandler:
+    Set m_CurrentRequest = Nothing
+    Infra_Error.HandleError "CleanWorksheetWithOptionsDirect", Err
     Resume CleanExit
 End Function

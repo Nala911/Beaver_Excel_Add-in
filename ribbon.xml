@@ -26,6 +26,8 @@
             <button id="BtnHighlightDuplicates" label="Duplicates" imageMso="ConditionalFormattingMenu" onAction="Ribbon_OnHighlightDuplicates" keytip="HD" screentip="Duplicates" supertip="Highlights duplicate values in soft red." />
             <button id="BtnHighlightErrors" label="Errors" imageMso="ErrorChecking" onAction="Ribbon_OnHighlightErrors" keytip="HE" screentip="Errors" supertip="Highlights cells with errors in orange." />
             <button id="BtnHighlightHardcodedValues" label="Hardcoded Values" imageMso="FunctionWizard" onAction="Ribbon_OnHighlightHardcodedValues" keytip="HH" screentip="Hardcoded Values" supertip="Highlights formulas containing hardcoded values in lavender." />
+            <button id="BtnHighlightDataValidations" label="Data Validations" imageMso="TableProperties" onAction="Ribbon_OnHighlightDataValidations" keytip="HV" screentip="Data Validations" supertip="Highlights cells with data validation rules in soft green." />
+            <button id="BtnHighlightConditionalFormatting" label="Conditional Formatting" imageMso="ConditionalFormattingMenu" onAction="Ribbon_OnHighlightConditionalFormatting" keytip="HC" screentip="Conditional Formatting" supertip="Highlights cells with conditional formatting in soft blue." />
           </menu>
           <button id="BtnBreakLinks" label="Break Links" imageMso="WorkbookLinks" size="large" onAction="Ribbon_OnBreakExternalLinks" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />
         </group>
@@ -47,7 +49,7 @@
       </tab>
       <tab id="OfficeToolsTab" label="Office Tools" keytip="O">
         <group id="GrpHelloWorld" label="Hello World Group">
-          <button id="BtnHelloWorld" label="Hello World" imageMso="HappyFace" size="large" onAction="Ribbon_OnHelloWorld" keytip="HW" screentip="Say Hello World" supertip="Puts &apos;Hello world&apos; into the active cell." />
+          <button id="BtnHelloWorld" label="Hello World" imageMso="HappyFace" size="large" onAction="Ribbon_OnHelloWorld" keytip="HW" screentip="Say Hello World" supertip="Puts &apos;Hello world&apos; into the active cell (metadata test)." />
         </group>
       </tab>
     </tabs>

@@ -141,6 +141,16 @@ Private Sub ProcessRangeForHighlight(ByRef targetRange As Range, ByVal request A
             HighlightHardcodedValuesInArea area
         End If
         
+        ' 5. Highlight Data Validations
+        If request.HighlightDataValidations Then
+            HighlightDataValidationsInArea area
+        End If
+        
+        ' 6. Highlight Conditional Formatting
+        If request.HighlightConditionalFormatting Then
+            HighlightConditionalFormattingInArea area
+        End If
+        
         DoEvents
         If Infra_Progress.UserCancelled Then Exit For
     Next i
@@ -288,25 +298,9 @@ Private Sub HighlightErrorsInArea(ByVal area As Range)
     
     If errorCells Is Nothing Then Exit Sub
     
-    Dim subArea As Range
-    Dim unionRange As Range
-    
-    For Each subArea In errorCells.Areas
-        If unionRange Is Nothing Then
-            Set unionRange = subArea
-        Else
-            Set unionRange = Application.Union(unionRange, subArea)
-        End If
-        
-        If unionRange.Areas.Count >= 500 Then
-            unionRange.Interior.Color = RGB(255, 204, 153) ' Soft Orange
-            Set unionRange = Nothing
-        End If
-    Next subArea
-    
-    If Not unionRange Is Nothing Then
-        unionRange.Interior.Color = RGB(255, 204, 153) ' Soft Orange
-    End If
+    On Error Resume Next
+    errorCells.Interior.Color = RGB(255, 204, 153) ' Soft Orange
+    On Error GoTo 0
 End Sub
 
 Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
@@ -477,6 +471,32 @@ ErrHandler:
     Infra_Error.HandleError "HasHardcodedValue", Err
     Resume CleanExit
 End Function
+
+Private Sub HighlightDataValidationsInArea(ByVal area As Range)
+    Dim validationCells As Range
+    On Error Resume Next
+    Set validationCells = area.SpecialCells(xlCellTypeAllValidation)
+    On Error GoTo 0
+    
+    If validationCells Is Nothing Then Exit Sub
+    
+    On Error Resume Next
+    validationCells.Interior.Color = RGB(204, 255, 204) ' Soft Green
+    On Error GoTo 0
+End Sub
+
+Private Sub HighlightConditionalFormattingInArea(ByVal area As Range)
+    Dim cfCells As Range
+    On Error Resume Next
+    Set cfCells = area.SpecialCells(xlCellTypeAllFormatConditions)
+    On Error GoTo 0
+    
+    If cfCells Is Nothing Then Exit Sub
+    
+    On Error Resume Next
+    cfCells.Interior.Color = RGB(204, 229, 255) ' Soft Blue
+    On Error GoTo 0
+End Sub
 
 ' --- Testing Entry Points ---
 Public Sub HighlightRangeDirect(ByVal targetRange As Range)

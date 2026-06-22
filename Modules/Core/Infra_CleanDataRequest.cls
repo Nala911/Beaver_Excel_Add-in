@@ -9,6 +9,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
+Implements IRequest
+
 ' @Module: Infra_CleanDataRequest
 ' @Category: Core
 ' @Description: Typed request describing the target scope, action context, and data cleaning options.
@@ -29,6 +31,12 @@ Public CleanBrokenNames As Boolean
 Public CleanSpecialSymbols As Boolean
 Public CleanStandardizeDashes As Boolean
 Public CleanRemoveAccents As Boolean
+Public CleanComments As Boolean
+Public CleanValidation As Boolean
+Public CleanConditionalFormatting As Boolean
+Public CleanFormats As Boolean
+Public CleanShapes As Boolean
+Public CleanSheetNames As Boolean
 
 Private Sub Class_Initialize()
     CleanTrimSpaces = True
@@ -42,4 +50,18 @@ Private Sub Class_Initialize()
     CleanSpecialSymbols = False
     CleanStandardizeDashes = False
     CleanRemoveAccents = False
+    CleanComments = False
+    CleanValidation = False
+    CleanConditionalFormatting = False
+    CleanFormats = False
+    CleanShapes = False
+    CleanSheetNames = False
 End Sub
+
+Private Property Get IRequest_Context() As Infra_ActionContext
+    Set IRequest_Context = Me.Context
+End Property
+
+Private Property Get IRequest_Scope() As TargetScope
+    IRequest_Scope = Me.Scope
+End Property

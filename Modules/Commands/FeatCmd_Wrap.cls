@@ -397,16 +397,7 @@ Private Function GetWrappedContent(ByVal content As Variant, ByVal isStringValue
     On Error GoTo ErrHandler
 
     If IsError(content) Then
-        Select Case content
-            Case CVErr(xlErrDiv0): GetWrappedContent = "#DIV/0!"
-            Case CVErr(xlErrNull): GetWrappedContent = "#NULL!"
-            Case CVErr(xlErrNA): GetWrappedContent = "#N/A"
-            Case CVErr(xlErrName): GetWrappedContent = "#NAME?"
-            Case CVErr(xlErrNum): GetWrappedContent = "#NUM!"
-            Case CVErr(xlErrRef): GetWrappedContent = "#REF!"
-            Case CVErr(xlErrValue): GetWrappedContent = "#VALUE!"
-            Case Else: GetWrappedContent = "#ERROR!"
-        End Select
+        GetWrappedContent = Infra_ValueConversion.GetExcelErrorText(content)
         Exit Function
     End If
 
@@ -508,7 +499,7 @@ Private Sub ApplyWrapperCellToRange(ByVal targetCells As Range, ByVal wrapperFor
                         Dim v As Variant
                         v = values(r, c)
                         If IsError(v) Then
-                            replacementText = GetErrorString(v)
+                            replacementText = Infra_ValueConversion.GetExcelErrorText(v)
                         ElseIf VarType(v) = vbString Then
                             replacementText = """" & Replace(CStr(v), """", """""") & """"
                         ElseIf VarType(v) = vbBoolean Then
@@ -545,18 +536,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Function GetErrorString(ByVal errVal As Variant) As String
-    Select Case errVal
-        Case CVErr(xlErrDiv0): GetErrorString = "#DIV/0!"
-        Case CVErr(xlErrNull): GetErrorString = "#NULL!"
-        Case CVErr(xlErrNA): GetErrorString = "#N/A"
-        Case CVErr(xlErrName): GetErrorString = "#NAME?"
-        Case CVErr(xlErrNum): GetErrorString = "#NUM!"
-        Case CVErr(xlErrRef): GetErrorString = "#REF!"
-        Case CVErr(xlErrValue): GetErrorString = "#VALUE!"
-        Case Else: GetErrorString = "#ERROR!"
-    End Select
-End Function
+
 
 Public Sub TestApplyWrapperCellRangeDirect(ByVal targetCells As Range, ByVal wrapperFormula As String, ByVal isFormulaRange As Boolean, ByRef errorCount As Long)
     Dim tracker As Object: Set tracker = Infra_Error.Track("TestApplyWrapperCellRangeDirect")

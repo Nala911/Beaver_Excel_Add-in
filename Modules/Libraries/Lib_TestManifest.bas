@@ -23,6 +23,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Features.Test_BreakExternalLinks_Execution", filterPattern) Then Lib_Tests_Features.Test_BreakExternalLinks_Execution
     If MatchesFilter("Lib_Tests_Features.Test_BreakExternalLinks_SpillHandling", filterPattern) Then Lib_Tests_Features.Test_BreakExternalLinks_SpillHandling
     If MatchesFilter("Lib_Tests_Features.Test_CleanData_CheckboxOptions", filterPattern) Then Lib_Tests_Features.Test_CleanData_CheckboxOptions
+    If MatchesFilter("Lib_Tests_Features.Test_CleanData_HygieneOptions", filterPattern) Then Lib_Tests_Features.Test_CleanData_HygieneOptions
     If MatchesFilter("Lib_Tests_Features.Test_CleanData_LargeSelectionSafety", filterPattern) Then Lib_Tests_Features.Test_CleanData_LargeSelectionSafety
     If MatchesFilter("Lib_Tests_Features.Test_CleanData_NewEnhancements", filterPattern) Then Lib_Tests_Features.Test_CleanData_NewEnhancements
     If MatchesFilter("Lib_Tests_Features.Test_CleanData_TrimmingAndNumericalFixing", filterPattern) Then Lib_Tests_Features.Test_CleanData_TrimmingAndNumericalFixing
@@ -40,6 +41,8 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Features.Test_FormatRange_WholeSheetSafety", filterPattern) Then Lib_Tests_Features.Test_FormatRange_WholeSheetSafety
     If MatchesFilter("Lib_Tests_Features.Test_GetChunkedRanges_And_SpillExpansion", filterPattern) Then Lib_Tests_Features.Test_GetChunkedRanges_And_SpillExpansion
     If MatchesFilter("Lib_Tests_Features.Test_HelloWorld_Execution_And_Undo", filterPattern) Then Lib_Tests_Features.Test_HelloWorld_Execution_And_Undo
+    If MatchesFilter("Lib_Tests_Features.Test_HighlightData_ConditionalFormatting", filterPattern) Then Lib_Tests_Features.Test_HighlightData_ConditionalFormatting
+    If MatchesFilter("Lib_Tests_Features.Test_HighlightData_DataValidations", filterPattern) Then Lib_Tests_Features.Test_HighlightData_DataValidations
     If MatchesFilter("Lib_Tests_Features.Test_HighlightData_Errors", filterPattern) Then Lib_Tests_Features.Test_HighlightData_Errors
     If MatchesFilter("Lib_Tests_Features.Test_HighlightData_FormulaLimitSafety", filterPattern) Then Lib_Tests_Features.Test_HighlightData_FormulaLimitSafety
     If MatchesFilter("Lib_Tests_Features.Test_HighlightData_HardcodedValues", filterPattern) Then Lib_Tests_Features.Test_HighlightData_HardcodedValues
@@ -57,6 +60,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Features.Test_UdfRegistry_And_HelpCenter", filterPattern) Then Lib_Tests_Features.Test_UdfRegistry_And_HelpCenter
     If MatchesFilter("Lib_Tests_Features.Test_UI_OptionPicker_DynamicLayout", filterPattern) Then Lib_Tests_Features.Test_UI_OptionPicker_DynamicLayout
     If MatchesFilter("Lib_Tests_Features.Test_UI_OptionPicker_KeyboardNavigation", filterPattern) Then Lib_Tests_Features.Test_UI_OptionPicker_KeyboardNavigation
+    If MatchesFilter("Lib_Tests_Features.Test_UnifiedHelpers_And_CleanDataDisjoint", filterPattern) Then Lib_Tests_Features.Test_UnifiedHelpers_And_CleanDataDisjoint
     If MatchesFilter("Lib_Tests_Features.Test_UnmergeFill_Execution_And_Undo", filterPattern) Then Lib_Tests_Features.Test_UnmergeFill_Execution_And_Undo
     If MatchesFilter("Lib_Tests_Features.Test_ValueConversion_ResolveSpillExpandedRange", filterPattern) Then Lib_Tests_Features.Test_ValueConversion_ResolveSpillExpandedRange
     If MatchesFilter("Lib_Tests_Features.Test_Wrap_CellAndPatternModes", filterPattern) Then Lib_Tests_Features.Test_Wrap_CellAndPatternModes

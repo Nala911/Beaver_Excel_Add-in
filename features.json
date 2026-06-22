@@ -153,7 +153,9 @@
                                            "BtnHighlightInconsistentFormulas",
                                            "BtnHighlightDuplicates",
                                            "BtnHighlightErrors",
-                                           "BtnHighlightHardcodedValues"
+                                           "BtnHighlightHardcodedValues",
+                                           "BtnHighlightDataValidations",
+                                           "BtnHighlightConditionalFormatting"
                                        ]
                      },
                      {
@@ -206,6 +208,32 @@
                          "Keytip":  "HH",
                          "Screentip":  "Hardcoded Values",
                          "Supertip":  "Highlights formulas containing hardcoded values in lavender.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnHighlightDataValidations",
+                         "Label":  "Data Validations",
+                         "OnAction":  "Ribbon_OnHighlightDataValidations",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightDataValidations",
+                         "CommandName":  "HighlightDataValidations",
+                         "CommandClass":  "FeatCmd_HighlightData",
+                         "Icon":  "TableProperties",
+                         "Keytip":  "HV",
+                         "Screentip":  "Data Validations",
+                         "Supertip":  "Highlights cells with data validation rules in soft green.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnHighlightConditionalFormatting",
+                         "Label":  "Conditional Formatting",
+                         "OnAction":  "Ribbon_OnHighlightConditionalFormatting",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightConditionalFormatting",
+                         "CommandName":  "HighlightConditionalFormatting",
+                         "CommandClass":  "FeatCmd_HighlightData",
+                         "Icon":  "ConditionalFormattingMenu",
+                         "Keytip":  "HC",
+                         "Screentip":  "Conditional Formatting",
+                         "Supertip":  "Highlights cells with conditional formatting in soft blue.",
                          "RuntimeTestMode":  "interactive"
                      },
                      {
@@ -286,16 +314,16 @@
                          "RuntimeTestMode":  "interactive"
                      },
                      {
-                         "ControlId":  "BtnHelloWorld",
-                         "Label":  "Hello World",
-                         "OnAction":  "Ribbon_OnHelloWorld",
-                         "Macro":  "UI_Ribbon.Ribbon_OnHelloWorld",
-                         "CommandName":  "HelloWorld",
-                         "Icon":  "HappyFace",
-                         "Keytip":  "HW",
-                         "Screentip":  "Say Hello World",
-                         "Supertip":  "Puts 'Hello world' into the active cell.",
-                         "RuntimeTestMode":  "interactive"
+                          "ControlId":  "BtnHelloWorld",
+                          "Label":  "Hello World",
+                          "OnAction":  "Ribbon_OnHelloWorld",
+                          "Macro":  "UI_Ribbon.Ribbon_OnHelloWorld",
+                          "CommandName":  "HelloWorld",
+                          "Icon":  "HappyFace",
+                          "Keytip":  "HW",
+                          "Screentip":  "Say Hello World",
+                          "Supertip":  "Puts 'Hello world' into the active cell (metadata test).",
+                          "RuntimeTestMode":  "interactive"
                      },
                      {
                          "ControlId":  "BtnReportGenerator",

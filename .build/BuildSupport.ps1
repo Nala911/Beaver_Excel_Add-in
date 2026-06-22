@@ -19,8 +19,199 @@ $uiRibbonPath = Join-Path $modulesDir "UI\UI_Ribbon.bas"
 $uiHotkeysPath = Join-Path $modulesDir "UI\UI_Hotkeys.bas"
 $structuredTestResultsPath = Join-Path $env:TEMP "BeaverAddin.TestResults.tsv"
 
+function Clear-AccumulatedLogs {
+    param(
+        [int]$ExcludePid = 0
+    )
+    try {
+        $tempPath = $env:TEMP
+        if (Test-Path $tempPath) {
+            # Find and delete BeaverAddin_*.log files
+            $logFiles = Get-ChildItem -Path $tempPath -Filter "BeaverAddin_*.log" -ErrorAction SilentlyContinue
+            foreach ($file in $logFiles) {
+                if ($ExcludePid -gt 0 -and $file.Name -eq "BeaverAddin_$ExcludePid.log") {
+                    continue
+                }
+                try {
+                    Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
+                } catch {}
+            }
+            # Delete test results file
+            $testResultsFile = Join-Path $tempPath "BeaverAddin.TestResults.tsv"
+            if (Test-Path $testResultsFile) {
+                try {
+                    Remove-Item -Path $testResultsFile -Force -ErrorAction SilentlyContinue
+                } catch {}
+            }
+        }
+    } catch {}
+}
+
+# Run cleanup at load time to purge old logs from previous sessions
+Clear-AccumulatedLogs
+
 # --- Stage Execution Tracking ---
 $script:StageResults = New-Object System.Collections.ArrayList
+
+# --- Build & Test Execution Logger ---
+if (-not (Get-Variable -Name "BeaverBuildLog" -Scope Global -ErrorAction SilentlyContinue) -or $null -eq $global:BeaverBuildLog) {
+    $cmdLine = if ($null -ne $MyInvocation -and $null -ne $MyInvocation.Line) { $MyInvocation.Line } else { "" }
+    $global:BeaverBuildLog = [ordered]@{
+        timestamp = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssK")
+        status = "success"
+        commandLine = $cmdLine
+        buildMode = "skipped"
+        system = [ordered]@{
+            os = [System.Environment]::OSVersion.ToString()
+            powershellVersion = $PSVersionTable.PSVersion.ToString()
+            excelProcess = [ordered]@{
+                pid = 0
+                wasAlreadyOpen = $false
+                reusedSession = $false
+                lockRecovered = $false
+            }
+        }
+        changes = [ordered]@{
+            hasChanges = $false
+            changedFiles = New-Object System.Collections.ArrayList
+            deletedFiles = New-Object System.Collections.ArrayList
+            manifestChanged = $false
+            manifestStructureChanged = $false
+        }
+        stages = New-Object System.Collections.ArrayList
+        lintResults = [ordered]@{
+            checkedFiles = New-Object System.Collections.ArrayList
+            errors = New-Object System.Collections.ArrayList
+        }
+        compileResults = [ordered]@{
+            status = "success"
+            errorDetails = $null
+        }
+        testResults = [ordered]@{
+            runTests = $false
+            filter = $null
+            ribbonValidation = [ordered]@{
+                status = "success"
+                error = $null
+            }
+            unitTests = [ordered]@{
+                total = 0
+                passed = 0
+                failed = 0
+                durationMs = 0
+                failures = New-Object System.Collections.ArrayList
+            }
+            headlessCallbacks = [ordered]@{
+                status = "success"
+                passedCount = 0
+                failures = New-Object System.Collections.ArrayList
+            }
+        }
+        totalDurationMs = 0
+    }
+}
+
+function Add-LintError {
+    param(
+        [string]$File,
+        [string]$Type,
+        [string]$Message,
+        [int]$Line = 0
+    )
+    if ($null -ne $global:BeaverBuildLog) {
+        [void]$global:BeaverBuildLog.lintResults.errors.Add([ordered]@{
+            file = $File
+            type = $Type
+            message = $Message
+            line = $Line
+        })
+    }
+}
+
+function Record-BuildChanges {
+    param(
+        [bool]$ManifestChanged,
+        [bool]$ManifestStructureChanged,
+        [string[]]$ChangedFiles,
+        [string[]]$DeletedFiles,
+        [bool]$Force
+    )
+    if ($null -eq $global:BeaverBuildLog) { return }
+    $global:BeaverBuildLog.changes.hasChanges = ($ChangedFiles.Count -gt 0 -or $DeletedFiles.Count -gt 0)
+    $global:BeaverBuildLog.changes.manifestChanged = $ManifestChanged
+    $global:BeaverBuildLog.changes.manifestStructureChanged = $ManifestStructureChanged
+    $global:BeaverBuildLog.changes.changedFiles.Clear()
+    foreach ($file in $ChangedFiles) {
+        [void]$global:BeaverBuildLog.changes.changedFiles.Add($file)
+    }
+    $global:BeaverBuildLog.changes.deletedFiles.Clear()
+    foreach ($file in $DeletedFiles) {
+        [void]$global:BeaverBuildLog.changes.deletedFiles.Add($file)
+    }
+    $global:BeaverBuildLog.buildMode = if ($Force) { "full" } else { "incremental" }
+}
+
+function Save-BuildLog {
+    param(
+        [string]$Status = "success",
+        [switch]$Force
+    )
+    if ($null -eq $global:BeaverBuildLog) { return }
+    if ($global:BeaverOrchestratorActive -and -not $Force -and $Status -ne "failure") {
+        return
+    }
+    $global:BeaverBuildLog.status = $Status
+    $start = [DateTime]::Parse($global:BeaverBuildLog.timestamp)
+    $duration = (Get-Date) - $start
+    $global:BeaverBuildLog.totalDurationMs = [Math]::Round($duration.TotalMilliseconds, 2)
+
+    # Save build_log.json
+    $buildLogPath = Join-Path $PSScriptRoot "build_log.json"
+    $json = $global:BeaverBuildLog | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText($buildLogPath, $json, [System.Text.Encoding]::UTF8)
+
+    # Save build_history.jsonl
+    $historyLogPath = Join-Path $PSScriptRoot "build_history.jsonl"
+    $historyEntry = [ordered]@{
+        timestamp = $global:BeaverBuildLog.timestamp
+        status = $global:BeaverBuildLog.status
+        commandLine = $global:BeaverBuildLog.commandLine
+        buildMode = $global:BeaverBuildLog.buildMode
+        changedFilesCount = $global:BeaverBuildLog.changes.changedFiles.Count
+        deletedFilesCount = $global:BeaverBuildLog.changes.deletedFiles.Count
+        totalDurationMs = $global:BeaverBuildLog.totalDurationMs
+        unitTestsTotal = $global:BeaverBuildLog.testResults.unitTests.total
+        unitTestsFailed = $global:BeaverBuildLog.testResults.unitTests.failed
+        lintErrorsCount = $global:BeaverBuildLog.lintResults.errors.Count
+    }
+    $historyJson = $historyEntry | ConvertTo-Json -Compress
+    [System.IO.File]::AppendAllText($historyLogPath, $historyJson + [System.Environment]::NewLine, [System.Text.Encoding]::UTF8)
+
+    # Output systematic command line summary
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "  BEAVER BUILD LOG SUMMARY ($($Status.ToUpper()))" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "  Timestamp:    $($global:BeaverBuildLog.timestamp)" -ForegroundColor Gray
+    Write-Host "  Duration:     $([Math]::Round($global:BeaverBuildLog.totalDurationMs / 1000, 2))s" -ForegroundColor Gray
+    Write-Host "  Build Mode:   $($global:BeaverBuildLog.buildMode)" -ForegroundColor Gray
+    Write-Host "  Changes:      Changed=$($global:BeaverBuildLog.changes.changedFiles.Count), Deleted=$($global:BeaverBuildLog.changes.deletedFiles.Count)" -ForegroundColor Gray
+    if ($global:BeaverBuildLog.system.excelProcess.pid -gt 0) {
+        Write-Host "  Excel PID:    $($global:BeaverBuildLog.system.excelProcess.pid) (Reused: $($global:BeaverBuildLog.system.excelProcess.reusedSession), Lock Recovery: $($global:BeaverBuildLog.system.excelProcess.lockRecovered))" -ForegroundColor Gray
+    }
+    if ($global:BeaverBuildLog.lintResults.errors.Count -gt 0) {
+        Write-Host "  Lint Errors:  $($global:BeaverBuildLog.lintResults.errors.Count) error(s) found" -ForegroundColor Red
+    } else {
+        Write-Host "  Lint Errors:  None" -ForegroundColor Green
+    }
+    if ($global:BeaverBuildLog.testResults.runTests) {
+        $ut = $global:BeaverBuildLog.testResults.unitTests
+        $tColor = if ($ut.failed -gt 0) { "Red" } else { "Green" }
+        Write-Host "  Unit Tests:   Total=$($ut.total), Passed=$($ut.passed), Failed=$($ut.failed) (Duration: $($ut.durationMs)ms)" -ForegroundColor $tColor
+    }
+    Write-Host "  Log File:     $buildLogPath" -ForegroundColor DarkGray
+    Write-Host "========================================" -ForegroundColor Cyan
+}
 
 function Stop-Script {
     param(
@@ -29,6 +220,13 @@ function Stop-Script {
     )
 
     Write-StageSummary
+    
+    # Delete build state on failure to force a clean full rebuild on recovery
+    if (Test-Path $buildStatePath) {
+        Remove-Item $buildStatePath -Force -ErrorAction SilentlyContinue
+    }
+
+    Save-BuildLog -Status "failure" -Force
     Write-Host $Message -ForegroundColor Red
     exit $ExitCode
 }
@@ -110,12 +308,28 @@ function Invoke-Stage {
         }
 
         Add-StageResult -Stage $Stage -Status "success" -Details $details -DurationMs $stopwatch.Elapsed.TotalMilliseconds
+        if ($null -ne $global:BeaverBuildLog) {
+            [void]$global:BeaverBuildLog.stages.Add([ordered]@{
+                name = $Stage
+                status = "success"
+                durationMs = [Math]::Round($stopwatch.Elapsed.TotalMilliseconds, 2)
+                details = $details
+            })
+        }
         Write-StatusLine -Status "pass" -Stage $Stage -Details ("({0:N1}s){1}" -f $stopwatch.Elapsed.TotalSeconds, $(if ([string]::IsNullOrWhiteSpace($details)) { "" } else { " $details" })) -Color "Green"
         return $result
     } catch {
         $stopwatch.Stop()
         $message = $_.Exception.Message
         Add-StageResult -Stage $Stage -Status "failure" -Details $message -DurationMs $stopwatch.Elapsed.TotalMilliseconds
+        if ($null -ne $global:BeaverBuildLog) {
+            [void]$global:BeaverBuildLog.stages.Add([ordered]@{
+                name = $Stage
+                status = "failure"
+                durationMs = [Math]::Round($stopwatch.Elapsed.TotalMilliseconds, 2)
+                details = $message
+            })
+        }
         Write-StatusLine -Status "fail" -Stage $Stage -Details ("({0:N1}s) {1}" -f $stopwatch.Elapsed.TotalSeconds, $message) -Color "Red"
         throw
     }
@@ -128,6 +342,14 @@ function Add-SkippedStageResult {
     )
 
     Add-StageResult -Stage $Stage -Status "skipped" -Details $Details
+    if ($null -ne $global:BeaverBuildLog) {
+        [void]$global:BeaverBuildLog.stages.Add([ordered]@{
+            name = $Stage
+            status = "skipped"
+            durationMs = 0
+            details = $Details
+        })
+    }
     Write-StatusLine -Status "skip" -Stage $Stage -Details $Details -Color "Yellow"
 }
 
@@ -411,8 +633,10 @@ function Save-BuildState {
                 $oldState = Get-BuildState
                 if ($null -ne $oldState -and $null -ne $oldState.Metadata -and $null -ne $oldState.Metadata.PSObject.Properties[$relPath]) {
                     $oldMeta = $oldState.Metadata.PSObject.Properties[$relPath].Value
-                    if ($oldMeta.PSObject.Properties.Name -contains "LintPassed" -and $null -ne $oldMeta.LintPassed) {
-                        $meta["LintPassed"] = [bool]$oldMeta.LintPassed
+                    if ($oldMeta.Length -eq $file.Length -and $oldMeta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString()) {
+                        if ($oldMeta.PSObject.Properties.Name -contains "LintPassed" -and $null -ne $oldMeta.LintPassed) {
+                            $meta["LintPassed"] = [bool]$oldMeta.LintPassed
+                        }
                     }
                 }
             }
@@ -421,11 +645,23 @@ function Save-BuildState {
         }
     }
     
+    $excelPid = 0
+    if ($null -ne $global:BeaverSharedExcel) {
+        $excelPid = Get-ExcelProcessId -ExcelApplication $global:BeaverSharedExcel
+    }
+    if ($excelPid -eq 0) {
+        $oldState = Get-BuildState
+        if ($null -ne $oldState -and $oldState.PSObject.Properties.Name -contains "ExcelPid") {
+            $excelPid = $oldState.ExcelPid
+        }
+    }
+
     $state = [ordered]@{
         LastBuildTime = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssK")
         Files = $FileHashes
         Metadata = $metadata
         ManifestStructuralHash = (Get-ManifestStructuralHash -Path $featureManifestPath)
+        ExcelPid = $excelPid
     }
     $stateJson = $state | ConvertTo-Json -Depth 10
     [System.IO.File]::WriteAllText($buildStatePath, $stateJson, [System.Text.Encoding]::ASCII)
@@ -505,7 +741,7 @@ function Get-SourceFileHashes {
     
     # Modules
     if (Test-Path $modulesDir) {
-        $vbaFiles = Get-ChildItem -Path $modulesDir -Recurse | Where-Object { $_.Extension -match "\.(bas|cls|frm)$" }
+        $vbaFiles = Get-ChildItem -Path $modulesDir -Include *.bas, *.cls, *.frm -Recurse
         foreach ($file in $vbaFiles) {
             $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
             $hashes[$relPath] = & $resolveHash $file.FullName $relPath
@@ -613,6 +849,71 @@ public class WindowScraper {
 
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+
+    [DllImport("oleacc.dll")]
+    public static extern int AccessibleObjectFromWindow(
+        IntPtr hwnd, 
+        uint dwId, 
+        ref Guid riid, 
+        [MarshalAs(UnmanagedType.IUnknown)] out object ppvObject);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    private static Guid IID_IDispatch = new Guid("00020400-0000-0000-C000-000000000046");
+    private const uint OBJID_NATIVEOM = 0xFFFFFFF0;
+
+    public static void NudgeProcess(int processId) {
+        EnumWindows((hWnd, lParam) => {
+            int windowPid;
+            GetWindowThreadProcessId(hWnd, out windowPid);
+            if (windowPid == processId) {
+                var className = new StringBuilder(256);
+                GetClassName(hWnd, className, 256);
+                if (className.ToString().Equals("XLMAIN")) {
+                    ShowWindow(hWnd, 4); // SW_SHOWNOACTIVATE
+                    SetForegroundWindow(hWnd);
+                    return false; // stop
+                }
+            }
+            return true;
+        }, IntPtr.Zero);
+    }
+
+    public static object GetExcelObject(int processId) {
+        object excelApp = null;
+        EnumWindows((hWnd, lParam) => {
+            int windowPid;
+            GetWindowThreadProcessId(hWnd, out windowPid);
+            if (windowPid == processId) {
+                var className = new StringBuilder(256);
+                GetClassName(hWnd, className, 256);
+                if (className.ToString().Equals("XLMAIN")) {
+                    EnumChildWindows(hWnd, (hChild, lChild) => {
+                        var childClass = new StringBuilder(256);
+                        GetClassName(hChild, childClass, 256);
+                        if (childClass.ToString().Equals("EXCEL7")) {
+                            object ppvObject;
+                            int res = AccessibleObjectFromWindow(hChild, OBJID_NATIVEOM, ref IID_IDispatch, out ppvObject);
+                            if (res == 0 && ppvObject != null) {
+                                excelApp = ppvObject.GetType().InvokeMember("Application", System.Reflection.BindingFlags.GetProperty, null, ppvObject, null);
+                                return false; // stop child enum
+                            }
+                        }
+                        return true;
+                    }, IntPtr.Zero);
+                }
+            }
+            return excelApp == null; // continue enum if not found
+        }, IntPtr.Zero);
+        return excelApp;
+    }
 
     private static string _scrapedText = "";
     private static System.Threading.Thread _thread = null;
@@ -743,8 +1044,77 @@ function Initialize-ExcelWorkbookSession {
         }
     }
 
+    # 1.5 Try to attach via cached PID from build state (bypassing ROT registration limitations)
+    if ($null -eq $excel) {
+        $buildState = Get-BuildState
+        if ($null -ne $buildState -and $buildState.PSObject.Properties.Name -contains "ExcelPid") {
+            $cachedPid = $buildState.ExcelPid
+            if ($cachedPid -gt 0) {
+                $proc = Get-Process -Id $cachedPid -ErrorAction SilentlyContinue
+                if ($null -ne $proc -and $proc.Name -eq "EXCEL") {
+                    try {
+                        # A. Try Accessibility window attachment
+                        $excel = [WindowScraper]::GetExcelObject($cachedPid)
+                        
+                        # B. If fails, nudge the window to force window activation/registration and retry accessibility
+                        if ($null -eq $excel) {
+                            [WindowScraper]::NudgeProcess($cachedPid)
+                            Start-Sleep -Milliseconds 200
+                            $excel = [WindowScraper]::GetExcelObject($cachedPid)
+                        }
+                        
+                        if ($null -ne $excel) {
+                            Write-Host "  Attached to running Excel session (PID: $cachedPid) via Window Accessibility/Nudge." -ForegroundColor Green
+                            if ($null -eq $workbook) {
+                                foreach ($wb in $excel.Workbooks) {
+                                    if ($wb.FullName -eq $excelPath) {
+                                        $workbook = $wb
+                                        break
+                                    }
+                                }
+                            }
+                            $wasAlreadyOpen = $true
+                            if ($global:BeaverOrchestratorActive) {
+                                $global:BeaverSharedExcel = $excel
+                                $global:BeaverExcelWasAlreadyOpen = $wasAlreadyOpen
+                            }
+                        }
+                    } catch {
+                        $excel = $null
+                    }
+                }
+            }
+        }
+    }
+
     # 2. Start a new session if needed
     if ($null -eq $excel) {
+        # 1.8 Pre-startup lock cleanup: check if lock file exists and background processes exist
+        $fileName = Split-Path $excelPath -Leaf
+        $lockFile = Join-Path $projectRoot ("~$" + $fileName)
+        $excelProcesses = @(Get-Process -Name "EXCEL" -ErrorAction SilentlyContinue)
+        
+        if ((Test-Path $lockFile) -and ($excelProcesses.Count -gt 0)) {
+            $backgroundExcel = @(
+                $excelProcesses | Where-Object {
+                    $_.MainWindowHandle -eq 0 -and [string]::IsNullOrWhiteSpace($_.MainWindowTitle)
+                }
+            )
+            
+            if ($backgroundExcel.Count -gt 0) {
+                Write-Host "  [PRE-STARTUP CLEANUP] Workbook is locked and background Excel process(es) found. Terminating to prevent read-only issues..." -ForegroundColor Yellow
+                foreach ($proc in $backgroundExcel) {
+                    try {
+                        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+                    } catch {}
+                }
+                Start-Sleep -Seconds 1
+                if (Test-Path $lockFile) {
+                    Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+
         $retryCount = 0
         $maxRetries = 10
         $ready = $false
@@ -757,7 +1127,20 @@ function Initialize-ExcelWorkbookSession {
                     $workbook = $activeWbInfo.Workbook
                     $wasAlreadyOpen = $true
                 } else {
-                    $excel = Start-ExcelApplication -Purpose $Purpose
+                    # If workbook is not open, check if an Excel application is already running in the OS
+                    $excelProcesses = @(Get-Process -Name "EXCEL" -ErrorAction SilentlyContinue)
+                    if ($excelProcesses.Count -gt 0) {
+                        try {
+                            $excel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+                            $wasAlreadyOpen = $true
+                        } catch {
+                            $excel = $null
+                        }
+                    }
+                    
+                    if ($null -eq $excel) {
+                        $excel = Start-ExcelApplication -Purpose $Purpose
+                    }
                 }
                 $wbs = $excel.Workbooks
                 $ready = $true
@@ -829,14 +1212,89 @@ function Initialize-ExcelWorkbookSession {
         throw "Programmatic access to the Visual Basic Project is not trusted. Please enable it in Excel under File -> Options -> Trust Center -> Trust Center Settings -> Macro Settings -> 'Trust access to the VBA project object model'."
     }
 
-    # 5. Check read-only state
+    # 5. Check read-only state and perform self-healing recovery if needed
     if ($workbook.ReadOnly) {
-        throw "The workbook '$excelPath' was opened as Read-Only. Please ensure that no other Excel process is locking the file."
+        if ($null -ne $global:BeaverBuildLog) {
+            $global:BeaverBuildLog.system.excelProcess.lockRecovered = $true
+        }
+        Write-Host "  [SELF-HEALING] The workbook '$excelPath' was opened as Read-Only." -ForegroundColor Yellow
+        Write-Host "  Attempting lock recovery..." -ForegroundColor Yellow
+        try {
+            $workbook.Close($false)
+        } catch {}
+        $workbook = $null
+
+        # Terminate background Excel processes that may be holding the lock
+        $excelProcesses = @(Get-Process -Name "EXCEL" -ErrorAction SilentlyContinue)
+        $backgroundExcel = @(
+            $excelProcesses | Where-Object {
+                $_.MainWindowHandle -eq 0 -and [string]::IsNullOrWhiteSpace($_.MainWindowTitle)
+            }
+        )
+
+        if ($backgroundExcel.Count -gt 0) {
+            Write-Host "  Found $($backgroundExcel.Count) background Excel process(es) holding the lock. Terminating..." -ForegroundColor Yellow
+            foreach ($proc in $backgroundExcel) {
+                try {
+                    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+                } catch {}
+            }
+            Start-Sleep -Seconds 2
+            
+            # Remove the lock file if it was orphaned
+            $fileName = Split-Path $excelPath -Leaf
+            $lockFile = Join-Path $projectRoot ("~$" + $fileName)
+            if (Test-Path $lockFile) {
+                Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        # Clear Excel disabled items registry key
+        Clear-ExcelDisabledItems
+
+        # Ensure we have a responsive Excel application object (it might have been terminated)
+        $excelResponsive = $false
+        try {
+            if ($null -ne $excel -and $excel.Hwnd) {
+                $excelResponsive = $true
+            }
+        } catch {}
+
+        if (-not $excelResponsive) {
+            Write-Host "  Active Excel instance was terminated. Starting a fresh Excel instance..." -ForegroundColor Cyan
+            $excel = Start-ExcelApplication -Purpose "workbook update after lock recovery"
+            if ($global:BeaverOrchestratorActive) {
+                $global:BeaverSharedExcel = $excel
+            }
+        }
+
+        # Re-attempt opening the workbook
+        Write-Host "  Re-attempting to open the workbook..." -ForegroundColor Cyan
+        try {
+            $excel.EnableEvents = $false
+            $workbook = $excel.Workbooks.Open($excelPath)
+            $excel.EnableEvents = $true
+        } catch {
+            throw "Failed to open workbook during self-healing: $($_.Exception.Message)"
+        }
+
+        if ($workbook.ReadOnly) {
+            throw "The workbook '$excelPath' was opened as Read-Only even after lock recovery. Please ensure that no other Excel process is locking the file."
+        } else {
+            Write-Host "  Self-healing recovery successful! Workbook opened in write mode." -ForegroundColor Green
+        }
     }
 
     # 6. Apply visibility
     if ($Visible) {
         $excel.Visible = $true
+    }
+
+    $excelPid = Get-ExcelProcessId -ExcelApplication $excel
+    if ($null -ne $global:BeaverBuildLog) {
+        $global:BeaverBuildLog.system.excelProcess.pid = $excelPid
+        $global:BeaverBuildLog.system.excelProcess.wasAlreadyOpen = $wasAlreadyOpen
+        $global:BeaverBuildLog.system.excelProcess.reusedSession = ($global:BeaverOrchestratorActive -and $null -ne $global:BeaverSharedExcel)
     }
 
     return [pscustomobject]@{

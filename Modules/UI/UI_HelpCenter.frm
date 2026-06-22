@@ -25,10 +25,10 @@ Public Sub DisplayHelp()
     Dim tracker As Object: Set tracker = Infra_Error.Track("DisplayHelp")
     On Error GoTo ErrHandler
     
-    If Application.Visible Then
+    If Application.Visible And Not Lib_Tests.IsRunning Then
         Me.Show vbModal
     Else
-        Debug.Print "  [SKIP] UI_HelpCenter.DisplayHelp vbModal display bypassed in headless/background environment"
+        Debug.Print "  [SKIP] UI_HelpCenter.DisplayHelp vbModal display bypassed in headless/background environment or unit testing"
     End If
     
 CleanExit:
@@ -156,7 +156,46 @@ Private Sub UserForm_Initialize()
         currentTop = currentTop + 20
     End If
     
-
+    currentTop = currentTop + 10
+    
+    ' SECTION 3: Ribbon Features
+    AddSectionHeader "Ribbon Features", fraScroll, currentTop
+    
+    Dim features As Collection
+    On Error Resume Next
+    Set features = Lib_HelpManifest.GetFeatureHelp()
+    On Error GoTo ErrHandler
+    
+    If Not features Is Nothing And features.Count > 0 Then
+        Dim featDict As Object
+        For Each featDict In features
+            Dim fLabel As String: fLabel = ""
+            Dim fScreentip As String: fScreentip = ""
+            Dim fSupertip As String: fSupertip = ""
+            
+            On Error Resume Next
+            fLabel = featDict("Label")
+            fScreentip = featDict("Screentip")
+            fSupertip = featDict("Supertip")
+            On Error GoTo ErrHandler
+            
+            If fLabel <> "" Then
+                AddFeatureRow fLabel, fScreentip, fSupertip, fraScroll, currentTop
+            End If
+        Next featDict
+    Else
+        Dim lblNoFeatures As Object
+        Set lblNoFeatures = fraScroll.Controls.Add("Forms.Label.1")
+        lblNoFeatures.Caption = "No ribbon features registered."
+        lblNoFeatures.Left = 15
+        lblNoFeatures.Top = currentTop
+        lblNoFeatures.Width = fraScroll.Width - 30
+        lblNoFeatures.Height = 15
+        lblNoFeatures.Font.Name = "Segoe UI"
+        lblNoFeatures.Font.Italic = True
+        lblNoFeatures.ForeColor = RGB(120, 125, 135)
+        currentTop = currentTop + 20
+    End If
     
     ' Set the scrolling height to fit all content + bottom padding
     fraScroll.ScrollHeight = currentTop + 10
@@ -319,6 +358,57 @@ Private Sub AddUdfRow(ByVal udfMeta As Object, ByVal parent As Object, ByRef cur
     End If
     
     currentTop = currentTop + 6
+End Sub
+
+Private Sub AddFeatureRow(ByVal label As String, ByVal screentip As String, ByVal supertip As String, ByVal parent As Object, ByRef currentTop As Double)
+    ' Feature Label
+    Dim lblLabel As Object
+    Set lblLabel = parent.Controls.Add("Forms.Label.1")
+    lblLabel.Caption = label
+    lblLabel.Left = 15
+    lblLabel.Top = currentTop
+    lblLabel.Width = 120
+    lblLabel.Height = 15
+    lblLabel.Font.Name = "Segoe UI"
+    lblLabel.Font.Bold = True
+    lblLabel.Font.Size = 9.5
+    lblLabel.ForeColor = RGB(10, 37, 64)
+    
+    ' Screentip (Brief description)
+    Dim lblScreentip As Object
+    Set lblScreentip = parent.Controls.Add("Forms.Label.1")
+    lblScreentip.Caption = screentip
+    lblScreentip.Left = 145
+    lblScreentip.Top = currentTop
+    lblScreentip.Width = parent.Width - 170
+    lblScreentip.Height = 15
+    lblScreentip.Font.Name = "Segoe UI"
+    lblScreentip.Font.Size = 9.5
+    lblScreentip.ForeColor = RGB(50, 55, 65)
+    
+    currentTop = currentTop + 16
+    
+    ' Supertip (Extended details) if present
+    If supertip <> "" Then
+        Dim lblSupertip As Object
+        Set lblSupertip = parent.Controls.Add("Forms.Label.1")
+        lblSupertip.Caption = supertip
+        lblSupertip.Left = 145
+        lblSupertip.Top = currentTop
+        lblSupertip.Width = parent.Width - 170
+        lblSupertip.WordWrap = True
+        lblSupertip.Font.Name = "Segoe UI"
+        lblSupertip.Font.Size = 8.5
+        lblSupertip.Font.Italic = True
+        lblSupertip.ForeColor = RGB(120, 125, 135)
+        
+        Dim approxLines As Long
+        approxLines = (Len(supertip) \ 60) + 1
+        lblSupertip.Height = approxLines * 12
+        currentTop = currentTop + lblSupertip.Height + 4
+    Else
+        currentTop = currentTop + 4
+    End If
 End Sub
 
 

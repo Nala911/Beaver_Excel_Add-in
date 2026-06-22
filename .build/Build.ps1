@@ -316,6 +316,69 @@ function Sync-CommandRegistry {
     Write-Host "  Command registry generated with $($commandMap.Count) command(s) and $($entryMap.Count) entry point(s)." -ForegroundColor Green
 }
 
+function Sync-HelpManifest {
+    param(
+        [string]$ManifestPath,
+        [string]$OutputPath
+    )
+
+    Write-Host "Generating help manifest..." -ForegroundColor Cyan
+    $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
+
+    $lines = @(
+        'Attribute VB_Name = "Lib_HelpManifest"',
+        'Option Explicit',
+        'Option Private Module',
+        '',
+        ''' @Module: Lib_HelpManifest',
+        ''' @Category: Library',
+        ''' @Description: Generated help manifest containing ribbon feature descriptions for dynamic help display.',
+        ''' @ManagedBy: BeaverAddin Agent',
+        ''' @Dependencies: Infra_Error',
+        '',
+        'Public Function GetFeatureHelp() As Collection',
+        '    Dim tracker As Object: Set tracker = Infra_Error.Track("GetFeatureHelp")',
+        '    On Error GoTo ErrHandler',
+        '    ',
+        '    Dim col As New Collection',
+        '    Dim dict As Object',
+        ''
+    )
+
+    foreach ($feature in @($manifest.Features)) {
+        $label = if ($feature.PSObject.Properties.Name -contains "Label") { $feature.Label } else { "" }
+        $screentip = if ($feature.PSObject.Properties.Name -contains "Screentip") { $feature.Screentip } else { "" }
+        $supertip = if ($feature.PSObject.Properties.Name -contains "Supertip") { $feature.Supertip } else { "" }
+        
+        $labelEsc = if ($label) { $label.Replace('"', '""') } else { "" }
+        $screentipEsc = if ($screentip) { $screentip.Replace('"', '""') } else { "" }
+        $supertipEsc = if ($supertip) { $supertip.Replace('"', '""') } else { "" }
+
+        if (-not [string]::IsNullOrWhiteSpace($labelEsc)) {
+            $lines += '    Set dict = CreateObject("Scripting.Dictionary")'
+            $lines += '    dict.Add "Label", "{0}"' -f $labelEsc
+            $lines += '    dict.Add "Screentip", "{0}"' -f $screentipEsc
+            $lines += '    dict.Add "Supertip", "{0}"' -f $supertipEsc
+            $lines += '    col.Add dict'
+            $lines += ''
+        }
+    }
+
+    $lines += @(
+        '    Set GetFeatureHelp = col',
+        '',
+        'CleanExit:',
+        '    Exit Function',
+        'ErrHandler:',
+        '    Infra_Error.HandleError "GetFeatureHelp", Err',
+        '    Resume CleanExit',
+        'End Function'
+    )
+
+    [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
+    Write-Host "  Help manifest generated with $($manifest.Features.Count) feature(s)." -ForegroundColor Green
+}
+
 function Get-VbaProcedureNameFromMacro {
     param([string]$MacroName)
 
@@ -613,6 +676,11 @@ function Invoke-VbaSyntaxCheck {
     $allPassed = $true
     foreach ($file in $vbaFiles) {
         $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
+        if ($null -ne $global:BeaverBuildLog) {
+            if ($global:BeaverBuildLog.lintResults.checkedFiles -notcontains $relPath) {
+                [void]$global:BeaverBuildLog.lintResults.checkedFiles.Add($relPath)
+            }
+        }
         
         $cachedPassed = $false
         if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
@@ -673,6 +741,7 @@ function Invoke-VbaSyntaxCheck {
                         $stack.RemoveAt($stack.Count - 1)
                     } else {
                         Write-Host "  [$fileName] Syntax Error: Unexpected '$($b.End.Trim())' at line $lineNum (No matching start found)." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected '$($b.End.Trim())' (No matching start found)" -Line $lineNum
                         $allPassed = $false
                         $global:BeaverLintStatusCache[$relPath] = $false
                     }
@@ -681,6 +750,7 @@ function Invoke-VbaSyntaxCheck {
             
             foreach ($startLine in $stack) {
                 Write-Host "  [$fileName] Syntax Error: Mismatched '$($b.Name)' starting at line $startLine (No matching end found)." -ForegroundColor Red
+                Add-LintError -File $fileName -Type "syntax" -Message "Mismatched '$($b.Name)' (No matching end found)" -Line $startLine
                 $allPassed = $false
                 $global:BeaverLintStatusCache[$relPath] = $false
             }
@@ -719,6 +789,11 @@ function Invoke-EnhancedLinting {
 
     foreach ($file in $vbaFiles) {
         $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
+        if ($null -ne $global:BeaverBuildLog) {
+            if ($global:BeaverBuildLog.lintResults.checkedFiles -notcontains $relPath) {
+                [void]$global:BeaverBuildLog.lintResults.checkedFiles.Add($relPath)
+            }
+        }
         
         $cachedPassed = $false
         if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
@@ -743,12 +818,14 @@ function Invoke-EnhancedLinting {
 
         if ($content -notmatch "(?m)^Option Explicit") {
             Write-Host "  [$fileName] Error: Missing 'Option Explicit' at the top of the file." -ForegroundColor Red
+            Add-LintError -File $fileName -Type "enhanced" -Message "Missing 'Option Explicit' at the top of the file." -Line 1
             $allPassed = $false
             $global:BeaverLintStatusCache[$relPath] = $false
         }
 
         if ($file.Name -ne "Lib_TestManifest.bas" -and $content -notmatch "' @Module:") {
             Write-Host "  [$fileName] Error: Missing '@Module' metadata header." -ForegroundColor Red
+            Add-LintError -File $fileName -Type "enhanced" -Message "Missing '@Module' metadata header." -Line 1
             $allPassed = $false
             $global:BeaverLintStatusCache[$relPath] = $false
         }
@@ -757,8 +834,9 @@ function Invoke-EnhancedLinting {
             $line = $lines[$i]
 
             # --- Rule A: Enforce Spill-Safe Formula Properties ---
-            if ($file.Name -ne "Lib_JsonConverter.bas" -and $line -match '\b\.\bFormula\b' -and $line -notmatch '".*\.Formula.*"' -and $line -notmatch '^\s*\''' -and $line -notmatch '\.Formula2' -and $line -notmatch '\.FormulaArray') {
+            if ($file.Name -ne "Lib_JsonConverter.bas" -and $line -match '\.\bFormula\b' -and $line -notmatch '".*\.Formula.*"' -and $line -notmatch '^\s*\''' -and $line -notmatch '\.Formula2' -and $line -notmatch '\.FormulaArray') {
                 Write-Host "  [$fileName] Error: Range.Formula usage detected at line $($i + 1). Use Range.Formula2 instead to prevent spill errors." -ForegroundColor Red
+                Add-LintError -File $fileName -Type "enhanced" -Message "Range.Formula usage detected. Use Range.Formula2 instead to prevent spill errors." -Line ($i + 1)
                 $allPassed = $false
                 $global:BeaverLintStatusCache[$relPath] = $false
             }
@@ -766,6 +844,7 @@ function Invoke-EnhancedLinting {
             # --- Rule B: Multi-cell Range Property Null Check ---
             if ($line -match '\b(CStr|CInt|CLng|CDbl|CSng|CBool|CDate|CVar)\s*\(\s*(?!(?:cell\b|\w+\.Cells\b|\w+Cells\b))[a-zA-Z0-9_\.]+\.(?:NumberFormat|Font\.(?:Name|Size))\s*\)' -and $line -notmatch '^\s*''') {
                 Write-Host "  [$fileName] Error: Direct string/value conversion on range property without IsNull check at line $($i + 1). Mixed ranges return Null, causing Error 94." -ForegroundColor Red
+                Add-LintError -File $fileName -Type "enhanced" -Message "Direct string/value conversion on range property without IsNull check. Mixed ranges return Null, causing Error 94." -Line ($i + 1)
                 $allPassed = $false
                 $global:BeaverLintStatusCache[$relPath] = $false
             }
@@ -784,6 +863,7 @@ function Invoke-EnhancedLinting {
                 }
                 if ($hasDeletion) {
                     Write-Host "  [$fileName] Error: Forward iteration loop with mutation detected at line $($i + 1). Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs." -ForegroundColor Red
+                    Add-LintError -File $fileName -Type "enhanced" -Message "Forward iteration loop with mutation detected. Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs." -Line ($i + 1)
                     $allPassed = $false
                     $global:BeaverLintStatusCache[$relPath] = $false
                 }
@@ -815,21 +895,25 @@ function Invoke-EnhancedLinting {
 
                 if (-not $foundPush) {
                     Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing context tracking (PushContext or Track)." -ForegroundColor Red
+                    Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing context tracking (PushContext or Track)." -Line $procLineNum
                     $allPassed = $false
                     $global:BeaverLintStatusCache[$relPath] = $false
                 }
                 if (-not $foundPop) {
                     Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'PopContext' (or RAII Track tracker)." -ForegroundColor Red
+                    Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'PopContext' (or RAII Track tracker)." -Line $procLineNum
                     $allPassed = $false
                     $global:BeaverLintStatusCache[$relPath] = $false
                 }
                 if (-not $foundErrorGoto) {
                     Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'On Error GoTo'." -ForegroundColor Red
+                    Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'On Error GoTo'." -Line $procLineNum
                     $allPassed = $false
                     $global:BeaverLintStatusCache[$relPath] = $false
                 }
                 if (-not $foundHandleError) {
                     Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'HandleError ""$procName""'." -ForegroundColor Red
+                    Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'HandleError ""$procName""'." -Line $procLineNum
                     $allPassed = $false
                     $global:BeaverLintStatusCache[$relPath] = $false
                 }
@@ -866,6 +950,11 @@ function Test-FormFilesValidity {
     $allPassed = $true
     foreach ($file in $frmFiles) {
         $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
+        if ($null -ne $global:BeaverBuildLog) {
+            if ($global:BeaverBuildLog.lintResults.checkedFiles -notcontains $relPath) {
+                [void]$global:BeaverBuildLog.lintResults.checkedFiles.Add($relPath)
+            }
+        }
         
         $cachedPassed = $false
         if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
@@ -887,6 +976,7 @@ function Test-FormFilesValidity {
         $frxPath = [System.IO.Path]::ChangeExtension($file.FullName, ".frx")
         if (-not (Test-Path $frxPath)) {
             Write-Host "  [$($file.Name)] Error: Missing companion binary file (.frx). MSForms requires a .frx file to import successfully." -ForegroundColor Red
+            Add-LintError -File $file.Name -Type "form" -Message "Missing companion binary file (.frx)." -Line 1
             $allPassed = $false
             $global:BeaverLintStatusCache[$relPath] = $false
         }
@@ -982,6 +1072,10 @@ try {
 
     if (-not $hasAnyChanges -and (Test-Path $excelPath) -and -not $Force) {
         Write-Host "No changes detected. Build skipped." -ForegroundColor Green
+        if ($null -ne $global:BeaverBuildLog) {
+            $global:BeaverBuildLog.buildMode = "skipped"
+        }
+        Save-BuildLog -Status "success"
         exit 0
     }
 
@@ -999,7 +1093,9 @@ try {
         }
     }
 
-    $forceFullBuild = ($manifestStructureChanged -or -not (Test-Path $excelPath) -or $Force)
+    Record-BuildChanges -ManifestChanged $manifestChanged -ManifestStructureChanged $manifestStructureChanged -ChangedFiles $changedFiles -DeletedFiles $deletedFiles -Force $Force
+
+    $forceFullBuild = (-not (Test-Path $excelPath) -or $Force)
 
     if ($forceFullBuild) {
         Write-Host "Performing clean full build..." -ForegroundColor Cyan
@@ -1018,8 +1114,25 @@ try {
     } | Out-Null
 
     Invoke-Stage -Stage "command_registry_generation" -Action {
-        if ($forceFullBuild) {
-            Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
+        $helpManifestPath = Join-Path $modulesDir "Libraries\Lib_HelpManifest.bas"
+        $registryMissing = -not (Test-Path $commandRegistryPath)
+        $helpMissing = -not (Test-Path $helpManifestPath)
+        
+        if ($forceFullBuild -or $manifestStructureChanged -or $registryMissing -or $helpMissing) {
+            if ($forceFullBuild -or $manifestStructureChanged -or $registryMissing) {
+                Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
+            }
+            if ($forceFullBuild -or $manifestStructureChanged -or $helpMissing) {
+                Sync-HelpManifest -ManifestPath $featureManifestPath -OutputPath $helpManifestPath
+            }
+            
+            if (-not $forceFullBuild) {
+                foreach ($relPath in @("Modules/Infrastructure/Infra_CommandRegistry.bas", "Modules/Libraries/Lib_HelpManifest.bas")) {
+                    if ($changedFiles -notcontains $relPath) {
+                        $script:changedFiles += $relPath
+                    }
+                }
+            }
             return "command registry refreshed"
         } else {
             return "skipped (manifest unchanged)"
@@ -1027,9 +1140,16 @@ try {
     } | Out-Null
 
     Invoke-Stage -Stage "ui_entry_generation" -Action {
-        if ($forceFullBuild) {
+        if ($forceFullBuild -or $manifestStructureChanged) {
             Sync-UiRibbonModule -ManifestPath $featureManifestPath -OutputPath $uiRibbonPath
             Sync-UiHotkeysModule -ManifestPath $featureManifestPath -OutputPath $uiHotkeysPath
+            if (-not $forceFullBuild) {
+                foreach ($relPath in @("Modules/UI/UI_Ribbon.bas", "Modules/UI/UI_Hotkeys.bas")) {
+                    if ($changedFiles -notcontains $relPath) {
+                        $script:changedFiles += $relPath
+                    }
+                }
+            }
             return "UI entry modules refreshed"
         } else {
             return "skipped (manifest unchanged)"
@@ -1189,6 +1309,7 @@ try {
             # Incremental Mode: Calculate components to remove/import
             foreach ($relPath in ($changedFiles + $deletedFiles)) {
                 if ($relPath -eq "features.json" -or $relPath -eq "ThisWorkbook.cls") { continue }
+                if ($relPath -notmatch "\.(bas|cls|frm)$") { continue }
                 
                 $filePath = Join-Path $projectRoot $relPath
                 $compName = $null
@@ -1200,11 +1321,11 @@ try {
                     $compName = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
                 }
                 
-                if ($null -ne $compName) {
+                if ($null -ne $compName -and $compName -ne "") {
                     $compsToRemove += $compName
                 }
                 
-                if ($changedFiles -contains $relPath -and $relPath -match "\.(bas|cls|frm)$") {
+                if ($changedFiles -contains $relPath) {
                     $filesToImport += $filePath
                 }
             }
@@ -1235,13 +1356,12 @@ try {
             if ($forceFullBuild) {
                 # Purge all components
                 $compsToRemoveList = @()
-                for ($i = 1; $i -le $vbaProject.VBComponents.Count; $i++) {
-                    $comp = $vbaProject.VBComponents.Item($i)
+                foreach ($comp in $vbaProject.VBComponents) {
                     if (($comp.Type -ge 1 -and $comp.Type -le 3) -and ($comp.Name -ne "ThisWorkbook")) {
                         $compsToRemoveList += $comp
                     }
                 }
-                $vbaSourceFiles = Get-ChildItem -Path $modulesDir -Recurse | Where-Object { $_.Extension -match "\.(bas|cls|frm)$" }
+                $vbaSourceFiles = Get-ChildItem -Path $modulesDir -Include *.bas, *.cls, *.frm -Recurse
                 $filesToImport = @($vbaSourceFiles | ForEach-Object { $_.FullName })
                 $compsToRemove = $compsToRemoveList
             } else {
@@ -1261,11 +1381,13 @@ try {
             }
 
             foreach ($comp in $compsToRemove) {
+                $compName = "unknown"
                 try {
+                    $compName = $comp.Name
                     $vbaProject.VBComponents.Remove($comp)
-                    Write-Host "  Removed component: $($comp.Name)"
+                    Write-Host "  Removed component: $compName"
                 } catch {
-                    throw "Failed to remove existing VBA component '$($comp.Name)': $($_.Exception.Message). Please ensure Excel is not in break mode or busy."
+                    throw "Failed to remove existing VBA component '$compName': $($_.Exception.Message). Please ensure Excel is not in break mode or busy."
                 }
             }
 
@@ -1338,6 +1460,9 @@ try {
 
                             if ($btn.Enabled) {
                                 Write-Host "  ERROR: VBA Compilation failed (Button still enabled)." -ForegroundColor Red
+                                if ($null -ne $global:BeaverBuildLog) {
+                                    $global:BeaverBuildLog.compileResults.status = "failure"
+                                }
 
                                 try {
                                     $activePane = $excel.VBE.ActiveCodePane
@@ -1385,15 +1510,34 @@ try {
                                             }
                                             Write-Host "  [Diagnostics] --------------------" -ForegroundColor Yellow
 
+                                            if ($null -ne $global:BeaverBuildLog) {
+                                                $global:BeaverBuildLog.compileResults.errorDetails = [ordered]@{
+                                                    moduleName = $modName
+                                                    errorLine = $diskErrorLine
+                                                    errorText = $errorLineText
+                                                    file = $diskFile.FullName
+                                                }
+                                            }
                                             throw "VBA Compilation failed in module '$modName' (Source: $($diskFile.FullName)) at line $($diskErrorLine): '$errorLineText'. Please fix the syntax or missing definitions."
                                         } else {
                                             Write-Host "  [Diagnostics] Module: $modName" -ForegroundColor Yellow
                                             Write-Host "  [Diagnostics] Line $($startLine): $errorLineText" -ForegroundColor Yellow
+                                            if ($null -ne $global:BeaverBuildLog) {
+                                                $global:BeaverBuildLog.compileResults.errorDetails = [ordered]@{
+                                                    moduleName = $modName
+                                                    errorLine = $startLine
+                                                    errorText = $errorLineText
+                                                    file = $null
+                                                }
+                                            }
                                             throw "VBA Compilation failed in module '$modName' at line $($startLine): '$errorLineText'. Please fix the syntax or missing definitions."
                                         }
                                     }
 
                                     Write-Host "  [Diagnostics] No ActiveCodePane found after failure." -ForegroundColor Yellow
+                                    if ($null -ne $global:BeaverBuildLog) {
+                                        $global:BeaverBuildLog.compileResults.errorDetails = "VBA Compilation failed. Check your code for syntax or definition errors."
+                                    }
                                     throw "VBA Compilation failed. Check your code for syntax or definition errors."
                                 } catch {
                                     if ($_.Exception.Message -match "VBA Compilation failed") {
@@ -1401,13 +1545,22 @@ try {
                                     }
 
                                     Write-Host "  [Diagnostics] Error retrieving active pane: $($_.Exception.Message)" -ForegroundColor Red
+                                    if ($null -ne $global:BeaverBuildLog) {
+                                        $global:BeaverBuildLog.compileResults.errorDetails = "VBA Compilation failed: $($_.Exception.Message)"
+                                    }
                                     throw "VBA Compilation failed. Check your code for 'Variable not defined' or syntax errors."
                                 }
                             } else {
                                 Write-Host "  Compilation successful." -ForegroundColor Green
+                                if ($null -ne $global:BeaverBuildLog) {
+                                    $global:BeaverBuildLog.compileResults.status = "success"
+                                }
                             }
                         } else {
                             Write-Host "  Project already compiled." -ForegroundColor Gray
+                            if ($null -ne $global:BeaverBuildLog) {
+                                $global:BeaverBuildLog.compileResults.status = "success"
+                            }
                         }
                     } else {
                         Write-Host "  'Compile Project' button NOT found on VBE Menu Bar." -ForegroundColor Yellow
@@ -1439,7 +1592,8 @@ try {
             $workbook.Saved = $false
             $workbook.Save()
             
-            if ($forceFullBuild) {
+            if ($forceFullBuild -or $manifestChanged) {
+                Write-Host "  Closing workbook to release file lock for Ribbon XML injection..." -ForegroundColor Yellow
                 $workbook.Close($true)
                 Release-ComObjectSafely $workbook
                 $workbook = $null
@@ -1458,7 +1612,7 @@ try {
             Write-Host "SUCCESS: Modules updated."
             return "modules imported and workbook saved"
         } finally {
-            if ($forceFullBuild) {
+            if ($forceFullBuild -or $manifestChanged) {
                 if ($workbook) {
                     try { $workbook.Close($false) } catch { }
                 }
@@ -1491,6 +1645,7 @@ try {
     Save-BuildState -FileHashes (Get-SourceFileHashes -Force)
 
     Write-StageSummary
+    Save-BuildLog -Status "success"
 } catch {
     Stop-Script $_.Exception.Message
 } finally {

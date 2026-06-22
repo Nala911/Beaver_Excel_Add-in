@@ -13,7 +13,8 @@ param(
     [switch]$ListTests,
     [switch]$SkipLint,
     [switch]$Visible,
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$KeepAlive
 )
 
 Set-StrictMode -Version Latest
@@ -44,6 +45,9 @@ try {
     $currentHashes = Get-SourceFileHashes
     $buildState = Get-BuildState
     $manifestChanged = $true
+    $manifestStructureChanged = $true
+    $skipUnitTests = $false
+    $testsPassed = $false
     $autoFilter = $null
     $changedFiles = @()
     $deletedFiles = @()
@@ -96,13 +100,18 @@ try {
             $hasVbaChanges = $true
         }
 
-        $skipUnitTests = (-not $hasVbaChanges -and -not $manifestStructureChanged -and -not $Force)
+        $skipUnitTests = (-not $hasVbaChanges -and -not $manifestStructureChanged -and -not $Force -and $testsPassed)
 
         if (-not $hasAnyChanges -and -not $Force -and -not $Filter -and (Test-Path $excelPath) -and $testsPassed) {
             Write-Host "========================================" -ForegroundColor Green
             Write-Host "  BEAVER ADD-IN: PIPELINE UP TO DATE" -ForegroundColor Green
             Write-Host "========================================" -ForegroundColor Green
             Write-Host "No changes detected and all tests passed on the current codebase state. Skipping build and tests." -ForegroundColor Green
+            if ($null -ne $global:BeaverBuildLog) {
+                $global:BeaverBuildLog.buildMode = "skipped"
+            }
+            Record-BuildChanges -ManifestChanged $manifestChanged -ManifestStructureChanged $manifestStructureChanged -ChangedFiles $changedFiles -DeletedFiles $deletedFiles -Force $Force
+            Save-BuildLog -Status "success" -Force
             exit 0
         }
         
@@ -137,7 +146,11 @@ try {
                 }
             }
         }
+    } else {
+        $changedFiles = @($currentHashes.Keys)
     }
+
+    Record-BuildChanges -ManifestChanged $manifestChanged -ManifestStructureChanged $manifestStructureChanged -ChangedFiles $changedFiles -DeletedFiles $deletedFiles -Force $Force
 
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host "  BEAVER ADD-IN: RUNNING BUILD PIPELINE" -ForegroundColor Cyan
@@ -150,12 +163,14 @@ try {
     & "$PSScriptRoot\Build.ps1" @buildParams
     if (-not $?) {
         Write-Host "Build pipeline failed." -ForegroundColor Red
+        Save-BuildLog -Status "failure" -Force
         exit 1
     }
 
     if ($SkipRuntimeTests) {
         Write-Host ""
         Write-Host "Skipping test pipeline (-SkipRuntimeTests)." -ForegroundColor Yellow
+        Save-BuildLog -Status "success" -Force
         exit 0
     }
 
@@ -181,6 +196,7 @@ try {
     if (-not $?) {
         Set-BuildStateTestsPassed -Passed $false
         Write-Host "Test pipeline failed." -ForegroundColor Red
+        Save-BuildLog -Status "failure" -Force
         exit 1
     }
 
@@ -195,11 +211,12 @@ try {
 
     Write-Host ""
     Write-Host "All pipelines completed successfully!" -ForegroundColor Green
+    Save-BuildLog -Status "success" -Force
     exit 0
 } finally {
     # Clean up persistent Excel session if orchestrator opened it
     if ($null -ne $global:BeaverSharedExcel) {
-        if (-not $global:BeaverExcelWasAlreadyOpen) {
+        if (-not $global:BeaverExcelWasAlreadyOpen -and -not $KeepAlive) {
             Write-Host "Cleaning up persistent Excel session..." -ForegroundColor Cyan
             try {
                 foreach ($wb in $global:BeaverSharedExcel.Workbooks) {
@@ -216,6 +233,9 @@ try {
                 $global:BeaverSharedExcel.Visible = $true
                 $global:BeaverSharedExcel.DisplayAlerts = $true
             } catch {}
+            if ($KeepAlive) {
+                Write-Host "  KeepAlive active: leaving Excel running with the workbook loaded." -ForegroundColor Yellow
+            }
         }
         Release-ComObjectSafely $global:BeaverSharedExcel
         $global:BeaverSharedExcel = $null
@@ -223,4 +243,5 @@ try {
     
     $global:BeaverOrchestratorActive = $false
     $global:BeaverSourceHashes = $null
+    Clear-AccumulatedLogs
 }

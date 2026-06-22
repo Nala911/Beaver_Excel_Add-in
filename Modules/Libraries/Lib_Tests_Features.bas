@@ -503,6 +503,134 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_CleanData_HygieneOptions()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CleanData_HygieneOptions")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_CleanHygiene"
+    
+    Dim cmd As New FeatCmd_CleanData
+    Dim req As New Infra_CleanDataRequest
+    
+    ' Disable text cleaning defaults to isolate hygiene tests
+    req.CleanTrimSpaces = False
+    req.CleanNonPrintables = False
+    req.CleanInvisibleChars = False
+    req.CleanBrokenNames = False
+
+    ' 1. Test Clear Comments/Notes
+    ws.Range("A1").Value2 = "Value A1"
+    ws.Range("A1").AddComment "Test Comment A1"
+    
+    req.CleanComments = True
+    Dim cleanedCount As Long
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A1"), req)
+    
+    Lib_Tests.AssertEqual True, ws.Range("A1").Comment Is Nothing, "Comment should be removed"
+    req.CleanComments = False
+    
+    ' 2. Test Clear Validation
+    ws.Range("A2").Value2 = 5
+    With ws.Range("A2").Validation
+        .Delete
+        .Add Type:=xlValidateWholeNumber, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="1", Formula2:="10"
+    End With
+    
+    req.CleanValidation = True
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A2"), req)
+    
+    Dim hasValidation As Boolean
+    hasValidation = False
+    On Error Resume Next
+    Dim valType As Long
+    valType = ws.Range("A2").Validation.Type
+    If Err.Number = 0 Then hasValidation = True
+    On Error GoTo ErrHandler
+    
+    Lib_Tests.AssertEqual False, hasValidation, "Validation rule should be deleted"
+    req.CleanValidation = False
+
+    ' 3. Test Clear Conditional Formatting
+    ws.Range("A3").Value2 = 10
+    ws.Range("A3").FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="5"
+    ws.Range("A3").FormatConditions(1).Interior.Color = vbRed
+    
+    req.CleanConditionalFormatting = True
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A3"), req)
+    Lib_Tests.AssertEqual 0, ws.Range("A3").FormatConditions.Count, "Conditional formatting should be deleted"
+    req.CleanConditionalFormatting = False
+
+    ' 4. Test Clear Cell Formatting (keep values)
+    ws.Range("A4").Value2 = "Bold Text"
+    ws.Range("A4").Font.Bold = True
+    ws.Range("A4").Interior.Color = vbYellow
+    
+    req.CleanFormats = True
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A4"), req)
+    Lib_Tests.AssertEqual "Bold Text", ws.Range("A4").Value2, "Value should be kept"
+    Lib_Tests.AssertEqual False, ws.Range("A4").Font.Bold, "Font bold formatting should be cleared"
+    Lib_Tests.AssertEqual xlNone, ws.Range("A4").Interior.ColorIndex, "Fill color should be cleared"
+    req.CleanFormats = False
+
+    ' 5. Test Remove Shapes/Images
+    Dim sh As Shape
+    Set sh = ws.Shapes.AddShape(1, 10, 10, 50, 50) ' 1 = msoShapeRectangle
+    sh.Name = "TestRectangle"
+    
+    req.CleanShapes = True
+    req.Scope = TargetScopeSelection
+    
+    cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A1:C10"), req)
+    
+    Dim shapeExists As Boolean
+    shapeExists = False
+    Dim testSh As Shape
+    On Error Resume Next
+    Set testSh = ws.Shapes("TestRectangle")
+    If Not testSh Is Nothing Then shapeExists = True
+    On Error GoTo ErrHandler
+    Lib_Tests.AssertEqual False, shapeExists, "Shape in selection should be deleted"
+    req.CleanShapes = False
+
+    ' 6. Test Remove Sheet-scoped Named Ranges
+    ws.Names.Add Name:="LocalName", RefersTo:="=$A$1"
+    
+    req.CleanSheetNames = True
+    req.Scope = TargetScopeActiveSheet
+    
+    Dim procCount As Long
+    procCount = cmd.CleanWorksheetWithOptionsDirect(ws, req)
+    
+    Dim nameExists As Boolean
+    nameExists = False
+    Dim nm As Name
+    On Error Resume Next
+    Set nm = ws.Names("LocalName")
+    If Not nm Is Nothing Then nameExists = True
+    On Error GoTo ErrHandler
+    Lib_Tests.AssertEqual False, nameExists, "Sheet-scoped name should be deleted"
+    req.CleanSheetNames = False
+
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_CleanData_HygieneOptions", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_BreakExternalLinks_Execution()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_BreakExternalLinks_Execution")
     On Error GoTo ErrHandler
@@ -1846,6 +1974,105 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_HighlightData_DataValidations()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HighlightData_DataValidations")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_HighVal"
+
+    ' Set up validation on range A1:A2
+    With ws.Range("A1:A2").Validation
+        .Delete
+        .Add Type:=xlValidateWholeNumber, AlertStyle:=xlValidAlertStop, Operator:= _
+        xlBetween, Formula1:="1", Formula2:="10"
+    End With
+    
+    ws.Range("A3").Value = 42
+
+    ' Reset colors
+    ws.Range("A1:A3").Interior.ColorIndex = xlNone
+
+    Dim req As New Infra_HighlightDataRequest
+    req.HighlightInconsistentFormulas = False
+    req.HighlightDuplicates = False
+    req.HighlightDataValidations = True
+
+    Dim cmd As New FeatCmd_HighlightData
+    cmd.HighlightRangeWithOptionsDirect ws.Range("A1:A3"), req
+
+    ' Check assertions
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, RGB(204, 255, 204), "A1 validation should be highlighted soft green"
+    Lib_Tests.AssertEqual ws.Range("A2").Interior.Color, RGB(204, 255, 204), "A2 validation should be highlighted soft green"
+    Lib_Tests.AssertEqual ws.Range("A3").Interior.ColorIndex, xlNone, "A3 normal cell should not be highlighted"
+
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_HighlightData_DataValidations", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_HighlightData_ConditionalFormatting()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HighlightData_ConditionalFormatting")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_HighCF"
+
+    ' Set up conditional formatting on range A1:A2
+    ws.Range("A1:A2").FormatConditions.Delete
+    ws.Range("A1:A2").FormatConditions.Add Type:=xlCellValue, Operator:=xlEqual, Formula1:="=10"
+    
+    ws.Range("A3").Value = 42
+
+    ' Reset colors
+    ws.Range("A1:A3").Interior.ColorIndex = xlNone
+
+    Dim req As New Infra_HighlightDataRequest
+    req.HighlightInconsistentFormulas = False
+    req.HighlightDuplicates = False
+    req.HighlightConditionalFormatting = True
+
+    Dim cmd As New FeatCmd_HighlightData
+    cmd.HighlightRangeWithOptionsDirect ws.Range("A1:A3"), req
+
+    ' Check assertions
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, RGB(204, 229, 255), "A1 CF should be highlighted soft blue"
+    Lib_Tests.AssertEqual ws.Range("A2").Interior.Color, RGB(204, 229, 255), "A2 CF should be highlighted soft blue"
+    Lib_Tests.AssertEqual ws.Range("A3").Interior.ColorIndex, xlNone, "A3 normal cell should not be highlighted"
+
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_HighlightData_ConditionalFormatting", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_FormatRange_WholeSheetSafety()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FormatRange_WholeSheetSafety")
     Dim guard As New Infra_AppStateGuard
@@ -2012,12 +2239,12 @@ Public Sub Test_UI_OptionPicker_DynamicLayout()
     Lib_Tests.AssertTrue frm.Width > 200, "Form width should be scaled dynamically"
     Lib_Tests.AssertTrue frm.Height > 50, "Form height should be scaled dynamically"
     Lib_Tests.AssertTrue lst.Width > 180, "ListBox width should be scaled to fit options"
-
     ' Test multi-select option picker configuration
     frm.ConfigureMultiOptionPicker "Test Multi Title", "Check the options:", Array("Opt A", "Opt B"), Array(True, False)
 
-    Lib_Tests.AssertTrue lst.MultiSelect = 1, "ListBox should be set to multi-select checkbox mode"
-
+    Lib_Tests.AssertTrue lst.MultiSelect = 0, "ListBox should be set to single-select custom checkbox list mode"
+    Lib_Tests.AssertTrue btnOK.Visible = True, "OK button should be visible in multi-select mode"
+    Lib_Tests.AssertTrue btnCancel.Visible = True, "Cancel button should be visible in multi-select mode"
 CleanExit:
     On Error Resume Next
     If Not frm Is Nothing Then Unload frm
@@ -2606,3 +2833,71 @@ ErrHandler:
     Infra_Error.HandleError "Test_TryConvertToNumber_Unification", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_UnifiedHelpers_And_CleanDataDisjoint()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_UnifiedHelpers_And_CleanDataDisjoint")
+    On Error GoTo ErrHandler
+
+    ' 1. Test GetExcelErrorText
+    Lib_Tests.AssertEqual Infra_ValueConversion.GetExcelErrorText(CVErr(xlErrDiv0)), "#DIV/0!", "Should return #DIV/0! for xlErrDiv0"
+    Lib_Tests.AssertEqual Infra_ValueConversion.GetExcelErrorText(CVErr(xlErrNA)), "#N/A", "Should return #N/A for xlErrNA"
+    Lib_Tests.AssertEqual Infra_ValueConversion.GetExcelErrorText("Hello"), "Hello", "Should return string itself for non-error string"
+
+    ' 2. Test GetSystemDateFormatPattern
+    Dim sysPattern As String
+    sysPattern = Infra_ValueConversion.GetSystemDateFormatPattern()
+    Lib_Tests.AssertTrue Len(sysPattern) > 0, "System date format pattern should not be empty"
+
+    ' 3. Test Disjoint Clean Data Optimization
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_DisjointClean"
+
+    Dim i As Long
+    Dim unionRange As Range
+    
+    ' Populate disjoint cells (120 cells, e.g. A1, A3, A5...)
+    For i = 1 To 240 Step 2
+        ws.Cells(i, 1).Value2 = "  text  "
+        If unionRange Is Nothing Then
+            Set unionRange = ws.Cells(i, 1)
+        Else
+            Set unionRange = Application.Union(unionRange, ws.Cells(i, 1))
+        End If
+    Next i
+    
+    Lib_Tests.AssertEqual unionRange.Areas.Count, 120, "Should have 120 disjoint areas"
+
+    Dim request As New Infra_CleanDataRequest
+    request.CleanTrimSpaces = True
+    
+    ' Execute cleaning via headless entry point
+    Dim cleanCmd As New FeatCmd_CleanData
+    Dim cleanedCount As Long
+    cleanedCount = cleanCmd.CleanRangeWithOptionsDirect(unionRange, request)
+    
+    Lib_Tests.AssertEqual cleanedCount, 120, "Should have cleaned 120 cells"
+    
+    ' Verify values are trimmed
+    For i = 1 To 240 Step 2
+        Lib_Tests.AssertEqual ws.Cells(i, 1).Value2, "text", "Value at row " & i & " should be trimmed"
+    Next i
+
+    ' Cleanup temporary sheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_UnifiedHelpers_And_CleanDataDisjoint", Err
+    Resume CleanExit
+End Sub
+

@@ -144,6 +144,32 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Ribbon_OnHighlightDataValidations(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnHighlightDataValidations")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnHighlightDataValidations", "Ribbon_OnHighlightDataValidations", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnHighlightDataValidations", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Ribbon_OnHighlightConditionalFormatting(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnHighlightConditionalFormatting")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnHighlightConditionalFormatting", "Ribbon_OnHighlightConditionalFormatting", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnHighlightConditionalFormatting", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Ribbon_OnBreakExternalLinks(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnBreakExternalLinks")
     On Error GoTo ErrHandler

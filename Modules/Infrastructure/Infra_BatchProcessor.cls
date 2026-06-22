@@ -50,6 +50,14 @@ Public Function Execute( _
             scopeLabel = "workbook"
     End Select
 
+    If scope = TargetScopeWorkbook Then
+        If Not Infra_Interaction.Confirm( _
+            "This operation will process the entire workbook and cannot be undone. Do you want to proceed?", _
+            operationName & " - Workbook Operation Warning", vbDefaultButton2) Then
+            GoTo CleanExit
+        End If
+    End If
+
     If Not targetRange Is Nothing Then
         If Not Infra_Undo.SaveStateOrConfirm(targetRange, operationName) Then GoTo CleanExit
     End If

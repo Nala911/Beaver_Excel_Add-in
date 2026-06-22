@@ -11,6 +11,7 @@ Option Explicit
 
 Implements ICommand
 Implements IBatchProcessor
+Implements ICellTransformer
 
 ' @Module: FeatCmd_ModifyData
 ' @Category: Feature
@@ -95,141 +96,26 @@ Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
     IBatchProcessor_ProcessWorksheet = 0
 End Function
 
-Private Function ProcessRangeForModify(ByRef targetRange As Range, ByVal request As Infra_ModifyDataRequest) As Long
-    If targetRange Is Nothing Then Exit Function
-
-    Dim targetCells As Range
-    Dim changeCount As Long
-
-    If targetRange.CountLarge = 1 Then
-        If Not targetRange.HasFormula Then
-            Dim vt As Integer
-            vt = VarType(targetRange.Value)
-            If vt = vbString Or vt = vbDouble Or vt = vbSingle Or vt = vbInteger Or vt = vbLong Or vt = vbDate Then
-                Set targetCells = targetRange
-            End If
-        End If
-    Else
-        On Error Resume Next
-        Set targetCells = targetRange.SpecialCells(xlCellTypeConstants, xlTextValues Or xlNumbers)
-        On Error GoTo 0
+Private Function ICellTransformer_TransformCell(ByVal rawValue As Variant, ByVal currentFormat As String, ByRef outValue As Variant, ByRef outFormat As String) As Boolean
+    If m_CurrentRequest Is Nothing Then
+        ICellTransformer_TransformCell = False
+        Exit Function
     End If
-
-    If targetCells Is Nothing Then Exit Function
-
-    Dim chunks As Collection
-    Set chunks = Infra_CommandSupport.GetChunkedRanges(targetCells, 20000)
-    
-    Dim chunkRange As Range
-    For Each chunkRange In chunks
-        If chunkRange.Cells.CountLarge = 1 Then
-            Dim oldVal As Variant, newVal As Variant
-            Dim oldFormat As String, newFormat As String
-            oldVal = chunkRange.Value
-            oldFormat = chunkRange.NumberFormat
-            
-            Dim isModified As Boolean
-            isModified = ModifyTextValue(oldVal, oldFormat, request, newVal, newFormat)
-            
-            If isModified Then
-                If newFormat <> vbNullString Then
-                    chunkRange.NumberFormat = newFormat
-                End If
-                chunkRange.Value = newVal
-                changeCount = changeCount + 1
-            End If
-        Else
-            changeCount = changeCount + ModifyAreaValues(chunkRange, request)
-        End If
-        
-        DoEvents
-        If Infra_Progress.UserCancelled Then Exit For
-    Next chunkRange
-    
-    ProcessRangeForModify = changeCount
+    ICellTransformer_TransformCell = ModifyTextValue(rawValue, currentFormat, m_CurrentRequest, outValue, outFormat)
 End Function
 
-Private Function ModifyAreaValues(ByRef area As Range, ByVal request As Infra_ModifyDataRequest) As Long
-    Dim vals As Variant
-    Dim fmts As Variant
-    vals = area.Value
-    fmts = area.NumberFormat
+Private Function ProcessRangeForModify(ByRef targetRange As Range, ByVal request As Infra_ModifyDataRequest) As Long
+    If targetRange Is Nothing Then Exit Function
     
-    Dim isFmtsArray As Boolean
-    isFmtsArray = IsArray(fmts)
+    ' Temporarily set current request to support direct/test calls
+    Dim prevRequest As Infra_ModifyDataRequest
+    Set prevRequest = m_CurrentRequest
+    Set m_CurrentRequest = request
     
-    Dim isFmtsNull As Boolean
-    isFmtsNull = IsNull(fmts)
+    ProcessRangeForModify = Infra_CommandSupport.ProcessRangeUnified(targetRange, Me, xlTextValues Or xlNumbers)
     
-    Dim hasChanged As Boolean
-    Dim changeCount As Long
-    
-    Dim r As Long, c As Long
-    Dim rowMin As Long, rowMax As Long
-    Dim colMin As Long, colMax As Long
-    
-    rowMin = LBound(vals, 1)
-    rowMax = UBound(vals, 1)
-    colMin = LBound(vals, 2)
-    colMax = UBound(vals, 2)
-    
-    Dim dateChangeCount As Long
-    Dim unionRange As Range
-    Dim addrList As String
-    
-    For r = rowMin To rowMax
-        For c = colMin To colMax
-            Dim oldVal As Variant
-            Dim oldFormat As String
-            oldVal = vals(r, c)
-            
-            If request.Operation <> "Date Standardization" Then
-                oldFormat = vbNullString
-            ElseIf VarType(oldVal) <> vbDate Then
-                oldFormat = vbNullString
-            ElseIf isFmtsArray Then
-                oldFormat = CStr(fmts(r, c))
-            ElseIf isFmtsNull Then
-                oldFormat = CStr(area.Cells(r, c).NumberFormat)
-            Else
-                oldFormat = CStr(fmts)
-            End If
-            
-            Dim newVal As Variant
-            Dim newFormat As String
-            
-            If ModifyTextValue(oldVal, oldFormat, request, newVal, newFormat) Then
-                vals(r, c) = newVal
-                changeCount = changeCount + 1
-                hasChanged = True
-                
-                If request.Operation = "Date Standardization" And newFormat <> vbNullString Then
-                    dateChangeCount = dateChangeCount + 1
-                    Dim cellAddr As String
-                    cellAddr = Infra_CommandSupport.GetA1Address(area.Row + r - 1, area.Column + c - 1)
-                    Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, cellAddr)
-                End If
-            End If
-        Next c
-    Next r
-    
-    If hasChanged Then
-        ' Apply format optimization before writing values
-        If dateChangeCount > 0 Then
-            If dateChangeCount / area.Cells.CountLarge > 0.5 Then
-                area.NumberFormat = Infra_Config.Model.DisplayDateFormat
-            Else
-                Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, "", True)
-                If Not unionRange Is Nothing Then
-                    unionRange.NumberFormat = Infra_Config.Model.DisplayDateFormat
-                End If
-            End If
-        End If
-        
-        area.Value = vals
-    End If
-    
-    ModifyAreaValues = changeCount
+    ' Restore previous request
+    Set m_CurrentRequest = prevRequest
 End Function
 
 Private Function ModifyTextValue( _
@@ -284,7 +170,7 @@ Private Function ModifyTextValue( _
             ' 2. Reconstruct using the system's local date format order
             If Not success Then
                 Dim sysPattern As String
-                sysPattern = GetSystemDateFormatPattern()
+                sysPattern = Infra_ValueConversion.GetSystemDateFormatPattern()
                 On Error Resume Next
                 textValue = Format$(rawValue, sysPattern)
                 If Err.Number = 0 And Trim$(textValue) <> vbNullString Then
@@ -558,23 +444,7 @@ Private Function ParseCustomDate(ByVal text As String, ByVal pattern As String, 
     ParseCustomDate = False
 End Function
 
-Private Function GetSystemDateFormatPattern() As String
-    Dim dateOrder As Long
-    On Error Resume Next
-    dateOrder = Application.International(xlDateOrder)
-    If Err.Number <> 0 Then
-        dateOrder = 1 ' Default to DMY (1) if not in Excel environment
-        Err.Clear
-    End If
-    On Error GoTo 0
-    
-    Select Case dateOrder
-        Case 0: GetSystemDateFormatPattern = "mm-dd-yyyy"
-        Case 1: GetSystemDateFormatPattern = "dd-mm-yyyy"
-        Case 2: GetSystemDateFormatPattern = "yyyy-mm-dd"
-        Case Else: GetSystemDateFormatPattern = "dd-mm-yyyy"
-    End Select
-End Function
+
 
 ' --- Headless testing support ---
 

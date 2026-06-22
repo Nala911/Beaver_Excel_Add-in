@@ -69,33 +69,51 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Infra_Progress.StartProgress "Unmerging & Filling", 100
     Infra_Progress.UpdateProgress 10
 
+    Dim mArea As Range
+    Dim hasFormula As Boolean
+    Dim formulaStr As String
+    Dim val As Variant
+
+    On Error Resume Next
+    Application.FindFormat.Clear
+    Application.FindFormat.MergeCells = True
+    Set cell = selRange.Find(What:="", SearchFormat:=True)
+    On Error GoTo ErrHandler
+
     unmergeCount = 0
-    For Each cell In selRange.Cells
-        If cell.MergeCells Then
-            Dim mArea As Range
-            Set mArea = cell.MergeArea
+    Do While Not cell Is Nothing
+        Set mArea = cell.MergeArea
 
-            Dim hasFormula As Boolean
-            Dim formulaStr As String
-            Dim val As Variant
-
-            hasFormula = mArea.Cells(1, 1).HasFormula
-            If hasFormula Then
-                formulaStr = mArea.Cells(1, 1).Formula2
-            End If
-            val = mArea.Cells(1, 1).Value
-
-            mArea.UnMerge
-
-            If hasFormula Then
-                mArea.Formula2 = formulaStr
-            Else
-                mArea.Value = val
-            End If
-
-            unmergeCount = unmergeCount + 1
+        hasFormula = mArea.Cells(1, 1).HasFormula
+        If hasFormula Then
+            formulaStr = mArea.Cells(1, 1).Formula2
         End If
-    Next cell
+        val = mArea.Cells(1, 1).Value
+
+        mArea.UnMerge
+
+        If hasFormula Then
+            mArea.Formula2 = formulaStr
+        Else
+            mArea.Value = val
+        End If
+
+        unmergeCount = unmergeCount + 1
+
+        ' Find the next remaining merged cell
+        On Error Resume Next
+        Set cell = selRange.Find(What:="", SearchFormat:=True)
+        On Error GoTo ErrHandler
+        
+        If unmergeCount Mod 100 = 0 Then
+            DoEvents
+            If Infra_Progress.UserCancelled Then Exit Do
+        End If
+    Loop
+
+    On Error Resume Next
+    Application.FindFormat.Clear
+    On Error GoTo 0
 
     Infra_Progress.UpdateProgress 100
     Infra_Progress.EndProgress
@@ -107,6 +125,9 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     End If
 
 CleanExit:
+    On Error Resume Next
+    Application.FindFormat.Clear
+    On Error GoTo 0
     Exit Sub
 
 ErrHandler:

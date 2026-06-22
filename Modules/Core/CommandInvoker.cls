@@ -23,6 +23,9 @@ Public Sub ExecuteCommand(ByVal cmd As ICommand, ByVal context As ICommandContex
 
     If cmd Is Nothing Then GoTo CleanExit
     
+    ' Clear transient cache at the start of command execution
+    Infra_Cache.Clear
+    
     Infra_Undo.ClearPendingUndo
 
     Set validation = cmd.Validate(context)

@@ -89,15 +89,9 @@ Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As
     Debug.Print String(50, "-")
     LogErrorContext ctx
     
-    ' 2. Optional enrichers
-    TryCopyToClipboard errorMsg
-    
-    Dim showDialog As Boolean
-    showDialog = True
-    
+    ' 2. Record runtime error if running unit tests
     On Error Resume Next
     If Lib_Tests.IsRunning Then
-        showDialog = False
         If category = "runtime" And severity = "fatal" Then
             Dim testName As String
             testName = GetCallingTest()
@@ -110,10 +104,6 @@ Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As
         End If
     End If
     On Error GoTo 0
-    
-    If showDialog Then
-        TryShowErrorDialog errorMsg, ctx
-    End If
 
     ' 3. Clear Stack
     Set pStack = Nothing
@@ -121,6 +111,11 @@ Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As
     ' 4. Failsafe Reset
     ResetApplicationState
     
+    ' 5. Non-blocking user notification for interactive use
+    On Error Resume Next
+    If Not Lib_Tests.IsRunning Then
+        Application.StatusBar = "Beaver Error: (" & errNum & ") " & errDesc & " (Check Ctrl+G or temp logs)"
+    End If
     On Error GoTo 0
 End Sub
 
@@ -292,9 +287,7 @@ Private Function BuildPromptString(ByVal ctx As Infra_ErrorContext) As String
              "Addin Version: " & ctx.AppVersion & vbCrLf & _
              "Excel Version: " & Application.version & vbCrLf & vbCrLf & _
              "--- ENVIRONMENT SNAPSHOT ---" & vbCrLf & _
-             GetRichContext(ParseStateInfoToCollection(ctx.StateDump)) & vbCrLf & _
-             "Hey AI, the Beaver Add-in failed with the above error. " & _
-             "Based on the Path and the Environment Snapshot, please analyze what might cause this and provide a fix."
+             GetRichContext(ParseStateInfoToCollection(ctx.StateDump))
              
     BuildPromptString = prompt
 End Function
@@ -386,50 +379,4 @@ Private Sub ResetApplicationState()
     On Error GoTo 0
 End Sub
 
-Private Sub TryCopyToClipboard(ByVal text As String)
-    On Error Resume Next
-    CopyToClipboard text
-    On Error GoTo 0
-End Sub
 
-Private Sub TryShowErrorDialog(ByVal errorMsg As String, ByVal ctx As Infra_ErrorContext)
-    On Error Resume Next
-    If ctx Is Nothing Then Exit Sub
-    If Not Application.Visible Or Not Application.UserControl Then Exit Sub
-    ShowAIErrorDialog errorMsg, ctx.Severity
-    On Error GoTo 0
-End Sub
-
-
-Private Sub ShowAIErrorDialog(ByVal errorMsg As String, Optional ByVal severity As String = "fatal")
-    Dim displayMsg As String
-    Dim style As VbMsgBoxStyle
-    
-    displayMsg = "🚨 ERROR CAUGHT!" & vbCrLf & vbCrLf & _
-                 "✅ THE DETAILS HAVE BEEN AUTOMATICALLY COPIED TO YOUR CLIPBOARD." & vbCrLf & _
-                 "Just switch to your AI chat and press Ctrl+V to paste the context." & vbCrLf & vbCrLf & _
-                 "----- ERROR SUMMARY -----" & vbCrLf & _
-                 "Check the Immediate Window (Ctrl+G) for the full log if needed." & vbCrLf & vbCrLf & _
-                 errorMsg
-
-    style = IIf(severity = SEVERITY_WARNING, vbExclamation, vbCritical)
-    MsgBox displayMsg, style, Infra_Config.ADDIN_NAME & " Error - Copied to Clipboard!"
-End Sub
-
-Private Sub CopyToClipboard(ByVal text As String)
-    On Error Resume Next
-    
-    ' Method 1: DataObject (Late bound, doesn't require MSForms reference)
-    Dim objData As Object
-    Set objData = CreateObject("New:{1C3B4210-F441-11CE-B9EA-00AA006B1A69}")
-    If Not objData Is Nothing Then
-        objData.SetText text
-        objData.PutInClipboard
-        Exit Sub
-    End If
-    
-    ' Method 2: HTMLFile (Fallback for Windows)
-    CreateObject("htmlfile").ParentWindow.ClipboardData.SetData "text", text
-    
-    On Error GoTo 0
-End Sub
