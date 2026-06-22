@@ -351,14 +351,14 @@
                      },
                      {
                          "ControlId":  "BtnUnmergeFill",
-                         "Label":  "Unmerge & Fill Down",
+                         "Label":  "Unmerge FillDown",
                          "OnAction":  "Ribbon_OnUnmergeFill",
                          "Macro":  "UI_Ribbon.Ribbon_OnUnmergeFill",
                          "CommandName":  "UnmergeFill",
                          "CommandClass":  "FeatCmd_UnmergeFill",
                          "Icon":  "TableProperties",
                          "Keytip":  "UF",
-                         "Screentip":  "Unmerge & Fill Down",
+                         "Screentip":  "Unmerge FillDown",
                          "Supertip":  "Unmerges the selected cells and fills the parent value to all unmerged cells.",
                          "RuntimeTestMode":  "interactive"
                      },

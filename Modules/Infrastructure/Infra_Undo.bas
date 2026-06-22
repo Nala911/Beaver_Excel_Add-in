@@ -79,27 +79,46 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As 
     
     If Not IsEmpty(links) Then
         Set undoRange = undoSh.Range(captureRange.Address)
-        On Error Resume Next
-        Set formulaCells = undoRange.SpecialCells(xlCellTypeFormulas)
-        On Error GoTo 0
+        If undoRange.CountLarge = 1 Then
+            If undoRange.HasFormula Then
+                Set formulaCells = undoRange
+            End If
+        Else
+            On Error Resume Next
+            Set formulaCells = undoRange.SpecialCells(xlCellTypeFormulas)
+            On Error GoTo 0
+        End If
         
         If Not formulaCells Is Nothing Then
             Set extCells = New Collection
-            On Error Resume Next
-            Set foundCell = formulaCells.Find(What:="[", LookIn:=xlFormulas, LookAt:=xlPart)
-            If Not foundCell Is Nothing Then
-                firstAddress = foundCell.Address
-                Do
-                    extCells.Add foundCell
-                    Set foundCell = formulaCells.FindNext(foundCell)
-                    If foundCell Is Nothing Then Exit Do
-                Loop While foundCell.Address <> firstAddress
-                
+            Dim hasUndoExt As Boolean
+            hasUndoExt = False
+            
+            If formulaCells.Cells.CountLarge = 1 Then
+                If InStr(1, formulaCells.Formula2, "[", vbTextCompare) > 0 Then
+                    extCells.Add formulaCells
+                    hasUndoExt = True
+                End If
+            Else
+                On Error Resume Next
+                Set foundCell = formulaCells.Find(What:="[", LookIn:=xlFormulas, LookAt:=xlPart)
+                If Not foundCell Is Nothing Then
+                    firstAddress = foundCell.Address
+                    Do
+                        extCells.Add foundCell
+                        Set foundCell = formulaCells.FindNext(foundCell)
+                        If foundCell Is Nothing Then Exit Do
+                    Loop While foundCell.Address <> firstAddress
+                    hasUndoExt = True
+                End If
+                On Error GoTo 0
+            End If
+            
+            If hasUndoExt Then
                 For Each c In extCells
                     c.Value = "__BEAVER_UNDO_FORMULA_PREFIX__" & c.Formula2
                 Next c
             End If
-            On Error GoTo 0
         End If
         
         ' Clean up any active external links created in ThisWorkbook (the add-in) due to the copy.

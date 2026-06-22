@@ -113,9 +113,7 @@ Public Function ConvertWorksheetFormulasToValues(ByVal ws As Worksheet) As Long
             End If
         Else
             Dim areaFormulaCells As Range
-            On Error Resume Next
-            Set areaFormulaCells = area.SpecialCells(xlCellTypeFormulas)
-            On Error GoTo ErrHandler
+            Set areaFormulaCells = area
 
             If Not areaFormulaCells Is Nothing Then
                 Dim expanded As Range

@@ -148,8 +148,8 @@ Public Function GetFeatureHelp() As Collection
     col.Add dict
 
     Set dict = CreateObject("Scripting.Dictionary")
-    dict.Add "Label", "Unmerge & Fill Down"
-    dict.Add "Screentip", "Unmerge & Fill Down"
+    dict.Add "Label", "Unmerge FillDown"
+    dict.Add "Screentip", "Unmerge FillDown"
     dict.Add "Supertip", "Unmerges the selected cells and fills the parent value to all unmerged cells."
     col.Add dict
 

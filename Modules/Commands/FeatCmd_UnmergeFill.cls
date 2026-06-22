@@ -59,69 +59,93 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     End If
 
     If Not hasMerged Then
-        Infra_Interaction.ShowInfo "No merged cells found in the selected range.", "Unmerge & Fill Down"
+        Infra_Interaction.ShowInfo "No merged cells found in the selected range.", "Unmerge FillDown"
         GoTo CleanExit
     End If
-
-    ' Save state for Undo
-    If Not Infra_Undo.SaveStateOrConfirm(selRange, "Unmerge & Fill") Then GoTo CleanExit
-
-    Infra_Progress.StartProgress "Unmerging & Filling", 100
-    Infra_Progress.UpdateProgress 10
 
     Dim mArea As Range
     Dim hasFormula As Boolean
     Dim formulaStr As String
     Dim val As Variant
 
-    On Error Resume Next
-    Application.FindFormat.Clear
-    Application.FindFormat.MergeCells = True
-    Set cell = selRange.Find(What:="", SearchFormat:=True)
-    On Error GoTo ErrHandler
-
-    unmergeCount = 0
-    Do While Not cell Is Nothing
-        Set mArea = cell.MergeArea
-
+    If selRange.Cells.Count = 1 Then
+        ' Single-cell selection (already verified to be part of a merged range by hasMerged)
+        Set mArea = selRange.MergeArea
+        
+        ' Save state for Undo on the full MergeArea
+        If Not Infra_Undo.SaveStateOrConfirm(mArea, "Unmerge FillDown") Then GoTo CleanExit
+        
         hasFormula = mArea.Cells(1, 1).HasFormula
         If hasFormula Then
             formulaStr = mArea.Cells(1, 1).Formula2
         End If
         val = mArea.Cells(1, 1).Value
-
+        
         mArea.UnMerge
-
+        
         If hasFormula Then
             mArea.Formula2 = formulaStr
         Else
             mArea.Value = val
         End If
+        unmergeCount = 1
+    Else
+        ' Multi-cell selection
+        ' Save state for Undo
+        If Not Infra_Undo.SaveStateOrConfirm(selRange, "Unmerge FillDown") Then GoTo CleanExit
 
-        unmergeCount = unmergeCount + 1
+        Infra_Progress.StartProgress "Unmerging & Filling", 100
+        Infra_Progress.UpdateProgress 10
 
-        ' Find the next remaining merged cell
         On Error Resume Next
-        Set cell = selRange.Find(What:="", SearchFormat:=True)
+        Application.FindFormat.Clear
+        Application.FindFormat.MergeCells = True
+        Set cell = selRange.Find(What:="", After:=selRange.Cells(selRange.Cells.Count), SearchFormat:=True)
         On Error GoTo ErrHandler
-        
-        If unmergeCount Mod 100 = 0 Then
-            DoEvents
-            If Infra_Progress.UserCancelled Then Exit Do
-        End If
-    Loop
 
-    On Error Resume Next
-    Application.FindFormat.Clear
-    On Error GoTo 0
+        unmergeCount = 0
+        Do While Not cell Is Nothing
+            Set mArea = cell.MergeArea
 
-    Infra_Progress.UpdateProgress 100
-    Infra_Progress.EndProgress
+            hasFormula = mArea.Cells(1, 1).HasFormula
+            If hasFormula Then
+                formulaStr = mArea.Cells(1, 1).Formula2
+            End If
+            val = mArea.Cells(1, 1).Value
+
+            mArea.UnMerge
+
+            If hasFormula Then
+                mArea.Formula2 = formulaStr
+            Else
+                mArea.Value = val
+            End If
+
+            unmergeCount = unmergeCount + 1
+
+            ' Find the next remaining merged cell
+            On Error Resume Next
+            Set cell = selRange.Find(What:="", After:=selRange.Cells(selRange.Cells.Count), SearchFormat:=True)
+            On Error GoTo ErrHandler
+            
+            If unmergeCount Mod 100 = 0 Then
+                DoEvents
+                If Infra_Progress.UserCancelled Then Exit Do
+            End If
+        Loop
+
+        On Error Resume Next
+        Application.FindFormat.Clear
+        On Error GoTo 0
+
+        Infra_Progress.UpdateProgress 100
+        Infra_Progress.EndProgress
+    End If
 
     If unmergeCount > 0 Then
-        Infra_Interaction.ShowInfo "Successfully unmerged and filled " & unmergeCount & " areas.", "Unmerge & Fill Down"
+        Infra_Interaction.ShowInfo "Successfully unmerged and filled " & unmergeCount & " areas.", "Unmerge FillDown"
     Else
-        Infra_Interaction.ShowInfo "No merged cells were processed.", "Unmerge & Fill Down"
+        Infra_Interaction.ShowInfo "No merged cells were processed.", "Unmerge FillDown"
     End If
 
 CleanExit:

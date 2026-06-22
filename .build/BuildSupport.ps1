@@ -452,7 +452,26 @@ function Test-FileLocked {
     }
 }
 
-function Clear-ExcelDisabledItems {
+function Write-FileIfChanged {
+    param(
+        [string]$Path,
+        [string]$Content
+    )
+    if (Test-Path $Path) {
+        $existing = [System.IO.File]::ReadAllText($Path)
+        if ($existing -eq $Content) {
+            return $false
+        }
+    }
+    $dir = Split-Path $Path
+    if ($dir -and -not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+    [System.IO.File]::WriteAllText($Path, $Content, [System.Text.Encoding]::ASCII)
+    return $true
+}
+
+function Clear-ExcelResiliencyItems {
     $regPath = "HKCU:\Software\Microsoft\Office\16.0\Excel\Resiliency\DisabledItems"
     if (Test-Path $regPath) {
         try {
@@ -471,6 +490,24 @@ function Clear-ExcelDisabledItems {
             # Best effort
         }
     }
+
+    $recoveryPath = "HKCU:\Software\Microsoft\Office\16.0\Excel\Resiliency\DocumentRecovery"
+    if (Test-Path $recoveryPath) {
+        try {
+            Remove-Item -Path $recoveryPath -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "  Cleared Excel DocumentRecovery resiliency items." -ForegroundColor Yellow
+        } catch {}
+    }
+
+    $workspacePath = "HKCU:\Software\Microsoft\Office\16.0\Common\Restore Workspace"
+    if (-not (Test-Path $workspacePath)) {
+        try { New-Item -Path $workspacePath -Force -ErrorAction SilentlyContinue | Out-Null } catch {}
+    }
+    if (Test-Path $workspacePath) {
+        try {
+            Set-ItemProperty -Path $workspacePath -Name "RestoreWorkspace" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        } catch {}
+    }
 }
 
 function Start-ExcelApplication {
@@ -478,7 +515,7 @@ function Start-ExcelApplication {
         [string]$Purpose
     )
 
-    Clear-ExcelDisabledItems
+    Clear-ExcelResiliencyItems
 
     try {
         return New-Object -ComObject Excel.Application
@@ -548,7 +585,7 @@ function Get-ActiveExcelWorkbook {
         [string]$WorkbookPath
     )
     
-    Clear-ExcelDisabledItems
+    Clear-ExcelResiliencyItems
     
     # 1. Check if Excel process is running first to avoid COM launch hangs
     $excelProcesses = Get-Process -Name "EXCEL" -ErrorAction SilentlyContinue
@@ -1021,6 +1058,7 @@ function Initialize-ExcelWorkbookSession {
 
     $excelPath = Join-Path $projectRoot "Beaver Add-in.xlsm"
     $wasAlreadyOpen = $false
+    $workbookWasAlreadyOpen = $false
     $excel = $null
     $workbook = $null
 
@@ -1029,13 +1067,15 @@ function Initialize-ExcelWorkbookSession {
         try {
             $excel = $global:BeaverSharedExcel
             $wbs = $excel.Workbooks
-            foreach ($wb in $excel.Workbooks) {
+            foreach ($wb in $wbs) {
                 if ($wb.FullName -eq $excelPath) {
                     $workbook = $wb
-                    break
+                } else {
+                    Release-ComObjectSafely $wb
                 }
             }
-            $wasAlreadyOpen = $true
+            Release-ComObjectSafely $wbs
+            $wasAlreadyOpen = $global:BeaverExcelWasAlreadyOpen
             Write-Host "  Reusing persistent Excel COM session." -ForegroundColor Green
         } catch {
             Write-Warning "  Persistent Excel COM session is unresponsive. Starting a new session..."
@@ -1063,15 +1103,34 @@ function Initialize-ExcelWorkbookSession {
                             $excel = [WindowScraper]::GetExcelObject($cachedPid)
                         }
                         
-                        if ($null -ne $excel) {
-                            Write-Host "  Attached to running Excel session (PID: $cachedPid) via Window Accessibility/Nudge." -ForegroundColor Green
-                            if ($null -eq $workbook) {
-                                foreach ($wb in $excel.Workbooks) {
-                                    if ($wb.FullName -eq $excelPath) {
-                                        $workbook = $wb
-                                        break
+                        # C. Fallback: Try GetActiveObject and verify if the PID matches
+                        if ($null -eq $excel) {
+                            try {
+                                $activeExcel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+                                if ($null -ne $activeExcel) {
+                                    $activePid = Get-ExcelProcessId -ExcelApplication $activeExcel
+                                    if ($activePid -eq $cachedPid) {
+                                        $excel = $activeExcel
+                                        Write-Host "  Attached to running Excel session (PID: $cachedPid) via GetActiveObject ROT fallback." -ForegroundColor Green
+                                    } else {
+                                        Release-ComObjectSafely $activeExcel
                                     }
                                 }
+                            } catch {}
+                        }
+                        
+                        if ($null -ne $excel) {
+                            Write-Host "  Attached to running Excel session (PID: $cachedPid) successfully." -ForegroundColor Green
+                            if ($null -eq $workbook) {
+                                $wbs = $excel.Workbooks
+                                foreach ($wb in $wbs) {
+                                    if ($wb.FullName -eq $excelPath) {
+                                        $workbook = $wb
+                                    } else {
+                                        Release-ComObjectSafely $wb
+                                    }
+                                }
+                                Release-ComObjectSafely $wbs
                             }
                             $wasAlreadyOpen = $true
                             if ($global:BeaverOrchestratorActive) {
@@ -1202,7 +1261,10 @@ function Initialize-ExcelWorkbookSession {
             }
         } else {
             $wasAlreadyOpen = $true
+            $workbookWasAlreadyOpen = $true
         }
+    } else {
+        $workbookWasAlreadyOpen = $true
     }
 
     # 4. Check programmatic VBE access
@@ -1250,7 +1312,7 @@ function Initialize-ExcelWorkbookSession {
         }
 
         # Clear Excel disabled items registry key
-        Clear-ExcelDisabledItems
+        Clear-ExcelResiliencyItems
 
         # Ensure we have a responsive Excel application object (it might have been terminated)
         $excelResponsive = $false
@@ -1301,6 +1363,7 @@ function Initialize-ExcelWorkbookSession {
         Excel = $excel
         Workbook = $workbook
         WasAlreadyOpen = $wasAlreadyOpen
+        WorkbookWasAlreadyOpen = $workbookWasAlreadyOpen
     }
 }
 

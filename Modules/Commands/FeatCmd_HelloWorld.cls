@@ -15,7 +15,7 @@ Option Explicit
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: ICommand, ICommandContext, Infra_Error, Infra_CommandSupport, Infra_Undo
 
-' Test optimization comment
+' Test optimization comment - keepalive run 4
 Implements ICommand
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
@@ -35,9 +35,30 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
 
-    If Not Infra_Undo.SaveStateOrConfirm(ctx.ActiveCellRef, "Hello World") Then GoTo CleanExit
+    Dim activeCell As Range
+    Set activeCell = ctx.ActiveCellRef
 
-    ctx.ActiveCellRef.Value2 = "Hello world!"
+    Dim availableRows As Long
+    availableRows = activeCell.Worksheet.Rows.Count - activeCell.Row + 1
+
+    Dim rowsToChange As Long
+    rowsToChange = 3
+    If availableRows < 3 Then
+        rowsToChange = availableRows
+    End If
+
+    Dim targetRange As Range
+    Set targetRange = activeCell.Resize(rowsToChange, 1)
+
+    If Not Infra_Undo.SaveStateOrConfirm(targetRange, "Hello World") Then GoTo CleanExit
+
+    activeCell.Value2 = "Hello world!"
+    If rowsToChange >= 2 Then
+        activeCell.Offset(1, 0).Value2 = "How are you guys"
+    End If
+    If rowsToChange >= 3 Then
+        activeCell.Offset(2, 0).Value2 = "this is testing"
+    End If
 
 CleanExit:
     ' Final warm visible session verified successfully

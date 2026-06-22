@@ -24,9 +24,11 @@ $ErrorActionPreference = "Stop"
 
 # Enable orchestrator mode to share Excel session and hashes across stages
 $global:BeaverOrchestratorActive = $true
+$global:BeaverKeepAliveActive = $KeepAlive
 $global:BeaverSourceHashes = $null
 $global:BeaverSharedExcel = $null
 $global:BeaverExcelWasAlreadyOpen = $false
+$global:BeaverWorkbookWasAlreadyOpen = $false
 
 try {
     if ($ListTests) {
@@ -53,11 +55,11 @@ try {
     $deletedFiles = @()
 
     if ($null -ne $buildState -and $null -ne $buildState.Files) {
-        $manifestChanged = (-not $buildState.Files.PSObject.Properties.Name.Contains("features.json") -or $buildState.Files."features.json" -ne $currentHashes["features.json"])
+        $manifestChanged = ($null -eq $buildState.Files."features.json" -or $buildState.Files."features.json" -ne $currentHashes["features.json"])
         
         # Calculate changes early
         foreach ($key in $currentHashes.Keys) {
-            if (-not $buildState.Files.PSObject.Properties.Name.Contains($key) -or $buildState.Files.$key -ne $currentHashes[$key]) {
+            if ($null -eq $buildState.Files.$key -or $buildState.Files.$key -ne $currentHashes[$key]) {
                 $changedFiles += $key
             }
         }
@@ -216,18 +218,43 @@ try {
 } finally {
     # Clean up persistent Excel session if orchestrator opened it
     if ($null -ne $global:BeaverSharedExcel) {
-        if (-not $global:BeaverExcelWasAlreadyOpen -and -not $KeepAlive) {
+        $excelPid = 0
+        try {
+            $excelPid = Get-ExcelProcessId -ExcelApplication $global:BeaverSharedExcel
+        } catch {}
+
+        $isExcelVisible = $false
+        try {
+            $isExcelVisible = $global:BeaverSharedExcel.Visible
+        } catch {}
+
+        $otherWorkbooksOpen = $false
+        try {
+            foreach ($wb in $global:BeaverSharedExcel.Workbooks) {
+                if ($wb.FullName -ne $excelPath) {
+                    $otherWorkbooksOpen = $true
+                }
+                Release-ComObjectSafely $wb
+            }
+        } catch {}
+
+        if (-not $KeepAlive) {
             Write-Host "Cleaning up persistent Excel session..." -ForegroundColor Cyan
             try {
                 foreach ($wb in $global:BeaverSharedExcel.Workbooks) {
                     if ($wb.FullName -eq $excelPath) {
                         $wb.Close($false)
                     }
+                    Release-ComObjectSafely $wb
                 }
             } catch {}
-            try {
-                $global:BeaverSharedExcel.Quit()
-            } catch {}
+
+            # Quit Excel if it was started by the script, if it has no visible window, or if no other workbooks are open
+            if (-not $global:BeaverExcelWasAlreadyOpen -or -not $isExcelVisible -or -not $otherWorkbooksOpen) {
+                try {
+                    $global:BeaverSharedExcel.Quit()
+                } catch {}
+            }
         } else {
             try {
                 $global:BeaverSharedExcel.Visible = $true
@@ -239,6 +266,19 @@ try {
         }
         Release-ComObjectSafely $global:BeaverSharedExcel
         $global:BeaverSharedExcel = $null
+
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+
+        if (-not $KeepAlive -and -not $global:BeaverExcelWasAlreadyOpen -and $excelPid -gt 0) {
+            Start-Sleep -Milliseconds 500
+            $proc = Get-Process -Id $excelPid -ErrorAction SilentlyContinue
+            if ($null -ne $proc -and $proc.Name -eq "EXCEL") {
+                try {
+                    Stop-Process -Id $excelPid -Force -ErrorAction SilentlyContinue
+                } catch {}
+            }
+        }
     }
     
     $global:BeaverOrchestratorActive = $false

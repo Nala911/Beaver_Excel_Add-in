@@ -15,6 +15,8 @@ Public Sub Test_HelloWorld_Execution_And_Undo()
     Set ws = ThisWorkbook.Worksheets.Add
     ws.Name = "Test_Temp_HelloWorld"
     ws.Range("B2").Value2 = "Original Content"
+    ws.Range("B3").Value2 = "Original B3"
+    ws.Range("B4").Value2 = "Original B4"
 
     Dim ctx As ICommandContext
     AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
@@ -32,15 +34,19 @@ Public Sub Test_HelloWorld_Execution_And_Undo()
     ' Execute the command directly
     cmd.Execute ctx
     
-    ' Assert that the active cell (B2) contains "Hello world!"
+    ' Assert that the active cell and cells below contain correct values
     Lib_Tests.AssertEqual ws.Range("B2").Value2, "Hello world!", "HelloWorld command should update active cell to 'Hello world!'"
+    Lib_Tests.AssertEqual ws.Range("B3").Value2, "How are you guys", "HelloWorld command should update B3 to 'How are you guys'"
+    Lib_Tests.AssertEqual ws.Range("B4").Value2, "this is testing", "HelloWorld command should update B4 to 'this is testing'"
 
     ' Now register and perform undo
     Infra_Undo.RegisterPendingUndo
     Infra_Undo.PerformUndo
     
-    ' Assert that cell B2 returned to its original content
+    ' Assert that cells returned to their original content
     Lib_Tests.AssertEqual ws.Range("B2").Value2, "Original Content", "Undo HelloWorld should restore active cell to its original content"
+    Lib_Tests.AssertEqual ws.Range("B3").Value2, "Original B3", "Undo HelloWorld should restore B3 to its original content"
+    Lib_Tests.AssertEqual ws.Range("B4").Value2, "Original B4", "Undo HelloWorld should restore B4 to its original content"
 
     ' Cleanup the temporary worksheet
     Application.DisplayAlerts = False
@@ -2898,6 +2904,112 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_UnifiedHelpers_And_CleanDataDisjoint", Err
+    Resume CleanExit
+End Sub
+
+
+Public Sub Test_SingleCell_Bugs_Regression()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_SingleCell_Bugs_Regression")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim wb As Workbook: Set wb = Workbooks.Add
+    Dim ws As Worksheet: Set ws = wb.Worksheets(1)
+
+    ' 1. Test UnmergeFill single-cell regression
+    Dim r1 As Range: Set r1 = ws.Range("A1:B2")
+    r1.Merge
+    r1.Cells(1, 1).Value = "M1"
+    
+    Dim r2 As Range: Set r2 = ws.Range("D1:E2")
+    r2.Merge
+    r2.Cells(1, 1).Value = "M2"
+
+    ' Select only cell A1 (part of first merge area)
+    ws.Range("A1").Select
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnUnmergeFill", "UnmergeFill", "Ribbon"
+
+    Lib_Tests.AssertEqual r1.MergeCells, False, "A1:B2 should be unmerged"
+    Lib_Tests.AssertEqual ws.Range("A1").Value, "M1", "A1 has value M1"
+    Lib_Tests.AssertEqual ws.Range("B2").Value, "M1", "B2 has value M1"
+    Lib_Tests.AssertEqual r2.MergeCells, True, "D1:E2 must remain merged (not affected by single-cell Find bug)"
+
+    ' Test Undo
+    Infra_Undo.RegisterPendingUndo
+    Infra_Undo.PerformUndo
+    Lib_Tests.AssertEqual r1.MergeCells, True, "A1:B2 should be merged again after undo"
+
+    ' 2. Test FillDown single-cell regression
+    ws.Cells.Clear
+    ws.Range("A1").Value = "Val"
+    ws.Range("B1").Value = "KeepB"
+    ws.Range("B2").Value = "KeepB"
+    
+    ' Select A1 (single cell, so neighbor B establishes lastRow=2, target range is A2)
+    ws.Range("A1").Select
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_FillDown", "Hotkey_FillDown", "Hotkey"
+
+    Lib_Tests.AssertEqual ws.Range("A2").Value, "Val", "A2 should be filled down"
+    Lib_Tests.AssertEqual ws.Range("B2").Value, "KeepB", "B2 must not be overwritten (not affected by FillDown visible cells bug)"
+
+    ' 3. Test CleanData single-cell regression
+    ws.Cells.Clear
+    ws.Range("A1").Value = "  text  "
+    ws.Range("A1").AddComment "Comment A"
+    ws.Range("B1").Value = "  text2  "
+    ws.Range("B1").AddComment "Comment B"
+
+    ' Clean only A1
+    ws.Range("A1").Select
+    Dim cleanReq As New Infra_CleanDataRequest
+    cleanReq.CleanTrimSpaces = False
+    cleanReq.CleanNonPrintables = False
+    cleanReq.CleanInvisibleChars = False
+    cleanReq.CleanComments = True
+    cleanReq.Scope = TargetScopeSelection
+    
+    Dim cleanCmd As New FeatCmd_CleanData
+    Dim cleanCount As Long
+    cleanCount = cleanCmd.CleanRangeWithOptionsDirect(ws.Range("A1"), cleanReq)
+
+    Lib_Tests.AssertEqual cleanCount, 1, "Should report exactly 1 cell cleaned"
+    Lib_Tests.AssertTrue ws.Range("A1").Comment Is Nothing, "A1 comment should be deleted"
+    Lib_Tests.AssertTrue Not (ws.Range("B1").Comment Is Nothing), "B1 comment must remain"
+
+    ' 4. Test TableOfContents hyperlink escaping regression
+    Dim wsSpecial As Worksheet
+    Set wsSpecial = wb.Worksheets.Add
+    wsSpecial.Name = "Sheet'Special"
+    
+    ' Generate TOC
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnTableOfContents", "TableOfContents", "Ribbon"
+    
+    Dim wsTOC As Worksheet
+    Set wsTOC = wb.Worksheets("Table of Contents")
+    
+    ' Find the hyperlink for Sheet'Special
+    Dim hl As Hyperlink
+    Dim foundHl As Boolean
+    foundHl = False
+    For Each hl In wsTOC.Hyperlinks
+        If hl.TextToDisplay = "Sheet'Special" Then
+            Lib_Tests.AssertEqual hl.SubAddress, "'Sheet''Special'!A1", "SubAddress must have escaped single quotes"
+            foundHl = True
+            Exit For
+        End If
+    Next hl
+    Lib_Tests.AssertTrue foundHl, "TOC should contain hyperlink for sheet with single quotes"
+
+    wb.Close SaveChanges:=False
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_SingleCell_Bugs_Regression", Err
     Resume CleanExit
 End Sub
 

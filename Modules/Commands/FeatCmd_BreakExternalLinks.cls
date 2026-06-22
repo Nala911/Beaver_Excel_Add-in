@@ -403,9 +403,15 @@ Private Function CountLinkSourceReferences(ByVal wb As Workbook, ByVal linkName 
             
             If Not formulaCells Is Nothing Then
                 Set foundCell = Nothing
-                On Error Resume Next
-                Set foundCell = formulaCells.Find(What:=fileName, LookIn:=xlFormulas, LookAt:=xlPart)
-                On Error GoTo 0
+                If formulaCells.Cells.CountLarge = 1 Then
+                    If InStr(1, formulaCells.Formula2, fileName, vbTextCompare) > 0 Then
+                        Set foundCell = formulaCells
+                    End If
+                Else
+                    On Error Resume Next
+                    Set foundCell = formulaCells.Find(What:=fileName, LookIn:=xlFormulas, LookAt:=xlPart)
+                    On Error GoTo 0
+                End If
                 If Not foundCell Is Nothing Then
                     refCount = 1
                     Exit For

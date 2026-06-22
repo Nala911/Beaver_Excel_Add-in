@@ -158,7 +158,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
             If ws.Visible = xlSheetVisible Then
                 wsTOC.Hyperlinks.Add Anchor:=wsTOC.Cells(rowIndex, 3), _
                                       Address:="", _
-                                      SubAddress:="'" & ws.Name & "'!A1", _
+                                      SubAddress:="'" & Replace(ws.Name, "'", "''") & "'!A1", _
                                       TextToDisplay:=ws.Name
             Else
                 wsTOC.Cells(rowIndex, 3).Value = ws.Name

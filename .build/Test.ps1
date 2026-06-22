@@ -34,9 +34,40 @@ function Get-TestProcedureLocation {
     }
 
     $projectRoot = Split-Path $PSScriptRoot -Parent
+    
+    # 1. Try to find the file from cached build state metadata to avoid scanning all files
+    $targetFile = $null
+    $targetRelPath = $null
+    $buildState = Get-BuildState
+    if ($null -ne $buildState -and $null -ne $buildState.Metadata) {
+        foreach ($prop in $buildState.Metadata.PSObject.Properties) {
+            $meta = $prop.Value
+            if ($null -ne $meta -and $meta.PSObject.Properties['Tests'] -and $null -ne $meta.Tests -and $meta.Tests -contains $cleanProcName) {
+                $targetRelPath = $prop.Name
+                $targetFile = Join-Path $projectRoot $targetRelPath
+                break
+            }
+        }
+    }
+
+    # 2. If cached location found, scan only that single file
+    if ($null -ne $targetFile -and (Test-Path $targetFile)) {
+        $lines = [System.IO.File]::ReadAllLines($targetFile)
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "^\s*Public Sub\s+$cleanProcName\s*\(") {
+                return [pscustomobject]@{
+                    File = $targetFile
+                    LineNumber = $i + 1
+                    RelativePath = $targetRelPath
+                }
+            }
+        }
+    }
+
+    # 3. Fallback: scan all .bas files if cache miss
     $vbaFiles = Get-ChildItem -Path $modulesDir -Filter *.bas -Recurse
     foreach ($file in $vbaFiles) {
-        $lines = Get-Content $file.FullName
+        $lines = [System.IO.File]::ReadAllLines($file.FullName)
         for ($i = 0; $i -lt $lines.Count; $i++) {
             if ($lines[$i] -match "^\s*Public Sub\s+$cleanProcName\s*\(") {
                 $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
@@ -291,6 +322,7 @@ try {
         $testWorkbook = $session.Workbook
         $wasAlreadyOpen = $session.WasAlreadyOpen
         $script:excelWasAlreadyOpen = $wasAlreadyOpen
+        $script:workbookWasAlreadyOpen = $session.WorkbookWasAlreadyOpen
         $script:sharedExcel = $testExcel
 
         $watcher = $null
@@ -487,16 +519,27 @@ try {
             if ($ribbonUiErrorsEnabled) {
                 Set-RibbonUiErrors -Enabled $false
             }
+            if ($null -ne $testWorkbook) {
+                try {
+                    if ($global:BeaverKeepAliveActive) {
+                        $testWorkbook.Saved = $true
+                    } else {
+                        $testWorkbook.Close($false)
+                    }
+                } catch {}
+            }
+            Release-ComObjectSafely $testWorkbook
+            $testWorkbook = $null
             if ($testExcel -and $excelWasAlreadyOpen) {
                 try {
                     $testExcel.Visible = $true
                     $testExcel.DisplayAlerts = $true
                 } catch { }
             }
-            Release-ComObjectSafely $testWorkbook
-            Release-ComObjectSafely $testExcel
-            $testWorkbook = $null
-            $testExcel = $null
+            if (-not $global:BeaverOrchestratorActive) {
+                Release-ComObjectSafely $testExcel
+                $testExcel = $null
+            }
         }
     } | Out-Null
 
@@ -506,14 +549,36 @@ try {
     Stop-Script $_.Exception.Message
 } finally {
     if (-not $global:BeaverOrchestratorActive -and $null -ne $sharedExcel) {
-        if (-not $excelWasAlreadyOpen) {
-            try {
-                foreach ($wb in $sharedExcel.Workbooks) {
-                    if ($wb.FullName -eq $excelPath) {
-                        $wb.Close($false)
-                    }
+        $excelPid = 0
+        try {
+            $excelPid = Get-ExcelProcessId -ExcelApplication $sharedExcel
+        } catch {}
+
+        $isExcelVisible = $false
+        try {
+            $isExcelVisible = $sharedExcel.Visible
+        } catch {}
+
+        $otherWorkbooksOpen = $false
+        try {
+            foreach ($wb in $sharedExcel.Workbooks) {
+                if ($wb.FullName -ne $excelPath) {
+                    $otherWorkbooksOpen = $true
                 }
-            } catch { }
+                Release-ComObjectSafely $wb
+            }
+        } catch {}
+
+        try {
+            foreach ($wb in $sharedExcel.Workbooks) {
+                if ($wb.FullName -eq $excelPath) {
+                    $wb.Close($false)
+                }
+                Release-ComObjectSafely $wb
+            }
+        } catch { }
+
+        if (-not $excelWasAlreadyOpen -or -not $isExcelVisible -or -not $otherWorkbooksOpen) {
             try {
                 $sharedExcel.Quit()
             } catch { }
@@ -525,6 +590,19 @@ try {
         }
         Release-ComObjectSafely $sharedExcel
         $sharedExcel = $null
+
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+
+        if (-not $excelWasAlreadyOpen -and $excelPid -gt 0) {
+            Start-Sleep -Milliseconds 500
+            $proc = Get-Process -Id $excelPid -ErrorAction SilentlyContinue
+            if ($null -ne $proc -and $proc.Name -eq "EXCEL") {
+                try {
+                    Stop-Process -Id $excelPid -Force -ErrorAction SilentlyContinue
+                } catch {}
+            }
+        }
     }
     Clear-AccumulatedLogs
 }

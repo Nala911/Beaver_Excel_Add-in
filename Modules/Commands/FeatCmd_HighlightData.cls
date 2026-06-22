@@ -158,9 +158,15 @@ End Sub
 
 Private Sub HighlightInconsistentFormulasInArea(ByVal area As Range)
     Dim formulaCells As Range
-    On Error Resume Next
-    Set formulaCells = area.SpecialCells(xlCellTypeFormulas)
-    On Error GoTo 0
+    If area.CountLarge = 1 Then
+        If area.HasFormula Then
+            Set formulaCells = area
+        End If
+    Else
+        On Error Resume Next
+        Set formulaCells = area.SpecialCells(xlCellTypeFormulas)
+        On Error GoTo 0
+    End If
     
     If formulaCells Is Nothing Then Exit Sub
     
@@ -283,17 +289,23 @@ Private Sub HighlightErrorsInArea(ByVal area As Range)
     Dim constantErrors As Range
     Dim errorCells As Range
     
-    On Error Resume Next
-    Set formulaErrors = area.SpecialCells(xlCellTypeFormulas, xlErrors)
-    Set constantErrors = area.SpecialCells(xlCellTypeConstants, xlErrors)
-    On Error GoTo 0
-    
-    If Not formulaErrors Is Nothing And Not constantErrors Is Nothing Then
-        Set errorCells = Application.Union(formulaErrors, constantErrors)
-    ElseIf Not formulaErrors Is Nothing Then
-        Set errorCells = formulaErrors
-    ElseIf Not constantErrors Is Nothing Then
-        Set errorCells = constantErrors
+    If area.CountLarge = 1 Then
+        If IsError(area.Value) Then
+            Set errorCells = area
+        End If
+    Else
+        On Error Resume Next
+        Set formulaErrors = area.SpecialCells(xlCellTypeFormulas, xlErrors)
+        Set constantErrors = area.SpecialCells(xlCellTypeConstants, xlErrors)
+        On Error GoTo 0
+        
+        If Not formulaErrors Is Nothing And Not constantErrors Is Nothing Then
+            Set errorCells = Application.Union(formulaErrors, constantErrors)
+        ElseIf Not formulaErrors Is Nothing Then
+            Set errorCells = formulaErrors
+        ElseIf Not constantErrors Is Nothing Then
+            Set errorCells = constantErrors
+        End If
     End If
     
     If errorCells Is Nothing Then Exit Sub
@@ -305,9 +317,15 @@ End Sub
 
 Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
     Dim formulaCells As Range
-    On Error Resume Next
-    Set formulaCells = area.SpecialCells(xlCellTypeFormulas)
-    On Error GoTo 0
+    If area.CountLarge = 1 Then
+        If area.HasFormula Then
+            Set formulaCells = area
+        End If
+    Else
+        On Error Resume Next
+        Set formulaCells = area.SpecialCells(xlCellTypeFormulas)
+        On Error GoTo 0
+    End If
     
     If formulaCells Is Nothing Then Exit Sub
     
@@ -474,9 +492,20 @@ End Function
 
 Private Sub HighlightDataValidationsInArea(ByVal area As Range)
     Dim validationCells As Range
-    On Error Resume Next
-    Set validationCells = area.SpecialCells(xlCellTypeAllValidation)
-    On Error GoTo 0
+    If area.CountLarge = 1 Then
+        Dim hasVal As Boolean
+        hasVal = False
+        On Error Resume Next
+        Dim valType As Long
+        valType = area.Validation.Type
+        If Err.Number = 0 Then hasVal = True
+        On Error GoTo 0
+        If hasVal Then Set validationCells = area
+    Else
+        On Error Resume Next
+        Set validationCells = area.SpecialCells(xlCellTypeAllValidation)
+        On Error GoTo 0
+    End If
     
     If validationCells Is Nothing Then Exit Sub
     
@@ -487,9 +516,13 @@ End Sub
 
 Private Sub HighlightConditionalFormattingInArea(ByVal area As Range)
     Dim cfCells As Range
-    On Error Resume Next
-    Set cfCells = area.SpecialCells(xlCellTypeAllFormatConditions)
-    On Error GoTo 0
+    If area.CountLarge = 1 Then
+        If area.FormatConditions.Count > 0 Then Set cfCells = area
+    Else
+        On Error Resume Next
+        Set cfCells = area.SpecialCells(xlCellTypeAllFormatConditions)
+        On Error GoTo 0
+    End If
     
     If cfCells Is Nothing Then Exit Sub
     

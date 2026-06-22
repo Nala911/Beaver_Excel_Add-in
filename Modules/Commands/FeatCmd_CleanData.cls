@@ -244,9 +244,18 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     ' --- Apply cell-level hygiene operations ---
     If request.CleanComments Then
         Dim commentCells As Range
-        On Error Resume Next
-        Set commentCells = targetRange.SpecialCells(xlCellTypeComments)
-        On Error GoTo 0
+        If targetRange.CountLarge = 1 Then
+            Dim hasComment As Boolean
+            hasComment = False
+            On Error Resume Next
+            hasComment = Not (targetRange.Comment Is Nothing)
+            On Error GoTo 0
+            If hasComment Then Set commentCells = targetRange
+        Else
+            On Error Resume Next
+            Set commentCells = targetRange.SpecialCells(xlCellTypeComments)
+            On Error GoTo 0
+        End If
         If Not commentCells Is Nothing Then
             changeCount = changeCount + commentCells.Cells.CountLarge
             On Error Resume Next
@@ -257,9 +266,20 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
 
     If request.CleanValidation Then
         Dim validationCells As Range
-        On Error Resume Next
-        Set validationCells = targetRange.SpecialCells(xlCellTypeAllValidation)
-        On Error GoTo 0
+        If targetRange.CountLarge = 1 Then
+            Dim hasVal As Boolean
+            hasVal = False
+            On Error Resume Next
+            Dim valType As Long
+            valType = targetRange.Validation.Type
+            If Err.Number = 0 Then hasVal = True
+            On Error GoTo 0
+            If hasVal Then Set validationCells = targetRange
+        Else
+            On Error Resume Next
+            Set validationCells = targetRange.SpecialCells(xlCellTypeAllValidation)
+            On Error GoTo 0
+        End If
         If Not validationCells Is Nothing Then
             changeCount = changeCount + validationCells.Cells.CountLarge
             On Error Resume Next
@@ -270,9 +290,13 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
 
     If request.CleanConditionalFormatting Then
         Dim cfCells As Range
-        On Error Resume Next
-        Set cfCells = targetRange.SpecialCells(xlCellTypeAllFormatConditions)
-        On Error GoTo 0
+        If targetRange.CountLarge = 1 Then
+            If targetRange.FormatConditions.Count > 0 Then Set cfCells = targetRange
+        Else
+            On Error Resume Next
+            Set cfCells = targetRange.SpecialCells(xlCellTypeAllFormatConditions)
+            On Error GoTo 0
+        End If
         If Not cfCells Is Nothing Then
             changeCount = changeCount + cfCells.Cells.CountLarge
             On Error Resume Next

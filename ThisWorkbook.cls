@@ -16,7 +16,7 @@ Option Explicit
 ' @Dependencies: Infra_Hotkeys, Infra_Error
 
 ' ==============================================================================
-' ThisWorkbook â€” Event module for the Beaver Add-in workbook.
+' ThisWorkbook - Event module for the Beaver Add-in workbook.
 ' Kept intentionally thin: delegates all logic to standard modules.
 '   Workbook_Open        -> Hotkeys.RegisterHotkeys
 '   Workbook_BeforeClose -> Hotkeys.UnregisterHotkeys
@@ -48,4 +48,5 @@ CleanExit:
 ErrHandler:
     Infra_Error.HandleError "Workbook_BeforeClose", Err
     Resume CleanExit
+    ' Trigger incremental build compile test
 End Sub

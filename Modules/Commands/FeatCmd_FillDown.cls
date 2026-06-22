@@ -133,9 +133,15 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
             Set fillRange = ws.Range(ws.Cells(startRow + 1, colIdx), ws.Cells(lastRow, colIdx))
             
             Dim visibleRange As Range
-            On Error Resume Next
-            Set visibleRange = fillRange.SpecialCells(xlCellTypeVisible)
-            On Error GoTo ErrHandler
+            If fillRange.CountLarge = 1 Then
+                If Not fillRange.EntireRow.Hidden And Not fillRange.EntireColumn.Hidden Then
+                    Set visibleRange = fillRange
+                End If
+            Else
+                On Error Resume Next
+                Set visibleRange = fillRange.SpecialCells(xlCellTypeVisible)
+                On Error GoTo ErrHandler
+            End If
             
             If Not visibleRange Is Nothing Then
                 colSourceCells.Add sourceCell

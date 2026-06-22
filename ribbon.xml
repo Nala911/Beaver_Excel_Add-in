@@ -18,7 +18,7 @@
           <menu id="BtnModifyData" label="Modify Data" imageMso="ChangeCase" size="large" keytip="MD" screentip="Modify Data" supertip="Modifies text and dates in the selection (casing or date standardization).">
             <button id="BtnDateFixer" label="Date Fixer" imageMso="CalculateNow" onAction="Ribbon_OnDateFixer" keytip="DF" screentip="Date Fixer" supertip="Standardizes dates in the selection." />
             <button id="BtnCaseFixer" label="Case Fixer" imageMso="ChangeCase" onAction="Ribbon_OnCaseFixer" keytip="CF" screentip="Case Fixer" supertip="Standardizes casing of text in the selection." />
-            <button id="BtnUnmergeFill" label="Unmerge &amp; Fill Down" imageMso="TableProperties" onAction="Ribbon_OnUnmergeFill" keytip="UF" screentip="Unmerge &amp; Fill Down" supertip="Unmerges the selected cells and fills the parent value to all unmerged cells." />
+            <button id="BtnUnmergeFill" label="Unmerge FillDown" imageMso="TableProperties" onAction="Ribbon_OnUnmergeFill" keytip="UF" screentip="Unmerge FillDown" supertip="Unmerges the selected cells and fills the parent value to all unmerged cells." />
             <button id="BtnForceNumber" label="Convert Text to Number" imageMso="CalculateNow" onAction="Ribbon_OnForceNumber" keytip="FN" screentip="Convert Text to Number" supertip="Forces text-formatted numbers in the selection to become actual numeric values." />
           </menu>
           <menu id="BtnHighlightData" label="Highlight Data" imageMso="ConditionalFormattingMenu" size="large" keytip="HD" screentip="Highlight Data" supertip="Highlights key data patterns and duplicates.">

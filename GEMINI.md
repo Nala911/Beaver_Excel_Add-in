@@ -244,6 +244,10 @@ graph TD
 
 ### Feature Surface
 
+> [!NOTE]
+> **Dummy / Testing Tools**
+> `HelloWorld` and `Dog` (and their associated controls/classes) are dummy mock tools used solely for validating the build pipeline's change detection, file picking, and incremental module reload behavior. Minor changes, additions, or deletions of these tools are done strictly for testing script robustness and should not be confused with core project features.
+
 #### Ribbon-Backed Commands
 - `Wrap` -> `FeatCmd_Wrap` (Supports formula reuse and pattern typing)
 - `StaticSheetWorkbook` -> `FeatCmd_StaticSheetWorkbook`

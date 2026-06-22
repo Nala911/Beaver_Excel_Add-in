@@ -132,7 +132,7 @@ $($tabXmls -join "`r`n")
   </ribbon>
 </customUI>
 "@
-    [System.IO.File]::WriteAllText($RibbonPath, $ribbonContent, [System.Text.Encoding]::ASCII)
+    $null = Write-FileIfChanged -Path $RibbonPath -Content $ribbonContent
 
     $config | Add-Member -NotePropertyName Hotkeys -NotePropertyValue $enabledHotkeys -Force
     $config | Add-Member -NotePropertyName Icons -NotePropertyValue ([pscustomobject]$icons) -Force
@@ -145,7 +145,7 @@ $($tabXmls -join "`r`n")
     }
 
     $configJson = $config | ConvertTo-Json -Depth 10
-    [System.IO.File]::WriteAllText($ConfigPath, $configJson, [System.Text.Encoding]::ASCII)
+    $null = Write-FileIfChanged -Path $ConfigPath -Content $configJson
     Write-Host "  Manifest sync complete. Features: $($enabledFeatureIds.Count), Hotkeys: $($enabledHotkeys.Count)." -ForegroundColor Green
 }
 
@@ -213,7 +213,7 @@ function Sync-TestManifest {
     $lines += '    Next i'
     $lines += '    MatchesFilter = False'
     $lines += 'End Function'
-    [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
+    $null = Write-FileIfChanged -Path $OutputPath -Content ($lines -join "`r`n")
     Write-Host "  Test manifest generated with $($testProcedures.Count) test(s)." -ForegroundColor Green
 }
 
@@ -312,7 +312,7 @@ function Sync-CommandRegistry {
     $lines += '    Resume CleanExit'
     $lines += 'End Function'
 
-    [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
+    $null = Write-FileIfChanged -Path $OutputPath -Content ($lines -join "`r`n")
     Write-Host "  Command registry generated with $($commandMap.Count) command(s) and $($entryMap.Count) entry point(s)." -ForegroundColor Green
 }
 
@@ -375,7 +375,7 @@ function Sync-HelpManifest {
         'End Function'
     )
 
-    [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
+    $null = Write-FileIfChanged -Path $OutputPath -Content ($lines -join "`r`n")
     Write-Host "  Help manifest generated with $($manifest.Features.Count) feature(s)." -ForegroundColor Green
 }
 
@@ -455,7 +455,7 @@ function Sync-UiRibbonModule {
         $lines += 'End Sub'
     }
 
-    [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
+    $null = Write-FileIfChanged -Path $OutputPath -Content ($lines -join "`r`n")
     Write-Host "  Ribbon entry module generated." -ForegroundColor Green
 }
 
@@ -502,7 +502,7 @@ function Sync-UiHotkeysModule {
         $lines += 'End Sub'
     }
 
-    [System.IO.File]::WriteAllText($OutputPath, ($lines -join "`r`n"), [System.Text.Encoding]::ASCII)
+    $null = Write-FileIfChanged -Path $OutputPath -Content ($lines -join "`r`n")
     Write-Host "  Hotkey entry module generated." -ForegroundColor Green
 }
 
@@ -685,7 +685,8 @@ function Invoke-VbaSyntaxCheck {
         $cachedPassed = $false
         if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
             $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
-            if ($meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
+            if ($meta.PSObject.Properties['Length'] -and $meta.PSObject.Properties['LastWriteTime'] -and $meta.PSObject.Properties['LintPassed'] -and
+                $meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
                 $cachedPassed = $true
             }
         }
@@ -723,37 +724,114 @@ function Invoke-VbaSyntaxCheck {
             }
         }
 
-        $blocks = @(
-            @{ Name = "Sub";     Start = "^\s*(?:Public |Private |Static )?Sub\s+";     End = "^\s*End Sub" }
-            @{ Name = "Function";Start = "^\s*(?:Public |Private |Static )?Function\s+";End = "^\s*End Function" }
-            @{ Name = "Property";Start = "^\s*(?:Public |Private )?Property\s+(?:Get|Let|Set)\s+"; End = "^\s*End Property" }
-            @{ Name = "If";      Start = "^\s*If\s+.*Then\s*(?:'.*)?$"; End = "^\s*End If" } 
-        )
+        $subStartRegex = '^\s*(?:Public |Private |Static )?Sub\s+'
+        $subEndRegex = '^\s*End Sub'
+        $funcStartRegex = '^\s*(?:Public |Private |Static )?Function\s+'
+        $funcEndRegex = '^\s*End Function'
+        $propStartRegex = '^\s*(?:Public |Private )?Property\s+(?:Get|Let|Set)\s+'
+        $propEndRegex = '^\s*End Property'
+        $ifStartRegex = '^\s*If\s+.*Then\s*(?:''.*)?$'
+        $ifEndRegex = '^\s*End If'
 
-        foreach ($b in $blocks) {
-            $stack = New-Object System.Collections.Generic.List[int]
-            for ($i = 0; $i -lt $content.Count; $i++) {
-                $lineNum = $originalLineNumbers[$i]
-                if ($content[$i] -match $b.Start) {
-                    $stack.Add($lineNum)
-                } elseif ($content[$i] -match $b.End) {
-                    if ($stack.Count -gt 0) {
-                        $stack.RemoveAt($stack.Count - 1)
+        $subStack = New-Object System.Collections.Generic.List[int]
+        $funcStack = New-Object System.Collections.Generic.List[int]
+        $propStack = New-Object System.Collections.Generic.List[int]
+        $ifStack = New-Object System.Collections.Generic.List[int]
+
+        for ($i = 0; $i -lt $content.Count; $i++) {
+            $line = $content[$i]
+            $lineNum = $originalLineNumbers[$i]
+            
+            if ($line -eq "" -or $line.Trim() -eq "") { continue }
+
+            # Checking If/End If
+            if ($line.IndexOf("If", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                if ($line -match $ifStartRegex) {
+                    $ifStack.Add($lineNum)
+                } elseif ($line -match $ifEndRegex) {
+                    if ($ifStack.Count -gt 0) {
+                        $ifStack.RemoveAt($ifStack.Count - 1)
                     } else {
-                        Write-Host "  [$fileName] Syntax Error: Unexpected '$($b.End.Trim())' at line $lineNum (No matching start found)." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected '$($b.End.Trim())' (No matching start found)" -Line $lineNum
+                        Write-Host "  [$fileName] Syntax Error: Unexpected 'End If' at line $lineNum (No matching start found)." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected 'End If' (No matching start found)" -Line $lineNum
                         $allPassed = $false
                         $global:BeaverLintStatusCache[$relPath] = $false
                     }
                 }
             }
-            
-            foreach ($startLine in $stack) {
-                Write-Host "  [$fileName] Syntax Error: Mismatched '$($b.Name)' starting at line $startLine (No matching end found)." -ForegroundColor Red
-                Add-LintError -File $fileName -Type "syntax" -Message "Mismatched '$($b.Name)' (No matching end found)" -Line $startLine
-                $allPassed = $false
-                $global:BeaverLintStatusCache[$relPath] = $false
+
+            # Checking Sub/End Sub
+            if ($line.IndexOf("Sub", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                if ($line -match $subStartRegex) {
+                    $subStack.Add($lineNum)
+                } elseif ($line -match $subEndRegex) {
+                    if ($subStack.Count -gt 0) {
+                        $subStack.RemoveAt($subStack.Count - 1)
+                    } else {
+                        Write-Host "  [$fileName] Syntax Error: Unexpected 'End Sub' at line $lineNum (No matching start found)." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected 'End Sub' (No matching start found)" -Line $lineNum
+                        $allPassed = $false
+                        $global:BeaverLintStatusCache[$relPath] = $false
+                    }
+                }
             }
+
+            # Checking Function/End Function
+            if ($line.IndexOf("Function", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                if ($line -match $funcStartRegex) {
+                    $funcStack.Add($lineNum)
+                } elseif ($line -match $funcEndRegex) {
+                    if ($funcStack.Count -gt 0) {
+                        $funcStack.RemoveAt($funcStack.Count - 1)
+                    } else {
+                        Write-Host "  [$fileName] Syntax Error: Unexpected 'End Function' at line $lineNum (No matching start found)." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected 'End Function' (No matching start found)" -Line $lineNum
+                        $allPassed = $false
+                        $global:BeaverLintStatusCache[$relPath] = $false
+                    }
+                }
+            }
+
+            # Checking Property/End Property
+            if ($line.IndexOf("Property", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                if ($line -match $propStartRegex) {
+                    $propStack.Add($lineNum)
+                } elseif ($line -match $propEndRegex) {
+                    if ($propStack.Count -gt 0) {
+                        $propStack.RemoveAt($propStack.Count - 1)
+                    } else {
+                        Write-Host "  [$fileName] Syntax Error: Unexpected 'End Property' at line $lineNum (No matching start found)." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected 'End Property' (No matching start found)" -Line $lineNum
+                        $allPassed = $false
+                        $global:BeaverLintStatusCache[$relPath] = $false
+                    }
+                }
+            }
+        }
+
+        foreach ($startLine in $subStack) {
+            Write-Host "  [$fileName] Syntax Error: Mismatched 'Sub' starting at line $startLine (No matching end found)." -ForegroundColor Red
+            Add-LintError -File $fileName -Type "syntax" -Message "Mismatched 'Sub' (No matching end found)" -Line $startLine
+            $allPassed = $false
+            $global:BeaverLintStatusCache[$relPath] = $false
+        }
+        foreach ($startLine in $funcStack) {
+            Write-Host "  [$fileName] Syntax Error: Mismatched 'Function' starting at line $startLine (No matching end found)." -ForegroundColor Red
+            Add-LintError -File $fileName -Type "syntax" -Message "Mismatched 'Function' (No matching end found)" -Line $startLine
+            $allPassed = $false
+            $global:BeaverLintStatusCache[$relPath] = $false
+        }
+        foreach ($startLine in $propStack) {
+            Write-Host "  [$fileName] Syntax Error: Mismatched 'Property' starting at line $startLine (No matching end found)." -ForegroundColor Red
+            Add-LintError -File $fileName -Type "syntax" -Message "Mismatched 'Property' (No matching end found)" -Line $startLine
+            $allPassed = $false
+            $global:BeaverLintStatusCache[$relPath] = $false
+        }
+        foreach ($startLine in $ifStack) {
+            Write-Host "  [$fileName] Syntax Error: Mismatched 'If' starting at line $startLine (No matching end found)." -ForegroundColor Red
+            Add-LintError -File $fileName -Type "syntax" -Message "Mismatched 'If' (No matching end found)" -Line $startLine
+            $allPassed = $false
+            $global:BeaverLintStatusCache[$relPath] = $false
         }
     }
     return $allPassed
@@ -798,7 +876,8 @@ function Invoke-EnhancedLinting {
         $cachedPassed = $false
         if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
             $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
-            if ($meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
+            if ($meta.PSObject.Properties['Length'] -and $meta.PSObject.Properties['LastWriteTime'] -and $meta.PSObject.Properties['LintPassed'] -and
+                $meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
                 $cachedPassed = $true
             }
         }
@@ -833,89 +912,123 @@ function Invoke-EnhancedLinting {
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $line = $lines[$i]
 
+            if ($line -eq "" -or $line.Trim() -eq "") { continue }
+
             # --- Rule A: Enforce Spill-Safe Formula Properties ---
-            if ($file.Name -ne "Lib_JsonConverter.bas" -and $line -match '\.\bFormula\b' -and $line -notmatch '".*\.Formula.*"' -and $line -notmatch '^\s*\''' -and $line -notmatch '\.Formula2' -and $line -notmatch '\.FormulaArray') {
-                Write-Host "  [$fileName] Error: Range.Formula usage detected at line $($i + 1). Use Range.Formula2 instead to prevent spill errors." -ForegroundColor Red
-                Add-LintError -File $fileName -Type "enhanced" -Message "Range.Formula usage detected. Use Range.Formula2 instead to prevent spill errors." -Line ($i + 1)
-                $allPassed = $false
-                $global:BeaverLintStatusCache[$relPath] = $false
+            if ($line.IndexOf("Formula", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                if ($file.Name -ne "Lib_JsonConverter.bas" -and $line -match '\.\bFormula\b' -and $line -notmatch '".*\.Formula.*"' -and $line -notmatch '^\s*\''' -and $line -notmatch '\.Formula2' -and $line -notmatch '\.FormulaArray') {
+                    Write-Host "  [$fileName] Error: Range.Formula usage detected at line $($i + 1). Use Range.Formula2 instead to prevent spill errors." -ForegroundColor Red
+                    Add-LintError -File $fileName -Type "enhanced" -Message "Range.Formula usage detected. Use Range.Formula2 instead to prevent spill errors." -Line ($i + 1)
+                    $allPassed = $false
+                    $global:BeaverLintStatusCache[$relPath] = $false
+                }
             }
 
             # --- Rule B: Multi-cell Range Property Null Check ---
-            if ($line -match '\b(CStr|CInt|CLng|CDbl|CSng|CBool|CDate|CVar)\s*\(\s*(?!(?:cell\b|\w+\.Cells\b|\w+Cells\b))[a-zA-Z0-9_\.]+\.(?:NumberFormat|Font\.(?:Name|Size))\s*\)' -and $line -notmatch '^\s*''') {
-                Write-Host "  [$fileName] Error: Direct string/value conversion on range property without IsNull check at line $($i + 1). Mixed ranges return Null, causing Error 94." -ForegroundColor Red
-                Add-LintError -File $fileName -Type "enhanced" -Message "Direct string/value conversion on range property without IsNull check. Mixed ranges return Null, causing Error 94." -Line ($i + 1)
-                $allPassed = $false
-                $global:BeaverLintStatusCache[$relPath] = $false
+            if ($line.IndexOf("NumberFormat", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or 
+                $line.IndexOf("Name", [System.StringComparison]::Ordinal) -ge 0 -or 
+                $line.IndexOf("Size", [System.StringComparison]::Ordinal) -ge 0) {
+                if ($line -match '\b(CStr|CInt|CLng|CDbl|CSng|CBool|CDate|CVar)\s*\(\s*(?!(?:cell\b|\w+\.Cells\b|\w+Cells\b))[a-zA-Z0-9_\.]+\.(?:NumberFormat|Font\.(?:Name|Size))\s*\)' -and $line -notmatch '^\s*''') {
+                    Write-Host "  [$fileName] Error: Direct string/value conversion on range property without IsNull check at line $($i + 1). Mixed ranges return Null, causing Error 94." -ForegroundColor Red
+                    Add-LintError -File $fileName -Type "enhanced" -Message "Direct string/value conversion on range property without IsNull check. Mixed ranges return Null, causing Error 94." -Line ($i + 1)
+                    $allPassed = $false
+                    $global:BeaverLintStatusCache[$relPath] = $false
+                }
             }
 
             # --- Rule C: Collection Mutation Loop Direction ---
-            if ($line -match '\bFor\s+(\w+)\s*=\s*\d+\s+To\s+(?:(?:\w+\.)*Count|\w+)\b(?!\s+Step\s+-1)' -and $line -notmatch '^\s*''') {
-                $idxVar = $Matches[1]
-                $j = $i + 1
-                $hasDeletion = $false
-                while ($j -lt $lines.Count -and $lines[$j] -notmatch "\bNext\b") {
-                    if ($lines[$j] -match "\b$idxVar\b" -and ($lines[$j] -match '\bDelete\b|\bRemove\b|\bRemoveAt\b') -and $lines[$j] -notmatch '^\s*''') {
-                        $hasDeletion = $true
-                        break
+            if ($line.IndexOf("For", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                if ($line -match '\bFor\s+(\w+)\s*=\s*\d+\s+To\s+(?:(?:\w+\.)*Count|\w+)\b(?!\s+Step\s+-1)' -and $line -notmatch '^\s*''') {
+                    $idxVar = $Matches[1]
+                    $j = $i + 1
+                    $hasDeletion = $false
+                    while ($j -lt $lines.Count -and $lines[$j] -notmatch "\bNext\b") {
+                        if ($lines[$j] -match "\b$idxVar\b" -and ($lines[$j] -match '\bDelete\b|\bRemove\b|\bRemoveAt\b') -and $lines[$j] -notmatch '^\s*''') {
+                            $hasDeletion = $true
+                            break
+                        }
+                        $j++
                     }
-                    $j++
-                }
-                if ($hasDeletion) {
-                    Write-Host "  [$fileName] Error: Forward iteration loop with mutation detected at line $($i + 1). Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs." -ForegroundColor Red
-                    Add-LintError -File $fileName -Type "enhanced" -Message "Forward iteration loop with mutation detected. Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs." -Line ($i + 1)
-                    $allPassed = $false
-                    $global:BeaverLintStatusCache[$relPath] = $false
+                    if ($hasDeletion) {
+                        Write-Host "  [$fileName] Error: Forward iteration loop with mutation detected at line $($i + 1). Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "enhanced" -Message "Forward iteration loop with mutation detected. Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs." -Line ($i + 1)
+                        $allPassed = $false
+                        $global:BeaverLintStatusCache[$relPath] = $false
+                    }
                 }
             }
 
-            if ($line -match "^\s*Public (?:Sub|Function)\s+([a-zA-Z0-9_]+)") {
-                $procName = $matches[1]
-                $procLineNum = $i + 1
+            if ($line.IndexOf("Sub", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or 
+                $line.IndexOf("Function", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                $isProcStart = $false
+                $procName = ""
+                $isICommandExecute = $false
                 
-                if ($procName -match "^(?:Workbook_|Worksheet_|App_)" -or $file.Name -eq "Lib_JsonConverter.bas" -or $file.Name -match "^Lib_[a-zA-Z0-9_]+Function\.bas$" -or $file.Name -match "^(?:Infra_Error\.(bas|cls)|Infra_ContextTracker\.cls|Infra_Diagnostics\.bas|Infra_OperationContext\.cls|AppContainer\.cls|Infra_Config\.(cls|bas)|Infra_ConfigModel\.cls|I[A-Z][a-zA-Z0-9_\-]*\.cls|Infra_AppStateGuard\.cls|Infra_AppState\.bas|Infra_ValueConversion\.bas)$") {
-                    continue
+                if ($line -match "^\s*Public (?:Sub|Function)\s+([a-zA-Z0-9_]+)") {
+                    $isProcStart = $true
+                    $procName = $Matches[1]
+                } elseif ($line -match "^\s*Private Sub (ICommand_Execute)\b") {
+                    $isProcStart = $true
+                    $procName = "ICommand_Execute"
+                    $isICommandExecute = $true
                 }
 
-                $j = $i + 1
-                $foundPush = $false
-                $foundPop = $false
-                $foundErrorGoto = $false
-                $foundHandleError = $false
-                $procBody = ""
-                
-                while ($j -lt $lines.Count -and $lines[$j] -notmatch "^\s*End (?:Sub|Function)") {
-                    $procBody += $lines[$j] + "`n"
-                    if ($lines[$j] -match "PushContext\s+""$procName""" -or $lines[$j] -match "Infra_Error\.Track") { $foundPush = $true }
-                    if ($lines[$j] -match "PopContext" -or $lines[$j] -match "Infra_Error\.Track") { $foundPop = $true }
-                    if ($lines[$j] -match "On Error GoTo\s+\w+") { $foundErrorGoto = $true }
-                    if ($lines[$j] -match "HandleError\s+""$procName""") { $foundHandleError = $true }
-                    $j++
-                }
+                if ($isProcStart) {
+                    $procLineNum = $i + 1
+                    
+                    if ($procName -match "^(?:Workbook_|Worksheet_|App_)" -or $file.Name -eq "Lib_JsonConverter.bas" -or $file.Name -match "^Lib_[a-zA-Z0-9_]+Function\.bas$" -or $file.Name -match "^(?:Infra_Error\.(bas|cls)|Infra_ContextTracker\.cls|Infra_Diagnostics\.bas|Infra_OperationContext\.cls|AppContainer\.cls|Infra_Config\.(cls|bas)|Infra_ConfigModel\.cls|I[A-Z][a-zA-Z0-9_\-]*\.cls|Infra_AppStateGuard\.cls|Infra_AppState\.bas|Infra_ValueConversion\.bas)$") {
+                        continue
+                    }
 
-                if (-not $foundPush) {
-                    Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing context tracking (PushContext or Track)." -ForegroundColor Red
-                    Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing context tracking (PushContext or Track)." -Line $procLineNum
-                    $allPassed = $false
-                    $global:BeaverLintStatusCache[$relPath] = $false
-                }
-                if (-not $foundPop) {
-                    Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'PopContext' (or RAII Track tracker)." -ForegroundColor Red
-                    Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'PopContext' (or RAII Track tracker)." -Line $procLineNum
-                    $allPassed = $false
-                    $global:BeaverLintStatusCache[$relPath] = $false
-                }
-                if (-not $foundErrorGoto) {
-                    Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'On Error GoTo'." -ForegroundColor Red
-                    Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'On Error GoTo'." -Line $procLineNum
-                    $allPassed = $false
-                    $global:BeaverLintStatusCache[$relPath] = $false
-                }
-                if (-not $foundHandleError) {
-                    Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'HandleError ""$procName""'." -ForegroundColor Red
-                    Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'HandleError ""$procName""'." -Line $procLineNum
-                    $allPassed = $false
-                    $global:BeaverLintStatusCache[$relPath] = $false
+                    $j = $i + 1
+                    $foundPush = $false
+                    $foundPop = $false
+                    $foundErrorGoto = $false
+                    $foundHandleError = $false
+                    $procBody = ""
+                    
+                    while ($j -lt $lines.Count -and $lines[$j] -notmatch "^\s*End (?:Sub|Function)") {
+                        $procBody += $lines[$j] + "`n"
+                        if ($isICommandExecute) {
+                            if ($lines[$j] -match 'PushContext\s+"\w+\.Execute"' -or $lines[$j] -match 'Infra_Error\.Track\("\w+\.Execute"\)') { $foundPush = $true }
+                            if ($lines[$j] -match 'PopContext' -or $lines[$j] -match 'Infra_Error\.Track') { $foundPop = $true }
+                            if ($lines[$j] -match 'On Error GoTo\s+\w+') { $foundErrorGoto = $true }
+                            if ($lines[$j] -match 'HandleError(?:Detailed)?\s+"\w+\.Execute"') { $foundHandleError = $true }
+                        } else {
+                            if ($lines[$j] -match "PushContext\s+""$procName""" -or $lines[$j] -match "Infra_Error\.Track") { $foundPush = $true }
+                            if ($lines[$j] -match "PopContext" -or $lines[$j] -match "Infra_Error\.Track") { $foundPop = $true }
+                            if ($lines[$j] -match "On Error GoTo\s+\w+") { $foundErrorGoto = $true }
+                            if ($lines[$j] -match "HandleError\s+""$procName""") { $foundHandleError = $true }
+                        }
+                        $j++
+                    }
+
+                    if (-not $foundPush) {
+                        $msgName = if ($isICommandExecute) { "ICommand_Execute (with context ending in .Execute)" } else { "Procedure '$procName'" }
+                        Write-Host "  [$fileName] Error: $msgName at line $procLineNum missing context tracking (PushContext or Track)." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "enhanced" -Message "$msgName missing context tracking (PushContext or Track)." -Line $procLineNum
+                        $allPassed = $false
+                        $global:BeaverLintStatusCache[$relPath] = $false
+                    }
+                    if (-not $foundPop) {
+                        Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'PopContext' (or RAII Track tracker)." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'PopContext' (or RAII Track tracker)." -Line $procLineNum
+                        $allPassed = $false
+                        $global:BeaverLintStatusCache[$relPath] = $false
+                    }
+                    if (-not $foundErrorGoto) {
+                        Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing 'On Error GoTo'." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'On Error GoTo'." -Line $procLineNum
+                        $allPassed = $false
+                        $global:BeaverLintStatusCache[$relPath] = $false
+                    }
+                    if (-not $foundHandleError) {
+                        $expectedLabel = if ($isICommandExecute) { "HandleError ""[CommandName].Execute""" } else { "HandleError ""$procName""" }
+                        Write-Host "  [$fileName] Error: Procedure '$procName' at line $procLineNum missing '$expectedLabel'." -ForegroundColor Red
+                        Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing '$expectedLabel'." -Line $procLineNum
+                        $allPassed = $false
+                        $global:BeaverLintStatusCache[$relPath] = $false
+                    }
                 }
             }
         }
@@ -959,7 +1072,8 @@ function Test-FormFilesValidity {
         $cachedPassed = $false
         if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
             $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
-            if ($meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
+            if ($meta.PSObject.Properties['Length'] -and $meta.PSObject.Properties['LastWriteTime'] -and $meta.PSObject.Properties['LintPassed'] -and
+                $meta.Length -eq $file.Length -and $meta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString() -and $meta.LintPassed -eq $true) {
                 $cachedPassed = $true
             }
         }
@@ -993,12 +1107,20 @@ function New-NormalizedImportCopy {
         [string]$TempRoot
     )
 
+    $content = [System.IO.File]::ReadAllText($SourcePath)
+    # Check if there is any solo LF (LF not preceded by CR)
+    $hasSoloLf = $content -match "(?<!`r)`n"
+    
+    if (-not $hasSoloLf) {
+        # File is already CRLF normalized. We can import it directly from the source!
+        return $SourcePath
+    }
+
     if (-not (Test-Path $TempRoot)) {
         New-Item -ItemType Directory -Path $TempRoot -Force | Out-Null
     }
 
     $normalizedPath = Join-Path $TempRoot ([System.IO.Path]::GetFileName($SourcePath))
-    $content = [System.IO.File]::ReadAllText($SourcePath)
     $content = $content -replace "(?<!`r)`n", "`r`n"
     [System.IO.File]::WriteAllText($normalizedPath, $content, [System.Text.Encoding]::ASCII)
 
@@ -1048,10 +1170,10 @@ try {
     $deletedFiles = @()
 
     if ($null -ne $buildState -and $null -ne $buildState.Files) {
-        $manifestChanged = (-not $buildState.Files.PSObject.Properties.Name.Contains("features.json") -or $buildState.Files."features.json" -ne $currentHashes["features.json"])
+        $manifestChanged = ($null -eq $buildState.Files."features.json" -or $buildState.Files."features.json" -ne $currentHashes["features.json"])
         
         foreach ($key in $currentHashes.Keys) {
-            if (-not $buildState.Files.PSObject.Properties.Name.Contains($key) -or $buildState.Files.$key -ne $currentHashes[$key]) {
+            if ($null -eq $buildState.Files.$key -or $buildState.Files.$key -ne $currentHashes[$key]) {
                 $changedFiles += $key
             }
         }
@@ -1117,23 +1239,40 @@ try {
         $helpManifestPath = Join-Path $modulesDir "Libraries\Lib_HelpManifest.bas"
         $registryMissing = -not (Test-Path $commandRegistryPath)
         $helpMissing = -not (Test-Path $helpManifestPath)
+        $registryGenerated = $false
+        $helpGenerated = $false
         
-        if ($forceFullBuild -or $manifestStructureChanged -or $registryMissing -or $helpMissing) {
+        if ($forceFullBuild -or $manifestStructureChanged -or $manifestChanged -or $registryMissing -or $helpMissing) {
             if ($forceFullBuild -or $manifestStructureChanged -or $registryMissing) {
                 Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
+                $registryGenerated = $true
             }
-            if ($forceFullBuild -or $manifestStructureChanged -or $helpMissing) {
+            if ($forceFullBuild -or $manifestChanged -or $helpMissing) {
                 Sync-HelpManifest -ManifestPath $featureManifestPath -OutputPath $helpManifestPath
+                $helpGenerated = $true
             }
             
             if (-not $forceFullBuild) {
-                foreach ($relPath in @("Modules/Infrastructure/Infra_CommandRegistry.bas", "Modules/Libraries/Lib_HelpManifest.bas")) {
+                $generatedRelPaths = @()
+                if ($registryGenerated) { $generatedRelPaths += "Modules/Infrastructure/Infra_CommandRegistry.bas" }
+                if ($helpGenerated) { $generatedRelPaths += "Modules/Libraries/Lib_HelpManifest.bas" }
+
+                foreach ($relPath in $generatedRelPaths) {
                     if ($changedFiles -notcontains $relPath) {
-                        $script:changedFiles += $relPath
+                        if (Test-BuildStateFileChanged -RelativePath $relPath -BuildState $buildState) {
+                            $script:changedFiles += $relPath
+                        }
                     }
                 }
             }
-            return "command registry refreshed"
+            if ($registryGenerated -and $helpGenerated) {
+                return "command registry and help manifest refreshed"
+            } elseif ($registryGenerated) {
+                return "command registry refreshed"
+            } elseif ($helpGenerated) {
+                return "help manifest refreshed"
+            }
+            return "skipped (generated files already current)"
         } else {
             return "skipped (manifest unchanged)"
         }
@@ -1146,7 +1285,9 @@ try {
             if (-not $forceFullBuild) {
                 foreach ($relPath in @("Modules/UI/UI_Ribbon.bas", "Modules/UI/UI_Hotkeys.bas")) {
                     if ($changedFiles -notcontains $relPath) {
-                        $script:changedFiles += $relPath
+                        if (Test-BuildStateFileChanged -RelativePath $relPath -BuildState $buildState) {
+                            $script:changedFiles += $relPath
+                        }
                     }
                 }
             }
@@ -1165,7 +1306,9 @@ try {
             if (-not $forceFullBuild) {
                 $relPath = "Modules/Libraries/Lib_TestManifest.bas"
                 if ($changedFiles -notcontains $relPath) {
-                    $script:changedFiles += $relPath
+                    if (Test-BuildStateFileChanged -RelativePath $relPath -BuildState $buildState) {
+                        $script:changedFiles += $relPath
+                    }
                 }
             }
             return "test manifest refreshed"
@@ -1342,6 +1485,7 @@ try {
         $workbook = $session.Workbook
         $wasAlreadyOpen = $session.WasAlreadyOpen
         $script:excelWasAlreadyOpen = $wasAlreadyOpen
+        $script:workbookWasAlreadyOpen = $session.WorkbookWasAlreadyOpen
         $script:sharedExcel = $excel
         
         $vbaProject = $workbook.VBProject
@@ -1350,26 +1494,47 @@ try {
         $commandBars = $null
         $cb = $null
 
+        $origScreenUpdating = $true
+        $origEvents = $true
+        $origCalculation = -4105
+
         try {
+            try {
+                if ($null -ne $excel) {
+                    $origScreenUpdating = $excel.ScreenUpdating
+                    $origEvents = $excel.EnableEvents
+                    $origCalculation = $excel.Calculation
+
+                    $excel.ScreenUpdating = $false
+                    $excel.EnableEvents = $false
+                    $excel.Calculation = -4135 # xlCalculationManual
+                }
+            } catch {}
+
             Write-Host "Updating modules..."
             
             if ($forceFullBuild) {
                 # Purge all components
                 $compsToRemoveList = @()
-                foreach ($comp in $vbaProject.VBComponents) {
+                $componentsCollection = $vbaProject.VBComponents
+                foreach ($comp in $componentsCollection) {
                     if (($comp.Type -ge 1 -and $comp.Type -le 3) -and ($comp.Name -ne "ThisWorkbook")) {
                         $compsToRemoveList += $comp
+                    } else {
+                        Release-ComObjectSafely $comp
                     }
                 }
+                Release-ComObjectSafely $componentsCollection
                 $vbaSourceFiles = Get-ChildItem -Path $modulesDir -Include *.bas, *.cls, *.frm -Recurse
                 $filesToImport = @($vbaSourceFiles | ForEach-Object { $_.FullName })
                 $compsToRemove = $compsToRemoveList
             } else {
                 # Incremental Mode: convert component names to VBComponent COM objects
                 $compsToRemoveList = @()
+                $componentsCollection = $vbaProject.VBComponents
                 foreach ($compName in $compsToRemove) {
                     try {
-                        $comp = $vbaProject.VBComponents.Item($compName)
+                        $comp = $componentsCollection.Item($compName)
                         if ($null -ne $comp) {
                             $compsToRemoveList += $comp
                         }
@@ -1377,6 +1542,7 @@ try {
                         # Component doesn't exist
                     }
                 }
+                Release-ComObjectSafely $componentsCollection
                 $compsToRemove = $compsToRemoveList
             }
 
@@ -1388,6 +1554,8 @@ try {
                     Write-Host "  Removed component: $compName"
                 } catch {
                     throw "Failed to remove existing VBA component '$compName': $($_.Exception.Message). Please ensure Excel is not in break mode or busy."
+                } finally {
+                    Release-ComObjectSafely $comp
                 }
             }
 
@@ -1399,7 +1567,8 @@ try {
                     Write-Host "  Importing $($fileName)..."
                     $importPath = New-NormalizedImportCopy -SourcePath $filePath -TempRoot $tempImportDir
 
-                    if ($filePath -match "\.frm$") {
+                    # Only copy companion .frx if we actually normalized it (meaning $importPath is inside $tempImportDir)
+                    if ($importPath -ne $filePath -and ($filePath -match "\.frm$")) {
                         $frxPath = [System.IO.Path]::ChangeExtension($filePath, ".frx")
                         if (Test-Path $frxPath) {
                             $tempFrxPath = Join-Path $tempImportDir ([System.IO.Path]::GetFileName($frxPath))
@@ -1456,6 +1625,14 @@ try {
                                 $btn.Execute()
                             } catch {
                                 Write-Host "  Execute() threw an exception: $($_.Exception.Message)"
+                            }
+
+                            # Polling loop: Wait for compilation to complete (up to 1.5 seconds)
+                            $waitLimit = 30
+                            $waitCount = 0
+                            while ($btn.Enabled -and $waitCount -lt $waitLimit) {
+                                Start-Sleep -Milliseconds 50
+                                $waitCount++
                             }
 
                             if ($btn.Enabled) {
@@ -1612,8 +1789,15 @@ try {
             Write-Host "SUCCESS: Modules updated."
             return "modules imported and workbook saved"
         } finally {
-            if ($forceFullBuild -or $manifestChanged) {
-                if ($workbook) {
+            if ($null -ne $excel) {
+                try {
+                    $excel.ScreenUpdating = $origScreenUpdating
+                    $excel.EnableEvents = $origEvents
+                    $excel.Calculation = $origCalculation
+                } catch {}
+            }
+            if ($workbook) {
+                if ($forceFullBuild -or $manifestChanged) {
                     try { $workbook.Close($false) } catch { }
                 }
                 Release-ComObjectSafely $workbook
@@ -1650,14 +1834,36 @@ try {
     Stop-Script $_.Exception.Message
 } finally {
     if (-not $global:BeaverOrchestratorActive -and $null -ne $sharedExcel) {
-        if (-not $excelWasAlreadyOpen) {
-            try {
-                foreach ($wb in $sharedExcel.Workbooks) {
-                    if ($wb.FullName -eq $excelPath) {
-                        $wb.Close($true)
-                    }
+        $excelPid = 0
+        try {
+            $excelPid = Get-ExcelProcessId -ExcelApplication $sharedExcel
+        } catch {}
+
+        $isExcelVisible = $false
+        try {
+            $isExcelVisible = $sharedExcel.Visible
+        } catch {}
+
+        $otherWorkbooksOpen = $false
+        try {
+            foreach ($wb in $sharedExcel.Workbooks) {
+                if ($wb.FullName -ne $excelPath) {
+                    $otherWorkbooksOpen = $true
                 }
-            } catch { }
+                Release-ComObjectSafely $wb
+            }
+        } catch {}
+
+        try {
+            foreach ($wb in $sharedExcel.Workbooks) {
+                if ($wb.FullName -eq $excelPath) {
+                    $wb.Close($true)
+                }
+                Release-ComObjectSafely $wb
+            }
+        } catch { }
+
+        if (-not $excelWasAlreadyOpen -or -not $isExcelVisible -or -not $otherWorkbooksOpen) {
             try {
                 $sharedExcel.Quit()
             } catch { }
@@ -1669,5 +1875,18 @@ try {
         }
         Release-ComObjectSafely $sharedExcel
         $sharedExcel = $null
+
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+
+        if (-not $excelWasAlreadyOpen -and $excelPid -gt 0) {
+            Start-Sleep -Milliseconds 500
+            $proc = Get-Process -Id $excelPid -ErrorAction SilentlyContinue
+            if ($null -ne $proc -and $proc.Name -eq "EXCEL") {
+                try {
+                    Stop-Process -Id $excelPid -Force -ErrorAction SilentlyContinue
+                } catch {}
+            }
+        }
     }
 }
