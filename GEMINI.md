@@ -362,7 +362,7 @@ graph TD
   },
   "FeatureFlags": {
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 23
+    "GeneratedFeatureCount": 24
   },
   "Hotkeys": [
     {
