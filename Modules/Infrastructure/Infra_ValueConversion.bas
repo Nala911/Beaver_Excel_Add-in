@@ -51,14 +51,53 @@ Public Function ConvertRangeToValues(ByVal targetRange As Range) As Long
             ConvertRangeToValues = targetRange.Cells.CountLarge
         End If
     Else
-        ' Spill-aware case: convert formulas to static first, then flatten the range
-        If Not formulaCells Is Nothing Then
-            For Each cell In formulaCells.Cells
-                processedCount = processedCount + ConvertCellToStatic(cell)
-            Next cell
+        ' Spill-aware case: first try expanded bulk value flattening
+        Dim expanded As Range
+        Set expanded = ResolveSpillExpandedRange(targetRange)
+        Dim bulkSucceeded As Boolean
+        bulkSucceeded = False
+        
+        If Not expanded Is Nothing Then
+            On Error Resume Next
+            expanded.Value = expanded.Value
+            If Err.Number = 0 Then
+                bulkSucceeded = True
+                If Not formulaCells Is Nothing Then
+                    processedCount = formulaCells.Cells.CountLarge
+                End If
+            End If
+            Err.Clear
+            On Error GoTo ErrHandler
         End If
         
+        If Not bulkSucceeded Then
+            ' Area-by-area fallback: process only areas with spills cell-by-cell
+            If Not formulaCells Is Nothing Then
+                Dim area As Range
+                For Each area In formulaCells.Areas
+                    Dim hasSpillVal As Variant
+                    hasSpillVal = Null
+                    On Error Resume Next
+                    hasSpillVal = area.HasSpill
+                    On Error GoTo ErrHandler
+                    
+                    If IsNull(hasSpillVal) Or (hasSpillVal = True) Then
+                        ' Spills or mixed: loop cell-by-cell in this area
+                        For Each cell In area.Cells
+                            processedCount = processedCount + ConvertCellToStatic(cell)
+                        Next cell
+                    Else
+                        ' No spills in this area: bulk convert
+                        area.Value = area.Value
+                        processedCount = processedCount + area.Cells.CountLarge
+                    End If
+                Next area
+            End If
+        End If
+        
+        On Error Resume Next
         targetRange.Value = targetRange.Value
+        On Error GoTo ErrHandler
         ConvertRangeToValues = processedCount
     End If
 
@@ -424,7 +463,7 @@ Public Function Ensure2DArray(ByVal InputVal As Variant) As Variant
             Ensure2DArray = result
             GoTo CleanExit
         End If
-        If TypeOf InputVal Is Range Then
+        If TypeOf InputVal Is Excel.Range Then
             Dim r As Range: Set r = InputVal
             If r.Cells.Count = 1 Then
                 ReDim result(1 To 1, 1 To 1)

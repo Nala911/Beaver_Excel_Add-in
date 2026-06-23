@@ -1,5 +1,5 @@
 ﻿{
-    "LastBuildTime":  "2026-06-23T09:36:34+05:30",
+    "LastBuildTime":  "2026-06-23T09:58:10+05:30",
     "Files":  {
                   "Modules/UI/UI_OptionPicker.frm":  "D357C748FF51D87CCF3B9245E37504EE",
                   "Modules/Tests/Lib_Tests.bas":  "F9FC6B70D100FCB827EE2C11DF3B5D92",
@@ -20,10 +20,10 @@
                   "Modules/Infrastructure/Infra_AppStateGuard.cls":  "DD9DF2FA27BB62F76029893FAFD7DDBD",
                   "Modules/Commands/FeatCmd_HelloWorld.cls":  "8E92966C6CBBFF984D7FA95AE89A60D7",
                   "Modules/Core/ICommand.cls":  "157F84119C4C05595001F313A16B7251",
-                  "Modules/Infrastructure/Infra_CommandSupport.bas":  "E75B015AC9F9E4AF9BD451A8EE331479",
+                  "Modules/Infrastructure/Infra_CommandSupport.bas":  "7746A0F31B007215CB7069945642303A",
                   "Modules/Core/CommandExecutionPolicy.cls":  "FED002C9FDC59C76E220EB00BB93A6CA",
                   "Modules/Infrastructure/Infra_OperationContext.cls":  "BF0C91A940EEED7837F617C8CBA2D0DE",
-                  "Modules/Infrastructure/Infra_ValueConversion.bas":  "94CE052A64BD9D9B3DB508F6E2DF8903",
+                  "Modules/Infrastructure/Infra_ValueConversion.bas":  "EEA6A16A27222D714E95851883FF1036",
                   "Modules/Commands/FeatCmd_ExportImageOrPdf.cls":  "D5BE5C6DADD8D16ADD23D196B2D7CAE7",
                   "Modules/Commands/FeatCmd_Wrap.cls":  "66DA03A8B085EAF8FF99DD6134FF8361",
                   "Modules/Commands/FeatCmd_ModifyData.cls":  "4A38919287FCD41984AF0F65AC6F8556",
@@ -58,10 +58,10 @@
                   "Modules/Core/BasicCommandContext.cls":  "425940AE305A8DA1D45B8D6C3BC3B2D5",
                   "Modules/Libraries/Lib_JsonConverter.bas":  "892B3F4992BAB396AA31BDAD161221AE",
                   "Modules/UI/UI_Hotkeys.bas":  "2918C60AE04D882939A7C68871C11054",
-                  "Modules/Tests/Lib_TestManifest.bas":  "9D17E63A6540C1E1DAA4B52308B4BE9C",
+                  "Modules/Tests/Lib_TestManifest.bas":  "6C8B29EB5C6F18B1AC61DDB470978CB0",
                   "Modules/Libraries/Lib_HelpManifest.bas":  "2E7BEF95716A6B145B3B0B15BF9C0D14",
                   "Modules/Commands/FeatCmd_PasteFormat.cls":  "5357335DDF6FF41F14ACD8A3C1AAEA77",
-                  "Modules/Tests/Lib_Tests_Feat_ModifyData.bas":  "F175289FF0F9DA76B3251F9212593226",
+                  "Modules/Tests/Lib_Tests_Feat_ModifyData.bas":  "7ACE4E074648785E37219F7476D6E2A2",
                   "Modules/UI/UI_HelpCenter.frm":  "5CB14199D869B19E6C3DC230BF3A21A2",
                   "Modules/Infrastructure/Infra_ContextTracker.cls":  "EE2F870296B5295963D30EF9EE702469",
                   "Modules/Infrastructure/Infra_ProgressState.cls":  "47AD1403AD4F3644CA0F17AE9229E011",
@@ -399,8 +399,8 @@
                                                        "LintPassed":  true
                                                    },
                      "Modules/Infrastructure/Infra_CommandSupport.bas":  {
-                                                                             "Length":  28943,
-                                                                             "LastWriteTime":  "134266575975937751",
+                                                                             "Length":  28774,
+                                                                             "LastWriteTime":  "134266622414804270",
                                                                              "Tests":  [
 
                                                                                        ],
@@ -444,8 +444,8 @@
                                                                                "LintPassed":  true
                                                                            },
                      "Modules/Infrastructure/Infra_ValueConversion.bas":  {
-                                                                              "Length":  20847,
-                                                                              "LastWriteTime":  "134266168439210293",
+                                                                              "Length":  22408,
+                                                                              "LastWriteTime":  "134266622774106104",
                                                                               "Tests":  [
 
                                                                                         ],
@@ -1341,8 +1341,8 @@
                                                        "LintPassed":  true
                                                    },
                      "Modules/Tests/Lib_TestManifest.bas":  {
-                                                                "Length":  10727,
-                                                                "LastWriteTime":  "134266606488923080",
+                                                                "Length":  10922,
+                                                                "LastWriteTime":  "134266622655392583",
                                                                 "Dependencies":  [
                                                                                      "Infra_Error"
                                                                                  ],
@@ -1379,13 +1379,14 @@
                                                                       "LintPassed":  true
                                                                   },
                      "Modules/Tests/Lib_Tests_Feat_ModifyData.bas":  {
-                                                                         "Length":  9657,
-                                                                         "LastWriteTime":  "134266604947011464",
+                                                                         "Length":  11987,
+                                                                         "LastWriteTime":  "134266622536940805",
                                                                          "Tests":  [
                                                                                        "Test_ModifyData_Casing",
                                                                                        "Test_ModifyData_DateStandardization",
                                                                                        "Test_ModifyData_Undo",
-                                                                                       "Test_ModifyData_MixedFormats"
+                                                                                       "Test_ModifyData_MixedFormats",
+                                                                                       "Test_ModifyData_MixedFormats_DateStandardization"
                                                                                    ],
                                                                          "Dependencies":  [
                                                                                               "Lib_Tests",
@@ -1396,6 +1397,15 @@
                                                                                               "Infra_ModifyDataRequest"
                                                                                           ],
                                                                          "TestDependencies":  {
+                                                                                                  "Test_ModifyData_MixedFormats_DateStandardization":  [
+                                                                                                                                                           "Infra_Error",
+                                                                                                                                                           "ThisWorkbook",
+                                                                                                                                                           "FeatCmd_ModifyData",
+                                                                                                                                                           "Infra_ModifyDataRequest",
+                                                                                                                                                           "Infra_ActionContext",
+                                                                                                                                                           "Lib_Tests",
+                                                                                                                                                           "Infra_Config"
+                                                                                                                                                       ],
                                                                                                   "Test_ModifyData_Undo":  [
                                                                                                                                "Infra_Error",
                                                                                                                                "ThisWorkbook",
@@ -1880,6 +1890,6 @@
                                                               }
                  },
     "ManifestStructuralHash":  "F50CB97D4BD427441DBB634C8F55B4C6",
-    "ExcelPid":  15172,
+    "ExcelPid":  18244,
     "TestsPassed":  true
 }

@@ -260,3 +260,61 @@ ErrHandler:
     Infra_Error.HandleError "Test_ModifyData_MixedFormats", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_ModifyData_MixedFormats_DateStandardization()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ModifyData_MixedFormats_DateStandardization")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_ModMixedDates"
+
+    ' Setup cells with mixed formats: 2 dates and 1 currency cell (66% date changes, which is > 50%)
+    ws.Range("A1").NumberFormat = "@"
+    ws.Range("A1").Value = "15/02/2021"
+    
+    ws.Range("A2").NumberFormat = "@"
+    ws.Range("A2").Value = "20/02/2021"
+    
+    ws.Range("A3").NumberFormat = "$#,##0"
+    ws.Range("A3").Value = 1000
+
+    Dim cmd As New FeatCmd_ModifyData
+    Dim req As New Infra_ModifyDataRequest
+    Set req.Context = New Infra_ActionContext
+    
+    req.Operation = "Date Standardization"
+    req.DatePattern = "dd/mm/yyyy"
+    
+    Dim changes As Long
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A1:A3"), req)
+    
+    ' A1 and A2 must be converted to date values and formatted as standard dates
+    Lib_Tests.AssertEqual ws.Range("A1").Value, DateSerial(2021, 2, 15), "A1 should be standardized to Feb 15, 2021"
+    Lib_Tests.AssertEqual ws.Range("A1").NumberFormat, Infra_Config.Model.DisplayDateFormat, "A1 format should be standard date format"
+    
+    Lib_Tests.AssertEqual ws.Range("A2").Value, DateSerial(2021, 2, 20), "A2 should be standardized to Feb 20, 2021"
+    Lib_Tests.AssertEqual ws.Range("A2").NumberFormat, Infra_Config.Model.DisplayDateFormat, "A2 format should be standard date format"
+    
+    ' A3 (Currency) must NOT have its format overwritten, even though formatting changes exceed 50% of the range
+    Lib_Tests.AssertEqual ws.Range("A3").NumberFormat, "$#,##0", "A3 currency format must be preserved"
+    Lib_Tests.AssertEqual ws.Range("A3").Value, 1000, "A3 value must be preserved"
+    
+    Lib_Tests.AssertEqual changes, 2, "Should report exactly 2 changes"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ModifyData_MixedFormats_DateStandardization", Err
+    Resume CleanExit
+End Sub

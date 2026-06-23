@@ -831,13 +831,9 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
     If hasChanged Then
         ' Apply format changes efficiently in batches
         If formatChangeCount > 0 Then
-            If formatChangeCount / area.Cells.CountLarge > 0.5 Then
-                area.NumberFormat = commonFormat
-            Else
-                Set unionRange = AccumulateUnion(unionRange, area.Parent, addrList, "", True)
-                If Not unionRange Is Nothing Then
-                    unionRange.NumberFormat = commonFormat
-                End If
+            Set unionRange = AccumulateUnion(unionRange, area.Parent, addrList, "", True)
+            If Not unionRange Is Nothing Then
+                unionRange.NumberFormat = commonFormat
             End If
         End If
         

@@ -153,6 +153,12 @@ The pipeline operates in an automated, highly-optimized manner without requiring
 - **Auto-Detect Manifest Changes**: If `features.json` is modified, the script automatically closes the workbook to unlock the file, performs manifest/registry regeneration and Ribbon XML zip injection, reopens the workbook, and executes the Ribbon XML validation check.
 - **Smart Test Filtering (Auto-Filter)**: When running a standard incremental build of command modules, the pipeline automatically detects which command files were changed and configures a default targeted filter to execute *only* the tests relevant to those features. This accelerates test cycles from ~4 seconds to ~1 second. It automatically falls back to running the full test suite if any core, library, or infrastructure files are modified.
 - **Targeted Testing (`-Filter` Parameter)**: Allows executing specific tests or a subset of tests using wildcard pattern matching (e.g. `*CleanData*` or `*Undo*`) dynamically inside the VBA runner.
+- **Additional Pipeline Controls**:
+  - `-Force`: Bypasses incremental change detection and forces a full rebuild, Zip Ribbon XML injection, and module re-import.
+  - `-ListTests`: Discovers and prints all unit test names matching the optional `-Filter` parameter.
+  - `-SkipLint`: Skips running `.build\Linter.ps1` checks to reduce build times during local edits.
+  - `-Visible`: Configures the Excel COM automation window to be visible during testing (defaults to hidden).
+  - `-Clean`: Deletes the cached `.build_state.json` file and resets build/test logs.
 
 Use the following commands from PowerShell:
 ```powershell
@@ -416,11 +422,14 @@ graph TD
 - Use `Infra_CommandSupport.ActionContextFromCommandContext` instead of reading globals.
 - Use array-based range processing over cell-by-cell loops for bulk performance.
 - Use the unified `AreaHasSpill` helper in `Infra_ValueConversion` to verify the presence of dynamic array spills within ranges, avoiding redundant and slow cell-by-cell loops.
+- Use `Infra_ValueConversion.ConvertRangeToValues` when converting formulas to static values. It optimizes spill-aware flattening by attempting bulk value assignment first, falling back area-by-area, and only resorting to cell-by-cell conversion (`ConvertCellToStatic`) for areas containing dynamic array spills.
+- Qualify range checks as `TypeOf [Variable] Is Excel.Range` rather than `Range` for namespace safety and compiler specificity.
 - Use `.Formula2` for modern, spill-safe formulas. Never use `.Formula`.
 - Preserve user-facing constants in `config.json`.
 - Iterate backwards using an index countdown (`For i = Collection.Count To 1 Step -1`) when mutating or deleting elements inside collections (such as `PivotTables`, `ListObjects`, or `Names`) to avoid dynamic re-indexing skip bugs.
 - Safely intercept and translate literal Excel cell error variants (type `Error`) using `Select Case` with `CVErr()` constants (e.g., `Case CVErr(xlErrNA)`) before executing standard string or conversion operations (like `CStr()` or `CInt()`), preventing `Type mismatch (Error 13)` crashes.
 - When querying range properties (such as `Range.NumberFormat`, `Font.Name`, or `Font.Size`) on a multi-cell range, always check if the return value is `Null` using `IsNull()` before attempting standard string conversions (like `CStr()`). A range with mixed values returns `Null`, which immediately throws `Invalid use of Null (Error 94)` on direct conversions.
+- Apply formatting changes precisely to modified cells (e.g., using `AccumulateUnion` range accumulation) rather than using area-wide bulk formatting thresholds that might overwrite unrelated cell formats (such as currency formatting in mixed-data selections).
 - Limit expensive cell-by-cell COM operations on large ranges (e.g., formula checks) to a safety cell count limit (e.g., 5,000 cells) to avoid freezing Excel. Always load safety thresholds dynamically from `Infra_Config` instead of hardcoding limits.
 - Use `Infra_ValueConversion.Ensure2DArray` to convert variant inputs (Range, Array, or Scalar) into 1-based 2D arrays rather than implementing duplicate array-handling helpers.
 - Use `Infra_Undo.SaveStateOrConfirm` before mutating worksheet ranges to check and register undo buffers. This unified helper automatically verifies if the range size is within safety limits and prompts/warns the user if it is not.

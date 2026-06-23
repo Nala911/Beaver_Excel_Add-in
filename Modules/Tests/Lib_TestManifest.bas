@@ -64,6 +64,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Feat_ModifyData.Test_ModifyData_Casing", filterPattern) Then Lib_Tests_Feat_ModifyData.Test_ModifyData_Casing
     If MatchesFilter("Lib_Tests_Feat_ModifyData.Test_ModifyData_DateStandardization", filterPattern) Then Lib_Tests_Feat_ModifyData.Test_ModifyData_DateStandardization
     If MatchesFilter("Lib_Tests_Feat_ModifyData.Test_ModifyData_MixedFormats", filterPattern) Then Lib_Tests_Feat_ModifyData.Test_ModifyData_MixedFormats
+    If MatchesFilter("Lib_Tests_Feat_ModifyData.Test_ModifyData_MixedFormats_DateStandardization", filterPattern) Then Lib_Tests_Feat_ModifyData.Test_ModifyData_MixedFormats_DateStandardization
     If MatchesFilter("Lib_Tests_Feat_ModifyData.Test_ModifyData_Undo", filterPattern) Then Lib_Tests_Feat_ModifyData.Test_ModifyData_Undo
     If MatchesFilter("Lib_Tests_Feat_Workbook.Test_CleanWorkbookNames_BrokenAndExternal", filterPattern) Then Lib_Tests_Feat_Workbook.Test_CleanWorkbookNames_BrokenAndExternal
     If MatchesFilter("Lib_Tests_Feat_Workbook.Test_CreateSheet_PlacementAndNaming", filterPattern) Then Lib_Tests_Feat_Workbook.Test_CreateSheet_PlacementAndNaming
