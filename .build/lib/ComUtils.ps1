@@ -235,19 +235,20 @@ function Remove-OrphanedExcelProcesses {
         return $false
     }
 
-    $visibleExcel = @(
+    # Find ONLY the background/hidden Excel processes
+    $backgroundExcel = @(
         $excelProcesses | Where-Object {
-            $_.MainWindowHandle -ne 0 -or -not [string]::IsNullOrWhiteSpace($_.MainWindowTitle)
+            $_.MainWindowHandle -eq 0 -and [string]::IsNullOrWhiteSpace($_.MainWindowTitle)
         }
     )
 
-    if ($visibleExcel.Count -gt 0) {
+    if ($backgroundExcel.Count -eq 0) {
         return $false
     }
 
-    Write-Host "  Found $($excelProcesses.Count) background Excel process(es) with no visible window. Cleaning up..." -ForegroundColor Yellow
+    Write-Host "  Found $($backgroundExcel.Count) background Excel process(es) with no visible window. Cleaning up..." -ForegroundColor Yellow
     $stoppedAny = $false
-    foreach ($process in $excelProcesses) {
+    foreach ($process in $backgroundExcel) {
         try {
             Stop-Process -Id $process.Id -Force -ErrorAction Stop
             $stoppedAny = $true
@@ -261,6 +262,100 @@ function Remove-OrphanedExcelProcesses {
     }
 
     return $stoppedAny
+}
+
+function Close-ExcelWorkbookSession {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Excel,
+
+        [Parameter(Mandatory = $true)]
+        [bool]$WasAlreadyOpen,
+
+        [Parameter(Mandatory = $true)]
+        [bool]$KeepAlive,
+
+        [string]$WorkbookPath = $null,
+
+        [switch]$SaveChanges,
+
+        [switch]$ForceQuit
+    )
+
+    if ($null -eq $Excel) {
+        return
+    }
+
+    $excelPid = 0
+    try {
+        $excelPid = Get-ExcelProcessId -ExcelApplication $Excel
+    } catch {}
+
+    $isExcelVisible = $false
+    try {
+        $isExcelVisible = $Excel.Visible
+    } catch {}
+
+    $otherWorkbooksOpen = $false
+    try {
+        $wbs = $Excel.Workbooks
+        foreach ($wb in $wbs) {
+            if ($null -ne $WorkbookPath -and $wb.FullName -ne $WorkbookPath) {
+                $otherWorkbooksOpen = $true
+            }
+            Release-ComObjectSafely $wb
+        }
+        Release-ComObjectSafely $wbs
+    } catch {}
+
+    if ($KeepAlive -and -not $ForceQuit) {
+        try {
+            $Excel.Visible = $true
+            $Excel.DisplayAlerts = $true
+        } catch {}
+        Write-Host "  KeepAlive active: leaving Excel running with the workbook loaded." -ForegroundColor Yellow
+    } else {
+        if ($null -ne $WorkbookPath) {
+            Write-Host "Closing workbook in Excel session..." -ForegroundColor Cyan
+        } else {
+            Write-Host "Cleaning up Excel session..." -ForegroundColor Cyan
+        }
+        try {
+            $wbs = $Excel.Workbooks
+            foreach ($wb in $wbs) {
+                if ($null -ne $WorkbookPath -and $wb.FullName -eq $WorkbookPath) {
+                    $wb.Close($SaveChanges)
+                }
+                Release-ComObjectSafely $wb
+            }
+            Release-ComObjectSafely $wbs
+        } catch {}
+
+        # Quit Excel if we started it, if it has no visible window, if no other workbooks are open, or if forced
+        $shouldQuit = $ForceQuit -or -not $WasAlreadyOpen -or -not $isExcelVisible -or -not $otherWorkbooksOpen
+        if ($shouldQuit) {
+            try {
+                $Excel.Quit()
+            } catch {}
+        }
+    }
+
+    Release-ComObjectSafely $Excel
+
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
+
+    # Hard-kill the background process if it is not supposed to remain open and it didn't shut down cleanly
+    $shouldKill = $ForceQuit -or (-not $KeepAlive -and -not $WasAlreadyOpen)
+    if ($shouldKill -and $excelPid -gt 0) {
+        Start-Sleep -Milliseconds 500
+        $proc = Get-Process -Id $excelPid -ErrorAction SilentlyContinue
+        if ($null -ne $proc -and $proc.Name -eq "EXCEL") {
+            try {
+                Stop-Process -Id $excelPid -Force -ErrorAction SilentlyContinue
+            } catch {}
+        }
+    }
 }
 
 function Test-FileLocked {

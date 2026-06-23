@@ -44,9 +44,9 @@ Public Sub Test_HighlightData_InconsistentFormulasAndDuplicates()
     Dim cmd As New FeatCmd_HighlightData
     cmd.HighlightRangeDirect ws.Range("A1:A5,C1:C6")
 
-    ' Check duplicate assertions: C1 and C3 should be highlighted with RGB(255, 199, 206)
-    Lib_Tests.AssertEqual ws.Range("C1").Interior.Color, RGB(255, 199, 206), "C1 should be highlighted as duplicate"
-    Lib_Tests.AssertEqual ws.Range("C3").Interior.Color, RGB(255, 199, 206), "C3 should be highlighted as duplicate"
+    ' Check duplicate assertions: C1 and C3 should be highlighted with Infra_Config.HIGHLIGHT_COLOR
+    Lib_Tests.AssertEqual ws.Range("C1").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "C1 should be highlighted as duplicate"
+    Lib_Tests.AssertEqual ws.Range("C3").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "C3 should be highlighted as duplicate"
     Lib_Tests.AssertEqual ws.Range("C2").Interior.ColorIndex, xlNone, "C2 is unique and should not be highlighted"
     Lib_Tests.AssertEqual ws.Range("C4").Interior.ColorIndex, xlNone, "C4 is unique and should not be highlighted"
     Lib_Tests.AssertEqual ws.Range("C5").Interior.ColorIndex, xlNone, "C5 is empty and should not be highlighted"
@@ -60,7 +60,7 @@ Public Sub Test_HighlightData_InconsistentFormulasAndDuplicates()
     On Error GoTo ErrHandler
     
     If isIncA3 Then
-        Lib_Tests.AssertEqual ws.Range("A3").Interior.Color, RGB(255, 255, 153), "A3 should be highlighted as inconsistent formula"
+        Lib_Tests.AssertEqual ws.Range("A3").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A3 should be highlighted as inconsistent formula"
         Lib_Tests.AssertEqual ws.Range("A1").Interior.ColorIndex, xlNone, "A1 should not be highlighted"
     Else
         Debug.Print "BEAVER [TEST]: xlInconsistentFormula check skipped or not active in the current Excel test environment."
@@ -154,10 +154,10 @@ Public Sub Test_HighlightData_Errors()
     cmd.HighlightRangeWithOptionsDirect ws.Range("A1:A6"), req
 
     ' Check assertions
-    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, RGB(255, 204, 153), "A1 constant error should be highlighted orange"
-    Lib_Tests.AssertEqual ws.Range("A2").Interior.Color, RGB(255, 204, 153), "A2 constant error should be highlighted orange"
-    Lib_Tests.AssertEqual ws.Range("A3").Interior.Color, RGB(255, 204, 153), "A3 formula error should be highlighted orange"
-    Lib_Tests.AssertEqual ws.Range("A4").Interior.Color, RGB(255, 204, 153), "A4 formula error should be highlighted orange"
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A1 constant error should be highlighted orange"
+    Lib_Tests.AssertEqual ws.Range("A2").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A2 constant error should be highlighted orange"
+    Lib_Tests.AssertEqual ws.Range("A3").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A3 formula error should be highlighted orange"
+    Lib_Tests.AssertEqual ws.Range("A4").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A4 formula error should be highlighted orange"
     Lib_Tests.AssertEqual ws.Range("A5").Interior.ColorIndex, xlNone, "A5 normal text should not be highlighted"
     Lib_Tests.AssertEqual ws.Range("A6").Interior.ColorIndex, xlNone, "A6 normal number should not be highlighted"
 
@@ -230,9 +230,9 @@ Public Sub Test_HighlightData_HardcodedValues()
     Lib_Tests.AssertEqual ws.Range("A1").Interior.ColorIndex, xlNone, "A1 should not be highlighted"
     Lib_Tests.AssertEqual ws.Range("A2").Interior.ColorIndex, xlNone, "A2 should not be highlighted"
     Lib_Tests.AssertEqual ws.Range("A3").Interior.ColorIndex, xlNone, "A3 should not be highlighted"
-    Lib_Tests.AssertEqual ws.Range("A4").Interior.Color, RGB(230, 210, 250), "A4 formula with 1.05 should be highlighted lavender"
-    Lib_Tests.AssertEqual ws.Range("A5").Interior.Color, RGB(230, 210, 250), "A5 formula with 'USD' should be highlighted lavender"
-    Lib_Tests.AssertEqual ws.Range("A6").Interior.Color, RGB(230, 210, 250), "A6 formula with 100 should be highlighted lavender"
+    Lib_Tests.AssertEqual ws.Range("A4").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A4 formula with 1.05 should be highlighted lavender"
+    Lib_Tests.AssertEqual ws.Range("A5").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A5 formula with 'USD' should be highlighted lavender"
+    Lib_Tests.AssertEqual ws.Range("A6").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A6 formula with 100 should be highlighted lavender"
     
     Application.DisplayAlerts = False
     ws.Delete
@@ -280,8 +280,8 @@ Public Sub Test_HighlightData_DataValidations()
     cmd.HighlightRangeWithOptionsDirect ws.Range("A1:A3"), req
 
     ' Check assertions
-    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, RGB(204, 255, 204), "A1 validation should be highlighted soft green"
-    Lib_Tests.AssertEqual ws.Range("A2").Interior.Color, RGB(204, 255, 204), "A2 validation should be highlighted soft green"
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A1 validation should be highlighted soft green"
+    Lib_Tests.AssertEqual ws.Range("A2").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A2 validation should be highlighted soft green"
     Lib_Tests.AssertEqual ws.Range("A3").Interior.ColorIndex, xlNone, "A3 normal cell should not be highlighted"
 
     Application.DisplayAlerts = False
@@ -327,8 +327,8 @@ Public Sub Test_HighlightData_ConditionalFormatting()
     cmd.HighlightRangeWithOptionsDirect ws.Range("A1:A3"), req
 
     ' Check assertions
-    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, RGB(204, 229, 255), "A1 CF should be highlighted soft blue"
-    Lib_Tests.AssertEqual ws.Range("A2").Interior.Color, RGB(204, 229, 255), "A2 CF should be highlighted soft blue"
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A1 CF should be highlighted soft blue"
+    Lib_Tests.AssertEqual ws.Range("A2").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A2 CF should be highlighted soft blue"
     Lib_Tests.AssertEqual ws.Range("A3").Interior.ColorIndex, xlNone, "A3 normal cell should not be highlighted"
 
     Application.DisplayAlerts = False
@@ -344,5 +344,42 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_HighlightData_ConditionalFormatting", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_HighlightData_ClearHighlights()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HighlightData_ClearHighlights")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_ClearHi"
+
+    ' Color cell A1 with our target highlight color
+    ws.Range("A1").Interior.Color = Infra_Config.HIGHLIGHT_COLOR
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, Infra_Config.HIGHLIGHT_COLOR, "A1 should be colored with HighlightColor"
+
+    Dim cmd As New FeatCmd_HighlightData
+    
+    ' Call ClearWorkbookHighlights directly to test workbook-wide clearing
+    cmd.ClearWorkbookHighlights ws.Parent
+    
+    Lib_Tests.AssertEqual ws.Range("A1").Interior.ColorIndex, xlNone, "A1 color should be cleared after calling ClearWorkbookHighlights"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_HighlightData_ClearHighlights", Err
     Resume CleanExit
 End Sub

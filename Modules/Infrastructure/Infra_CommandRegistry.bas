@@ -34,6 +34,8 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "HighlightDataValidations"
         Case "UI_RIBBON.RIBBON_ONHIGHLIGHTCONDITIONALFORMATTING"
             ResolveCommandName = "HighlightConditionalFormatting"
+        Case "UI_RIBBON.RIBBON_ONCLEARHIGHLIGHTS"
+            ResolveCommandName = "ClearHighlights"
         Case "UI_RIBBON.RIBBON_ONBREAKEXTERNALLINKS"
             ResolveCommandName = "BreakExternalLinks"
         Case "UI_RIBBON.RIBBON_ONDUPLICATE"
@@ -110,6 +112,8 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
         Case "HIGHLIGHTDATAVALIDATIONS"
             Set CreateCommand = New FeatCmd_HighlightData
         Case "HIGHLIGHTCONDITIONALFORMATTING"
+            Set CreateCommand = New FeatCmd_HighlightData
+        Case "CLEARHIGHLIGHTS"
             Set CreateCommand = New FeatCmd_HighlightData
         Case "BREAKEXTERNALLINKS"
             Set CreateCommand = New FeatCmd_BreakExternalLinks

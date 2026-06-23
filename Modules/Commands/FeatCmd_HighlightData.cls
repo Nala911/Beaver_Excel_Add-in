@@ -42,6 +42,12 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WorksheetRef Is Nothing Or ctx.WorkbookRef Is Nothing Then GoTo CleanExit
     
+    If context.CommandName = "ClearHighlights" Then
+        ClearWorkbookHighlights ctx.WorkbookRef
+        Infra_Interaction.ShowInfo "Done! Cleared all highlights in the workbook.", "Clear Highlights"
+        GoTo CleanExit
+    End If
+    
     Infra_Error.AddState stateInfo, "Workbook", ctx.WorkbookRef.Name
     Infra_Error.AddState stateInfo, "Worksheet", ctx.WorksheetRef.Name
     If ctx.HasRangeSelection And Not ctx.SelectionRange Is Nothing Then
@@ -67,6 +73,9 @@ Private Sub ExecuteHighlightData(ByVal request As Infra_HighlightDataRequest)
     
     If request Is Nothing Then GoTo CleanExit
     If request.Context Is Nothing Then GoTo CleanExit
+    
+    ' Always clear existing highlights in the workbook first
+    ClearWorkbookHighlights request.Context.WorkbookRef
     
     Set m_CurrentRequest = request
     
@@ -201,7 +210,7 @@ Private Sub HighlightInconsistentFormulasInArea(ByVal area As Range)
             
             If Not unionRange Is Nothing Then
                 If unionRange.Areas.Count >= 500 Then
-                    unionRange.Interior.Color = RGB(255, 255, 153) ' Soft Yellow
+                    unionRange.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
                     Set unionRange = Nothing
                 End If
             End If
@@ -210,7 +219,7 @@ Private Sub HighlightInconsistentFormulasInArea(ByVal area As Range)
     
     Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, "", True)
     If Not unionRange Is Nothing Then
-        unionRange.Interior.Color = RGB(255, 255, 153) ' Soft Yellow
+        unionRange.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
     End If
 End Sub
 
@@ -268,7 +277,7 @@ Private Sub HighlightDuplicatesInArea(ByVal area As Range)
                         
                         If Not unionRange Is Nothing Then
                             If unionRange.Areas.Count >= 500 Then
-                                unionRange.Interior.Color = RGB(255, 199, 206) ' Soft Red/Pink
+                                unionRange.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
                                 Set unionRange = Nothing
                             End If
                         End If
@@ -280,7 +289,7 @@ Private Sub HighlightDuplicatesInArea(ByVal area As Range)
     
     Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, "", True)
     If Not unionRange Is Nothing Then
-        unionRange.Interior.Color = RGB(255, 199, 206) ' Soft Red/Pink
+        unionRange.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
     End If
 End Sub
 
@@ -311,7 +320,7 @@ Private Sub HighlightErrorsInArea(ByVal area As Range)
     If errorCells Is Nothing Then Exit Sub
     
     On Error Resume Next
-    errorCells.Interior.Color = RGB(255, 204, 153) ' Soft Orange
+    errorCells.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
     On Error GoTo 0
 End Sub
 
@@ -384,7 +393,7 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
                         
                         If Not unionRange Is Nothing Then
                             If unionRange.Areas.Count >= 500 Then
-                                unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
+                                unionRange.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
                                 Set unionRange = Nothing
                             End If
                         End If
@@ -404,7 +413,7 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
                 
                 If Not unionRange Is Nothing Then
                     If unionRange.Areas.Count >= 500 Then
-                        unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
+                        unionRange.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
                         Set unionRange = Nothing
                     End If
                 End If
@@ -414,7 +423,7 @@ Private Sub HighlightHardcodedValuesInArea(ByVal area As Range)
     
     Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, "", True)
     If Not unionRange Is Nothing Then
-        unionRange.Interior.Color = RGB(230, 210, 250) ' Soft Lavender/Purple
+        unionRange.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
     End If
 End Sub
 
@@ -510,7 +519,7 @@ Private Sub HighlightDataValidationsInArea(ByVal area As Range)
     If validationCells Is Nothing Then Exit Sub
     
     On Error Resume Next
-    validationCells.Interior.Color = RGB(204, 255, 204) ' Soft Green
+    validationCells.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
     On Error GoTo 0
 End Sub
 
@@ -527,7 +536,7 @@ Private Sub HighlightConditionalFormattingInArea(ByVal area As Range)
     If cfCells Is Nothing Then Exit Sub
     
     On Error Resume Next
-    cfCells.Interior.Color = RGB(204, 229, 255) ' Soft Blue
+    cfCells.Interior.Color = Infra_Config.HIGHLIGHT_COLOR
     On Error GoTo 0
 End Sub
 
@@ -556,5 +565,41 @@ CleanExit:
     Exit Sub
 ErrHandler:
     Infra_Error.HandleError "HighlightRangeWithOptionsDirect", Err
+    Resume CleanExit
+End Sub
+
+Public Sub ClearWorkbookHighlights(ByVal wb As Workbook)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ClearWorkbookHighlights")
+    On Error GoTo ErrHandler
+
+    Dim targetColor As Long
+    targetColor = Infra_Config.HIGHLIGHT_COLOR
+    
+    ' Temporarily adjust FindFormat
+    Application.FindFormat.Clear
+    Application.FindFormat.Interior.Color = targetColor
+    
+    Dim ws As Worksheet
+    For Each ws In wb.Worksheets
+        If Left$(ws.Name, 1) <> "_" Then
+            Dim foundCell As Range
+            Dim visited As Object
+            Set visited = CreateObject("Scripting.Dictionary")
+            
+            Do
+                Set foundCell = ws.UsedRange.Find(What:="", SearchFormat:=True)
+                If foundCell Is Nothing Then Exit Do
+                If visited.Exists(foundCell.Address) Then Exit Do ' Safety loop exit
+                visited.Add foundCell.Address, True
+                foundCell.Interior.ColorIndex = xlNone
+            Loop
+        End If
+    Next ws
+
+CleanExit:
+    Application.FindFormat.Clear
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "ClearWorkbookHighlights", Err
     Resume CleanExit
 End Sub

@@ -94,6 +94,12 @@ Public Function GetFeatureHelp() As Collection
     col.Add dict
 
     Set dict = CreateObject("Scripting.Dictionary")
+    dict.Add "Label", "Clear Highlights"
+    dict.Add "Screentip", "Clear Highlights"
+    dict.Add "Supertip", "Clears all cells in the workbook matching the highlight color."
+    col.Add dict
+
+    Set dict = CreateObject("Scripting.Dictionary")
     dict.Add "Label", "Break Links"
     dict.Add "Screentip", "Break External Links"
     dict.Add "Supertip", "Removes all external workbook references and keeps current values."

@@ -265,7 +265,7 @@ graph TD
 - `StaticSheetWorkbook` -> `FeatCmd_StaticSheetWorkbook`
 - `CleanData` -> `FeatCmd_CleanData`
 - `ModifyData` -> `FeatCmd_ModifyData` (Acts as the command class for menus like `DateFixer` and `CaseFixer`)
-- `HighlightData` -> `FeatCmd_HighlightData` (Acts as the command class for `HighlightInconsistentFormulas`, `HighlightDuplicates`, `HighlightErrors`, `HighlightHardcodedValues`, `HighlightDataValidations`, and `HighlightConditionalFormatting`)
+- `HighlightData` -> `FeatCmd_HighlightData` (Acts as the command class for `HighlightInconsistentFormulas`, `HighlightDuplicates`, `HighlightErrors`, `HighlightHardcodedValues`, `HighlightDataValidations`, `HighlightConditionalFormatting`, and `ClearHighlights`)
 - `BreakExternalLinks` -> `FeatCmd_BreakExternalLinks`
 - `Duplicate` -> `FeatCmd_Duplicate`
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf` (Acts as the command class for `ExportPng` and `ExportPdf`)
@@ -346,6 +346,7 @@ graph TD
     "ColumnWidthThreshold": 40,
     "MaxColumnWidth": 25,
     "HeaderColor": "#AEAAAA",
+    "HighlightColor": "#FFC7CE",
     "DefaultExportScale": 3,
     "MaxExportScale": 10
   },
@@ -362,7 +363,7 @@ graph TD
   },
   "FeatureFlags": {
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 24
+    "GeneratedFeatureCount": 25
   },
   "Hotkeys": [
     {
@@ -384,6 +385,9 @@ graph TD
     "BtnHighlightDuplicates": "ConditionalFormattingMenu",
     "BtnHighlightErrors": "ErrorChecking",
     "BtnHighlightHardcodedValues": "FunctionWizard",
+    "BtnHighlightDataValidations": "TableProperties",
+    "BtnHighlightConditionalFormatting": "ConditionalFormattingMenu",
+    "BtnClearHighlights": "Clear",
     "BtnBreakLinks": "WorkbookLinks",
     "BtnDuplicate": "FileSaveAs",
     "BtnExport": "Export",

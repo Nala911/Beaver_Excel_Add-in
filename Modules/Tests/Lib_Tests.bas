@@ -27,6 +27,7 @@ Public Sub RunAllTests()
     pSuiteStartTime = Timer
     Debug.Print "--- BEAVER ADD-IN: STARTING UNIT TESTS ---"
     ClearPersistedResults
+    ClearLeftoverTestSheets
     
     Infra_Bootstrap.EnsureStarted
 
@@ -52,6 +53,7 @@ Public Sub RunTestsFilter(ByVal filterPattern As String)
     pSuiteStartTime = Timer
     Debug.Print "--- BEAVER ADD-IN: RUNNING TESTS MATCHING: " & filterPattern & " ---"
     ClearPersistedResults
+    ClearLeftoverTestSheets
     
     Infra_Bootstrap.EnsureStarted
 
@@ -259,6 +261,31 @@ Private Sub ClearPersistedResults()
         fso.DeleteFile GetResultsFilePath(), True
     End If
     On Error GoTo 0
+End Sub
+
+Public Sub ClearLeftoverTestSheets()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ClearLeftoverTestSheets")
+    Dim ws As Worksheet
+    Dim i As Long
+    On Error GoTo ErrHandler
+
+    Application.DisplayAlerts = False
+    For i = ThisWorkbook.Worksheets.Count To 1 Step -1
+        Set ws = ThisWorkbook.Worksheets(i)
+        If Left$(ws.Name, 10) = "Test_Temp_" Then
+            On Error Resume Next
+            ws.Delete
+            On Error GoTo ErrHandler
+        End If
+    Next i
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Application.DisplayAlerts = True
+    Infra_Error.HandleError "ClearLeftoverTestSheets", Err
+    Resume CleanExit
 End Sub
 
 Private Sub PersistResults(ByVal results As Collection, ByVal passCount As Long, ByVal failCount As Long)

@@ -549,60 +549,11 @@ try {
     Stop-Script $_.Exception.Message
 } finally {
     if (-not $global:BeaverOrchestratorActive -and $null -ne $sharedExcel) {
-        $excelPid = 0
-        try {
-            $excelPid = Get-ExcelProcessId -ExcelApplication $sharedExcel
-        } catch {}
-
-        $isExcelVisible = $false
-        try {
-            $isExcelVisible = $sharedExcel.Visible
-        } catch {}
-
-        $otherWorkbooksOpen = $false
-        try {
-            foreach ($wb in $sharedExcel.Workbooks) {
-                if ($wb.FullName -ne $excelPath) {
-                    $otherWorkbooksOpen = $true
-                }
-                Release-ComObjectSafely $wb
-            }
-        } catch {}
-
-        try {
-            foreach ($wb in $sharedExcel.Workbooks) {
-                if ($wb.FullName -eq $excelPath) {
-                    $wb.Close($false)
-                }
-                Release-ComObjectSafely $wb
-            }
-        } catch { }
-
-        if (-not $excelWasAlreadyOpen -or -not $isExcelVisible -or -not $otherWorkbooksOpen) {
-            try {
-                $sharedExcel.Quit()
-            } catch { }
-        } else {
-            try {
-                $sharedExcel.Visible = $true
-                $sharedExcel.DisplayAlerts = $true
-            } catch { }
-        }
-        Release-ComObjectSafely $sharedExcel
+        Close-ExcelWorkbookSession -Excel $sharedExcel `
+                                   -WasAlreadyOpen $excelWasAlreadyOpen `
+                                   -KeepAlive $global:BeaverKeepAliveActive `
+                                   -WorkbookPath $excelPath
         $sharedExcel = $null
-
-        [System.GC]::Collect()
-        [System.GC]::WaitForPendingFinalizers()
-
-        if (-not $excelWasAlreadyOpen -and $excelPid -gt 0) {
-            Start-Sleep -Milliseconds 500
-            $proc = Get-Process -Id $excelPid -ErrorAction SilentlyContinue
-            if ($null -ne $proc -and $proc.Name -eq "EXCEL") {
-                try {
-                    Stop-Process -Id $excelPid -Force -ErrorAction SilentlyContinue
-                } catch {}
-            }
-        }
     }
     Clear-AccumulatedLogs
 }

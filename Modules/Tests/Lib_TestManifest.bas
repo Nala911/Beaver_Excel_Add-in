@@ -55,6 +55,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Feat_General.Test_Wrap_CellAndPatternModes", filterPattern) Then Lib_Tests_Feat_General.Test_Wrap_CellAndPatternModes
     If MatchesFilter("Lib_Tests_Feat_General.Test_XFilter_Features", filterPattern) Then Lib_Tests_Feat_General.Test_XFilter_Features
     If MatchesFilter("Lib_Tests_Feat_General.Test_XUnpivot_Features", filterPattern) Then Lib_Tests_Feat_General.Test_XUnpivot_Features
+    If MatchesFilter("Lib_Tests_Feat_HighlightData.Test_HighlightData_ClearHighlights", filterPattern) Then Lib_Tests_Feat_HighlightData.Test_HighlightData_ClearHighlights
     If MatchesFilter("Lib_Tests_Feat_HighlightData.Test_HighlightData_ConditionalFormatting", filterPattern) Then Lib_Tests_Feat_HighlightData.Test_HighlightData_ConditionalFormatting
     If MatchesFilter("Lib_Tests_Feat_HighlightData.Test_HighlightData_DataValidations", filterPattern) Then Lib_Tests_Feat_HighlightData.Test_HighlightData_DataValidations
     If MatchesFilter("Lib_Tests_Feat_HighlightData.Test_HighlightData_Errors", filterPattern) Then Lib_Tests_Feat_HighlightData.Test_HighlightData_Errors

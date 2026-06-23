@@ -798,6 +798,8 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
                 needsFormat = False
                 If TypeName(transformer) = "FeatCmd_ModifyData" Then
                     If VarType(oldVal) = vbDate Then needsFormat = True
+                ElseIf TypeName(transformer) = "FeatCmd_ForceNumber" Then
+                    needsFormat = True
                 End If
                 
                 If needsFormat Then

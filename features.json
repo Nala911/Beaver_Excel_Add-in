@@ -155,7 +155,8 @@
                                            "BtnHighlightErrors",
                                            "BtnHighlightHardcodedValues",
                                            "BtnHighlightDataValidations",
-                                           "BtnHighlightConditionalFormatting"
+                                           "BtnHighlightConditionalFormatting",
+                                           "BtnClearHighlights"
                                        ]
                      },
                      {
@@ -234,6 +235,19 @@
                          "Keytip":  "HC",
                          "Screentip":  "Conditional Formatting",
                          "Supertip":  "Highlights cells with conditional formatting in soft blue.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnClearHighlights",
+                         "Label":  "Clear Highlights",
+                         "OnAction":  "Ribbon_OnClearHighlights",
+                         "Macro":  "UI_Ribbon.Ribbon_OnClearHighlights",
+                         "CommandName":  "ClearHighlights",
+                         "CommandClass":  "FeatCmd_HighlightData",
+                         "Icon":  "Clear",
+                         "Keytip":  "CH",
+                         "Screentip":  "Clear Highlights",
+                         "Supertip":  "Clears all cells in the workbook matching the highlight color.",
                          "RuntimeTestMode":  "interactive"
                      },
                      {

@@ -1,5 +1,5 @@
 ﻿{
-    "timestamp":  "2026-06-23T11:06:28+05:30",
+    "timestamp":  "2026-06-23T15:55:20+05:30",
     "status":  "success",
     "commandLine":  ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
     "buildMode":  "full",
@@ -7,7 +7,7 @@
                    "os":  "Microsoft Windows NT 10.0.26200.0",
                    "powershellVersion":  "5.1.26100.8655",
                    "excelProcess":  {
-                                        "pid":  6324,
+                                        "pid":  7436,
                                         "wasAlreadyOpen":  false,
                                         "reusedSession":  true,
                                         "lockRecovered":  false
@@ -28,55 +28,55 @@
                    {
                        "name":  "manifest_sync",
                        "status":  "success",
-                       "durationMs":  115.28,
+                       "durationMs":  94.92,
                        "details":  "features synced from features.json"
                    },
                    {
                        "name":  "command_registry_generation",
                        "status":  "success",
-                       "durationMs":  47.21,
+                       "durationMs":  47.19,
                        "details":  "command registry and help manifest refreshed"
                    },
                    {
                        "name":  "ui_entry_generation",
                        "status":  "success",
-                       "durationMs":  41.87,
+                       "durationMs":  32.69,
                        "details":  "UI entry modules refreshed"
                    },
                    {
                        "name":  "test_manifest_generation",
                        "status":  "success",
-                       "durationMs":  51.16,
+                       "durationMs":  42.04,
                        "details":  "test manifest refreshed"
                    },
                    {
                        "name":  "validation",
                        "status":  "success",
-                       "durationMs":  339.11,
+                       "durationMs":  349.33,
                        "details":  "ribbon, syntax, lint, and form checks passed"
                    },
                    {
                        "name":  "environment_checks",
                        "status":  "success",
-                       "durationMs":  25.54,
+                       "durationMs":  53.11,
                        "details":  "workbook available"
                    },
                    {
                        "name":  "workbook_update",
                        "status":  "success",
-                       "durationMs":  4732.12,
+                       "durationMs":  4749.03,
                        "details":  "modules imported and workbook saved"
                    },
                    {
                        "name":  "ribbon_injection",
                        "status":  "success",
-                       "durationMs":  81.63,
+                       "durationMs":  77.37,
                        "details":  "customUI14.xml refreshed"
                    },
                    {
                        "name":  "runtime_tests",
                        "status":  "success",
-                       "durationMs":  4269.41,
+                       "durationMs":  5128.38,
                        "details":  ""
                    }
                ],
@@ -183,10 +183,10 @@
                                                  "error":  null
                                              },
                         "unitTests":  {
-                                          "total":  498,
-                                          "passed":  498,
+                                          "total":  500,
+                                          "passed":  500,
                                           "failed":  0,
-                                          "durationMs":  3618,
+                                          "durationMs":  4380,
                                           "failures":  [
 
                                                        ]
@@ -199,5 +199,5 @@
                                                                ]
                                               }
                     },
-    "totalDurationMs":  11538.45
+    "totalDurationMs":  12082.47
 }

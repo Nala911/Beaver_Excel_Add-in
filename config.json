@@ -8,6 +8,7 @@
                         "ColumnWidthThreshold":  40,
                         "MaxColumnWidth":  25,
                         "HeaderColor":  "#AEAAAA",
+                        "HighlightColor":  "#FFC7CE",
                         "DefaultExportScale":  3,
                         "MaxExportScale":  10
                     },
@@ -24,7 +25,7 @@
                       },
     "FeatureFlags":  {
                          "ManifestFile":  "features.json",
-                         "GeneratedFeatureCount":  24
+                         "GeneratedFeatureCount":  25
                      },
     "Hotkeys":  [
                     {
@@ -96,6 +97,7 @@
                   "BtnHighlightHardcodedValues":  "FunctionWizard",
                   "BtnHighlightDataValidations":  "TableProperties",
                   "BtnHighlightConditionalFormatting":  "ConditionalFormattingMenu",
+                  "BtnClearHighlights":  "Clear",
                   "BtnBreakLinks":  "WorkbookLinks",
                   "BtnDuplicate":  "FileSaveAs",
                   "BtnExport":  "Export",

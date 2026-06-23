@@ -170,6 +170,19 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Ribbon_OnClearHighlights(ByVal control As Object)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnClearHighlights")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnClearHighlights", "Ribbon_OnClearHighlights", "Ribbon"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Ribbon_OnClearHighlights", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Ribbon_OnBreakExternalLinks(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnBreakExternalLinks")
     On Error GoTo ErrHandler

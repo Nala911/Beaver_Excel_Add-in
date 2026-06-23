@@ -1,16 +1,16 @@
 ﻿{
-    "LastBuildTime":  "2026-06-23T11:06:35+05:30",
+    "LastBuildTime":  "2026-06-23T15:55:26+05:30",
     "Files":  {
                   "Modules/UI/UI_OptionPicker.frm":  "D357C748FF51D87CCF3B9245E37504EE",
-                  "Modules/Tests/Lib_Tests.bas":  "F9FC6B70D100FCB827EE2C11DF3B5D92",
+                  "Modules/Tests/Lib_Tests.bas":  "23DD03BB5159ED2C73F749059D6EF11E",
                   "Modules/Infrastructure/Infra_HotkeyDefinition.cls":  "FC54BE94926ABB543B4F5BED67AC061A",
                   "Modules/Tests/Lib_Tests_CommandInfrastructure.bas":  "3C7171A802C979BEB60CA76AA2E93E80",
                   "Modules/Infrastructure/Infra_Bootstrap.bas":  "58CBD7E227052F92D164901A761E3DC1",
-                  "Modules/Commands/FeatCmd_HighlightData.cls":  "1180EF3F94EAAE0268CEFFD273D1E0EE",
+                  "Modules/Commands/FeatCmd_HighlightData.cls":  "D687A2C4FEB21067087B74BB13B47DEB",
                   "Modules/Core/ICellTransformer.cls":  "8886A95E56A1E51F5EE15CA12333F16E",
                   "Modules/UI/UI_HelpCenter.frx":  "A176677B3FBE5632930E8A8C16618375",
                   "Modules/Commands/FeatCmd_CreateSheet.cls":  "21DC7103F9F982BA141BA0020106C98E",
-                  "Modules/Infrastructure/Infra_ConfigModel.cls":  "C6464E43C7D7523E6203175629A6D7DE",
+                  "Modules/Infrastructure/Infra_ConfigModel.cls":  "C47836D42234A445EFA89A9F24AD6565",
                   "Modules/Core/Infra_CleanDataRequest.cls":  "DE0FC9FCFCAB45D64356C90ECC410B9E",
                   "Modules/Infrastructure/Infra_Enums.bas":  "570C3D468984AF722FA3E6E350AD1DB6",
                   "Modules/Infrastructure/IConfig.cls":  "96D917C7358699DFB020A9A454B6D499",
@@ -20,7 +20,7 @@
                   "Modules/Infrastructure/Infra_AppStateGuard.cls":  "DD9DF2FA27BB62F76029893FAFD7DDBD",
                   "Modules/Commands/FeatCmd_HelloWorld.cls":  "3A0E43F1C5B9B35C5F89068C04374960",
                   "Modules/Core/ICommand.cls":  "157F84119C4C05595001F313A16B7251",
-                  "Modules/Infrastructure/Infra_CommandSupport.bas":  "7746A0F31B007215CB7069945642303A",
+                  "Modules/Infrastructure/Infra_CommandSupport.bas":  "931CC00DCA594EE8B9E96FF29B356041",
                   "Modules/Core/CommandExecutionPolicy.cls":  "FED002C9FDC59C76E220EB00BB93A6CA",
                   "Modules/Infrastructure/Infra_OperationContext.cls":  "BF0C91A940EEED7837F617C8CBA2D0DE",
                   "Modules/Infrastructure/Infra_ValueConversion.bas":  "EEA6A16A27222D714E95851883FF1036",
@@ -38,17 +38,17 @@
                   "Modules/Infrastructure/Infra_Interaction.bas":  "A8C87154B60DAFE975470D6903E2B44E",
                   "Modules/Core/Infra_ActionContext.cls":  "8290341B65149510EF00BFDDCA384287",
                   "Modules/Core/IRequest.cls":  "43815CA181CA41F1B0C04E98E5CA92EF",
-                  "Modules/Tests/Lib_Tests_Feat_General.bas":  "6D667989B7D4FF71CC412C8A4CBC4799",
+                  "Modules/Tests/Lib_Tests_Feat_General.bas":  "9103BE966BD4E4D68F67F64795E96221",
                   "Modules/Infrastructure/Infra_Cache.cls":  "594B1ED5B6FB1F5E430D152F07A12799",
                   "Modules/Core/ICommandContext.cls":  "CED381A04F342C584583B0004AB4B69A",
                   "Modules/Commands/FeatCmd_CleanData.cls":  "4D7B834A6603193F42CB74EFA3350DE4",
                   "Modules/Infrastructure/Infra_Diagnostics.bas":  "06EE4856AE3CE2D58EF33868D2F93E26",
                   "Modules/Infrastructure/Infra_Undo.bas":  "CF0153C7BE481701CA4DDA268684D05E",
-                  "Modules/Infrastructure/Infra_Config.cls":  "2F52FC24284741FE2C64FF850C01B113",
+                  "Modules/Infrastructure/Infra_Config.cls":  "17BE40ED3435365DADE9C101730758B3",
                   "Modules/Infrastructure/Infra_TestResult.cls":  "5137A76E9718DA4667A36513459CF538",
                   "Modules/Infrastructure/Infra_PageSetupBackup.cls":  "857EABB2AE2F26C5604FA4F6D735B653",
                   "Modules/Commands/FeatCmd_StaticSheetWorkbook.cls":  "3F217E38C3485D66F59D1BB6A12AC385",
-                  "Modules/Tests/Lib_Tests_Feat_HighlightData.bas":  "CD8A21523D82B5F3704BF7F271A5F1C2",
+                  "Modules/Tests/Lib_Tests_Feat_HighlightData.bas":  "75E135035770D7D03E030B6F78EB27DA",
                   "ThisWorkbook.cls":  "71093C8F0DCA20BA36E11B9ED4CAEA1C",
                   "Modules/Commands/FeatCmd_FormatRange.cls":  "DE662BFD2AF2B78305EB7C75B75E6B5A",
                   "Modules/Tests/Lib_Tests_Feat_Workbook.bas":  "7CAD87E8E78E83E32CAAB82D323DB000",
@@ -58,14 +58,14 @@
                   "Modules/Core/BasicCommandContext.cls":  "425940AE305A8DA1D45B8D6C3BC3B2D5",
                   "Modules/Libraries/Lib_JsonConverter.bas":  "892B3F4992BAB396AA31BDAD161221AE",
                   "Modules/UI/UI_Hotkeys.bas":  "2918C60AE04D882939A7C68871C11054",
-                  "Modules/Tests/Lib_TestManifest.bas":  "6C8B29EB5C6F18B1AC61DDB470978CB0",
-                  "Modules/Libraries/Lib_HelpManifest.bas":  "2E7BEF95716A6B145B3B0B15BF9C0D14",
+                  "Modules/Tests/Lib_TestManifest.bas":  "83DE8ABF68BFAC8F2E5BEE9ACF6A4851",
+                  "Modules/Libraries/Lib_HelpManifest.bas":  "F3D5F0E566EE8912FC9ED70BB04952D0",
                   "Modules/Commands/FeatCmd_PasteFormat.cls":  "5357335DDF6FF41F14ACD8A3C1AAEA77",
                   "Modules/Tests/Lib_Tests_Feat_ModifyData.bas":  "7ACE4E074648785E37219F7476D6E2A2",
                   "Modules/UI/UI_HelpCenter.frm":  "5CB14199D869B19E6C3DC230BF3A21A2",
                   "Modules/Infrastructure/Infra_ContextTracker.cls":  "EE2F870296B5295963D30EF9EE702469",
                   "Modules/Infrastructure/Infra_ProgressState.cls":  "47AD1403AD4F3644CA0F17AE9229E011",
-                  "Modules/UI/UI_Ribbon.bas":  "FDC56208EF6130BB3EAE09806D3573EE",
+                  "Modules/UI/UI_Ribbon.bas":  "A728CC946E3AA77B283F477D39EA5FC9",
                   "Modules/Commands/FeatCmd_Backspace.cls":  "65BC8E102FA9B02E00762E2ADFE68550",
                   "Modules/Libraries/Lib_UdfRegistry.bas":  "D193A9C1694438AE35ECCF40F62D7C06",
                   "Modules/Commands/FeatCmd_MakePermanent.cls":  "3A2E67D8A4252FF94A8021EE517E054F",
@@ -75,17 +75,17 @@
                   "Modules/Infrastructure/Infra_AppState.bas":  "CAD9EFD5BD4E8333360D019074242B32",
                   "Modules/Core/Infra_HighlightDataRequest.cls":  "C2D28C4951CC0B3C8F0E92C5D14A684D",
                   "Modules/Commands/FeatCmd_ApplyCustomNumberFormat.cls":  "778C32FDE20A78AA0B097F13F3527F92",
-                  "Modules/Commands/FeatCmd_ForceNumber.cls":  "B6599F7C80AE14A7BFE38E5E8629FE87",
+                  "Modules/Commands/FeatCmd_ForceNumber.cls":  "6AD0208A48664D4D52714C4F2722012B",
                   "Modules/Commands/FeatCmd_Delete.cls":  "1BB00268F6DA286A2B42A2CBB730C32A",
                   "Modules/Commands/FeatCmd_UnmergeFill.cls":  "CC44FE05C9F562274339BFB38DC670E1",
                   "Modules/Libraries/Lib_XUnpivotFunction.bas":  "F4D1FBF30FAFE29DD7B4EE1F9ABD7BBB",
-                  "Modules/Infrastructure/Infra_CommandRegistry.bas":  "B5890638220E81518135F15453CAEC5F",
+                  "Modules/Infrastructure/Infra_CommandRegistry.bas":  "1990976F5046F14C1FCB4517B71F684F",
                   "Modules/Commands/FeatCmd_ShowHelpCenter.cls":  "781EE4B3F76FD51746FF128399B418C3",
                   "Modules/Commands/FeatCmd_FilterByCell.cls":  "E666EA1F9408C50F649DDC0A82E544F9",
                   "Modules/Commands/FeatCmd_Duplicate.cls":  "635AA09323A32000A08CDF6308B409A1",
                   "Modules/Core/CommandInvoker.cls":  "AC6DEC53EBAE5E96BB47FB98A2CA2375",
                   "Modules/Libraries/Lib_XFilterFunction.bas":  "6EEA770D327A0062108FE89EA50DA4A5",
-                  "features.json":  "53BB743F60903608455AC7682A26C097",
+                  "features.json":  "9B57B57ECD9A1441800EBAEB902FC73C",
                   "Modules/Tests/Lib_Tests_Feat_Editing.bas":  "FEEC90B9D1882EA7645CE61A5A63E9F6",
                   "Modules/Core/Infra_ScopedRequest.cls":  "801019A5A51F70B8AB3D0265A2C39A15"
               },
@@ -102,8 +102,8 @@
                                                             "LintPassed":  true
                                                         },
                      "Modules/Tests/Lib_Tests.bas":  {
-                                                         "Length":  9557,
-                                                         "LastWriteTime":  "134265326809311012",
+                                                         "Length":  10313,
+                                                         "LastWriteTime":  "134266838875427483",
                                                          "Tests":  [
                                                                        "Test_Infrastructure_Basics",
                                                                        "Test_ConfigProvidesTypedHotkeys",
@@ -212,8 +212,8 @@
                                                                         "LintPassed":  true
                                                                     },
                      "Modules/Commands/FeatCmd_HighlightData.cls":  {
-                                                                        "Length":  19199,
-                                                                        "LastWriteTime":  "134266168180039161",
+                                                                        "Length":  20664,
+                                                                        "LastWriteTime":  "134266819108953403",
                                                                         "Dependencies":  [
                                                                                              "ICommand",
                                                                                              "Infra_ActionContext",
@@ -265,8 +265,8 @@
                                                                       "LintPassed":  true
                                                                   },
                      "Modules/Infrastructure/Infra_ConfigModel.cls":  {
-                                                                          "Length":  6052,
-                                                                          "LastWriteTime":  "134251422211613290",
+                                                                          "Length":  6281,
+                                                                          "LastWriteTime":  "134266813102936995",
                                                                           "Dependencies":  [
                                                                                                {
 
@@ -399,8 +399,8 @@
                                                        "LintPassed":  true
                                                    },
                      "Modules/Infrastructure/Infra_CommandSupport.bas":  {
-                                                                             "Length":  28774,
-                                                                             "LastWriteTime":  "134266622414804270",
+                                                                             "Length":  28887,
+                                                                             "LastWriteTime":  "134266836386826966",
                                                                              "Tests":  [
 
                                                                                        ],
@@ -749,8 +749,8 @@
                                                        "LintPassed":  true
                                                    },
                      "Modules/Tests/Lib_Tests_Feat_General.bas":  {
-                                                                      "Length":  46754,
-                                                                      "LastWriteTime":  "134266607180353959",
+                                                                      "Length":  46917,
+                                                                      "LastWriteTime":  "134266822186029476",
                                                                       "Tests":  [
                                                                                     "Test_HelloWorld_Execution_And_Undo",
                                                                                     "Test_ValueConversion_ResolveSpillExpandedRange",
@@ -1045,8 +1045,8 @@
                                                                    "LintPassed":  true
                                                                },
                      "Modules/Infrastructure/Infra_Config.cls":  {
-                                                                     "Length":  14785,
-                                                                     "LastWriteTime":  "134251422319818789",
+                                                                     "Length":  15040,
+                                                                     "LastWriteTime":  "134266813181803552",
                                                                      "Dependencies":  [
                                                                                           "Lib_JsonConverter",
                                                                                           "Infra_ConfigModel",
@@ -1099,15 +1099,16 @@
                                                                               "LintPassed":  true
                                                                           },
                      "Modules/Tests/Lib_Tests_Feat_HighlightData.bas":  {
-                                                                            "Length":  14219,
-                                                                            "LastWriteTime":  "134266605061139398",
+                                                                            "Length":  15613,
+                                                                            "LastWriteTime":  "134266819237955690",
                                                                             "Tests":  [
                                                                                           "Test_HighlightData_InconsistentFormulasAndDuplicates",
                                                                                           "Test_HighlightData_FormulaLimitSafety",
                                                                                           "Test_HighlightData_Errors",
                                                                                           "Test_HighlightData_HardcodedValues",
                                                                                           "Test_HighlightData_DataValidations",
-                                                                                          "Test_HighlightData_ConditionalFormatting"
+                                                                                          "Test_HighlightData_ConditionalFormatting",
+                                                                                          "Test_HighlightData_ClearHighlights"
                                                                                       ],
                                                                             "Dependencies":  [
                                                                                                  "Lib_Tests",
@@ -1131,7 +1132,8 @@
                                                                                                                                                       "ThisWorkbook",
                                                                                                                                                       "Infra_HighlightDataRequest",
                                                                                                                                                       "FeatCmd_HighlightData",
-                                                                                                                                                      "Lib_Tests"
+                                                                                                                                                      "Lib_Tests",
+                                                                                                                                                      "Infra_Config"
                                                                                                                                                   ],
                                                                                                      "Test_HighlightData_DataValidations":  [
                                                                                                                                                 "Infra_Error",
@@ -1139,7 +1141,8 @@
                                                                                                                                                 "ThisWorkbook",
                                                                                                                                                 "Infra_HighlightDataRequest",
                                                                                                                                                 "FeatCmd_HighlightData",
-                                                                                                                                                "Lib_Tests"
+                                                                                                                                                "Lib_Tests",
+                                                                                                                                                "Infra_Config"
                                                                                                                                             ],
                                                                                                      "Test_HighlightData_Errors":  [
                                                                                                                                        "Infra_Error",
@@ -1147,22 +1150,33 @@
                                                                                                                                        "ThisWorkbook",
                                                                                                                                        "Infra_HighlightDataRequest",
                                                                                                                                        "FeatCmd_HighlightData",
-                                                                                                                                       "Lib_Tests"
+                                                                                                                                       "Lib_Tests",
+                                                                                                                                       "Infra_Config"
                                                                                                                                    ],
                                                                                                      "Test_HighlightData_InconsistentFormulasAndDuplicates":  [
                                                                                                                                                                   "Infra_Error",
                                                                                                                                                                   "Infra_AppStateGuard",
                                                                                                                                                                   "ThisWorkbook",
                                                                                                                                                                   "FeatCmd_HighlightData",
+                                                                                                                                                                  "Infra_Config",
                                                                                                                                                                   "Lib_Tests"
                                                                                                                                                               ],
+                                                                                                     "Test_HighlightData_ClearHighlights":  [
+                                                                                                                                                "Infra_Error",
+                                                                                                                                                "Infra_AppStateGuard",
+                                                                                                                                                "ThisWorkbook",
+                                                                                                                                                "Infra_Config",
+                                                                                                                                                "Lib_Tests",
+                                                                                                                                                "FeatCmd_HighlightData"
+                                                                                                                                            ],
                                                                                                      "Test_HighlightData_HardcodedValues":  [
                                                                                                                                                 "Infra_Error",
                                                                                                                                                 "Infra_AppStateGuard",
                                                                                                                                                 "FeatCmd_HighlightData",
                                                                                                                                                 "Lib_Tests",
                                                                                                                                                 "ThisWorkbook",
-                                                                                                                                                "Infra_HighlightDataRequest"
+                                                                                                                                                "Infra_HighlightDataRequest",
+                                                                                                                                                "Infra_Config"
                                                                                                                                             ]
                                                                                                  },
                                                                             "LintPassed":  true
@@ -1341,8 +1355,8 @@
                                                        "LintPassed":  true
                                                    },
                      "Modules/Tests/Lib_TestManifest.bas":  {
-                                                                "Length":  10922,
-                                                                "LastWriteTime":  "134266622655392583",
+                                                                "Length":  11095,
+                                                                "LastWriteTime":  "134266819321765713",
                                                                 "Dependencies":  [
                                                                                      "Infra_Error"
                                                                                  ],
@@ -1352,8 +1366,8 @@
                                                                 "LintPassed":  true
                                                             },
                      "Modules/Libraries/Lib_HelpManifest.bas":  {
-                                                                    "Length":  6788,
-                                                                    "LastWriteTime":  "134265925028931674",
+                                                                    "Length":  7040,
+                                                                    "LastWriteTime":  "134266819320431888",
                                                                     "Tests":  [
 
                                                                               ],
@@ -1488,8 +1502,8 @@
                                                                             "LintPassed":  true
                                                                         },
                      "Modules/UI/UI_Ribbon.bas":  {
-                                                      "Length":  9417,
-                                                      "LastWriteTime":  "134265925029166988",
+                                                      "Length":  9845,
+                                                      "LastWriteTime":  "134266819320960323",
                                                       "Tests":  [
 
                                                                 ],
@@ -1625,10 +1639,12 @@
                                                                                   "LintPassed":  true
                                                                               },
                      "Modules/Commands/FeatCmd_ForceNumber.cls":  {
-                                                                      "Length":  6257,
-                                                                      "LastWriteTime":  "134266653610286840",
+                                                                      "Length":  2988,
+                                                                      "LastWriteTime":  "134266836496860086",
                                                                       "Dependencies":  [
                                                                                            "ICommand",
+                                                                                           "IBatchProcessor",
+                                                                                           "ICellTransformer",
                                                                                            "Infra_ActionContext",
                                                                                            "Infra_Error",
                                                                                            "Infra_Undo",
@@ -1687,8 +1703,8 @@
                                                                         "LintPassed":  true
                                                                     },
                      "Modules/Infrastructure/Infra_CommandRegistry.bas":  {
-                                                                              "Length":  6833,
-                                                                              "LastWriteTime":  "134265925028718540",
+                                                                              "Length":  7027,
+                                                                              "LastWriteTime":  "134266819320211348",
                                                                               "Tests":  [
 
                                                                                         ],
@@ -1769,8 +1785,8 @@
                                                                        "LintPassed":  true
                                                                    },
                      "features.json":  {
-                                           "Length":  22984,
-                                           "LastWriteTime":  "134265924172071978",
+                                           "Length":  23799,
+                                           "LastWriteTime":  "134266819006358826",
                                            "Dependencies":  [
 
                                                             ],
@@ -1889,7 +1905,7 @@
                                                                   "LintPassed":  true
                                                               }
                  },
-    "ManifestStructuralHash":  "F50CB97D4BD427441DBB634C8F55B4C6",
-    "ExcelPid":  6324,
+    "ManifestStructuralHash":  "DFE56629E5270632E66D9F93CB5E4993",
+    "ExcelPid":  7436,
     "TestsPassed":  true
 }

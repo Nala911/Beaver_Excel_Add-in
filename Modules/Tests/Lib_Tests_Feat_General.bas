@@ -526,6 +526,11 @@ Public Sub Test_PasteFormat_Execution()
     ' Check if CutCopyMode is active or if Excel is running headlessly
     If Not Application.Visible Or Application.CutCopyMode = 0 Then
         Debug.Print "  [SKIP] Test_PasteFormat_Execution clipboard operations bypassed in headless/background environment"
+        On Error Resume Next
+        Application.DisplayAlerts = False
+        ws.Delete
+        Application.DisplayAlerts = True
+        On Error GoTo ErrHandler
         GoTo CleanExit
     End If
 

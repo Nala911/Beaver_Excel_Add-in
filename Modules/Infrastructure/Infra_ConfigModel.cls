@@ -24,6 +24,7 @@ Private pDisplayDateFormat As String
 Private pColumnWidthThreshold As Long
 Private pMaxColumnWidth As Long
 Private pHeaderColor As Long
+Private pHighlightColor As Long
 Private pDefaultExportScale As Long
 Private pMaxExportScale As Long
 Private pName As String
@@ -96,6 +97,13 @@ Public Property Get HeaderColor() As Long
 End Property
 Public Property Let HeaderColor(ByVal v As Long)
     pHeaderColor = v ' @Internal
+End Property
+
+Public Property Get HighlightColor() As Long
+    HighlightColor = pHighlightColor
+End Property
+Public Property Let HighlightColor(ByVal v As Long)
+    pHighlightColor = v ' @Internal
 End Property
 
 Public Property Get DefaultExportScale() As Long
