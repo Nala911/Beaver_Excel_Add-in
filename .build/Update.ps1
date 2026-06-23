@@ -58,11 +58,13 @@ try {
     $deletedFiles = @()
 
     if ($null -ne $buildState -and $null -ne $buildState.Files) {
-        $manifestChanged = ($null -eq $buildState.Files."features.json" -or $buildState.Files."features.json" -ne $currentHashes["features.json"])
+        $featProp = $buildState.Files.PSObject.Properties["features.json"]
+        $manifestChanged = ($null -eq $featProp -or $featProp.Value -ne $currentHashes["features.json"])
         
         # Calculate changes early
         foreach ($key in $currentHashes.Keys) {
-            if ($null -eq $buildState.Files.$key -or $buildState.Files.$key -ne $currentHashes[$key]) {
+            $prop = $buildState.Files.PSObject.Properties[$key]
+            if ($null -eq $prop -or $prop.Value -ne $currentHashes[$key]) {
                 $changedFiles += $key
             }
         }
@@ -70,6 +72,15 @@ try {
             $key = $prop.Name
             if (-not $currentHashes.ContainsKey($key)) {
                 $deletedFiles += $key
+            }
+        }
+        
+        # Merge previously failed files to force their rebuild/re-import
+        if ($buildState.PSObject.Properties.Name -contains "FailedFiles" -and $null -ne $buildState.FailedFiles) {
+            foreach ($file in $buildState.FailedFiles) {
+                if ($changedFiles -notcontains $file) {
+                    $changedFiles += $file
+                }
             }
         }
 
@@ -120,34 +131,20 @@ try {
             exit 0
         }
         
-        # Smart Test Filtering: detect changed commands to run targeted tests by default
+        # Smart Test Filtering: calculate affected tests dynamically using dependency tracing
         if (-not $Filter -and -not $Force -and -not $manifestChanged) {
             if ($changedFiles.Count -gt 0) {
-                $canAutoFilter = $true
-                $featureNames = [System.Collections.Generic.HashSet[string]]::new()
-                
-                foreach ($file in $changedFiles) {
-                    $normPath = $file.Replace("\", "/")
-                    if ($normPath -match "Modules/Commands/FeatCmd_(\w+)\.cls$") {
-                        [void]$featureNames.Add($Matches[1])
-                    } elseif ($normPath -eq "Modules/Libraries/Lib_Tests_Features.bas" -or
-                              $normPath -eq "Modules/Libraries/Lib_TestManifest.bas" -or
-                              $normPath -eq "Modules/Infrastructure/Infra_CommandRegistry.bas" -or
-                              $normPath -eq "Modules/UI/UI_Ribbon.bas" -or
-                              $normPath -eq "Modules/UI/UI_Hotkeys.bas") {
-                        continue
-                    } else {
-                        $canAutoFilter = $false
-                        break
-                    }
-                }
-                
-                if ($canAutoFilter -and $featureNames.Count -gt 0) {
+                $impactedTestNames = Get-ImpactedTests -ChangedFiles $changedFiles -DeletedFiles $deletedFiles
+                if ($impactedTestNames.Count -gt 0) {
                     $patterns = @()
-                    foreach ($name in $featureNames) {
-                        $patterns += "*$name*"
+                    foreach ($testName in $impactedTestNames) {
+                        $patterns += "*$testName*"
                     }
                     $autoFilter = $patterns -join ","
+                } else {
+                    # No test procedures depend on the changed modules.
+                    Write-Host "Smart Testing: No test procedures are affected by the changed modules. Skipping unit tests." -ForegroundColor Green
+                    $skipUnitTests = $true
                 }
             }
         }
@@ -212,6 +209,23 @@ try {
         Set-BuildStateTestsPassed -Passed $true
     } else {
         Set-BuildStateTestsPassed -Passed $false
+    }
+
+    # Save the workbook if everything succeeded and we have an open workbook session
+    if ($global:BeaverSharedExcel) {
+        try {
+            $wbs = $global:BeaverSharedExcel.Workbooks
+            foreach ($wb in $wbs) {
+                if ($wb.Name -eq "Beaver Add-in.xlsm") {
+                    Write-Host "Saving workbook after successful tests (Save-On-Success)..." -ForegroundColor Green
+                    $wb.Save()
+                    break
+                }
+            }
+            Release-ComObjectSafely $wbs
+        } catch {
+            Write-Warning "Failed to save workbook on success: $($_.Exception.Message)"
+        }
     }
 
     Write-Host ""

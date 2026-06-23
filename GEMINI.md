@@ -10,7 +10,7 @@ This file is the canonical project blueprint and operational guide for AI agents
 > 1. **Keep it self-documenting**: Make code self-documenting, clean, and strictly typed.
 > 2. **Adhere to design patterns**: Do not break established patterns like the `ICommand` pipeline, `AppContainer` DI, `Infra_AppStateGuard` cleanup, and `Infra_Error.Track` error wrappers.
 > 3. **Keep tests passing**: Ensure the build pipeline (`Update.ps1`) compiles and all tests pass perfectly before completing any task.
-> 4. **Add unit tests**: Cover any new command, custom logic, or helper with automated unit tests in `Lib_Tests_Features.bas` (using the prefix `Public Sub Test_*`).
+> 4. **Add unit tests**: Cover any new command, custom logic, or helper with automated unit tests in a dedicated module under `Modules\Tests` (e.g., `Lib_Tests_Feat_*.bas`) using the prefix `Public Sub Test_*`.
 
 Current config version: 2.0.68
 
@@ -79,7 +79,9 @@ Excel Add-in\
    |- Infrastructure\
    |  \- Infra_*.bas/.cls      infrastructure, config, diagnostics, typed requests/contexts
    |- Libraries\
-   |  \- Lib_*.bas             libraries, UDFs, and test manifest
+   |  \- Lib_*.bas             libraries, UDFs, and help manifest
+   |- Tests\
+   |  \- Lib_Tests*.bas        unit test suites, test runner, and test manifest
    \- UI\
       |- UI_Ribbon.bas         Ribbon callbacks
       |- UI_Hotkeys.bas        hotkey callbacks
@@ -250,7 +252,7 @@ graph TD
 
 > [!NOTE]
 > **Dummy / Testing Tools**
-> `HelloWorld` and `Dog` (and their associated controls/classes) are dummy mock tools used solely for validating the build pipeline's change detection, file picking, and incremental module reload behavior. Minor changes, additions, or deletions of these tools are done strictly for testing script robustness and should not be confused with core project features.
+> `HelloWorld` (and its associated controls/classes) is a dummy mock tool used solely for validating the build pipeline's change detection, file picking, and incremental module reload behavior. Minor changes, additions, or deletions of this tool are done strictly for testing script robustness and should not be confused with core project features.
 
 #### Ribbon-Backed Commands
 - `Wrap` -> `FeatCmd_Wrap` (Supports formula reuse and pattern typing)
@@ -263,7 +265,6 @@ graph TD
 - `ExportImageOrPdf` -> `FeatCmd_ExportImageOrPdf` (Acts as the command class for `ExportPng` and `ExportPdf`)
 - `ShowHelpCenter` -> `FeatCmd_ShowHelpCenter` (Displays guidance, hotkeys, and diagnostics in a scrollable UserForm)
 - `HelloWorld` -> `FeatCmd_HelloWorld`
-- `Dog` -> `FeatCmd_Dog` (Puts 'Dog' in the active cell with custom formatting: font size 15, dark green text, pink background)
 - `TableOfContents` -> `FeatCmd_TableOfContents` (Creates a hyperlinked index sheet at the beginning of the workbook)
 - `UnmergeFill` -> `FeatCmd_UnmergeFill` (Unmerges the selected cells and fills the parent value to all unmerged cells)
 - `ForceNumber` -> `FeatCmd_ForceNumber` (Forces text-formatted numbers in the selection to become actual numeric values)
@@ -295,7 +296,7 @@ graph TD
 - **File Actions**: Duplicate workbook, export range.
 - **Reports**: Table of Contents.
 - **Support**: Help center.
-- **Hello World Group** *(Office Tools tab)*: Hello World, Dog.
+- **Hello World Group** *(Office Tools tab)*: Hello World.
 
 *UI Interaction Design Rules:*
 - **Fixed-choice and multi-select checkbox flows** (e.g. Clean Data options, Export format, Make Static scope, Break Links scope, Wrap mode, and sheet placement) must use the reusable `UI_OptionPicker` UserForm:
@@ -309,7 +310,7 @@ graph TD
 - **Ribbon Icon Selection**: When choosing or modifying icons (`imageMso`) in `features.json`, you must only use identifiers that are natively verified and loaded in Microsoft Excel (e.g., `TableProperties`, `TableOfContentsDialog`, `ErrorChecking`, `FunctionWizard`, `CalculateNow`, `Clear`, `ChangeCase`, `ConditionalFormattingMenu`, `WorkbookLinks`, `FileSaveAs`, `Export`, `Help`, `HappyFace`). Do not use Access-only, Word-only, or custom application-specific icons (like `ReportInsert`, `InsertTableOfContents`, `StatusSpreadsheet`, or `DocumentInspector`) as they will throw runtime Custom UI XML errors when Excel loads the add-in.
 
 #### Ribbon controls in `features.json`
-- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`, `BtnDog`, `BtnReportGenerator`, `BtnTableOfContents`, `BtnUnmergeFill`, `BtnForceNumber`.
+- `BtnWrap`, `BtnStaticSheetWorkbook`, `BtnCleanData`, `BtnModifyData`, `BtnHighlightData`, `BtnBreakLinks`, `BtnDuplicate`, `BtnExport`, `BtnHelpCenter`, `BtnHelloWorld`, `BtnReportGenerator`, `BtnTableOfContents`, `BtnUnmergeFill`, `BtnForceNumber`.
 
 #### Hotkeys in `config.json`
 - `^+4` -> `UI_Hotkeys.Hotkey_ApplyCustomNumberFormat`
@@ -384,7 +385,6 @@ graph TD
     "BtnExportPdf": "Export",
     "BtnHelpCenter": "Help",
     "BtnHelloWorld": "HappyFace",
-    "BtnDog": "HappyFace",
     "BtnReportGenerator": "TableProperties",
     "BtnTableOfContents": "TableOfContentsDialog",
     "BtnUnmergeFill": "TableProperties",
@@ -471,7 +471,7 @@ End Sub
 - Follow the **Safe Edit Order** and **Validation Order** after every change.
 - When creating or modifying `UserForm` `.frm` files, verify that a corresponding binary `.frx` file is also present and valid.
 - Always run the full `Update.ps1` script (including runtime smoke tests) to confirm compilation succeeds and existing tests pass.
-- Write new automated unit tests in `Lib_Tests_Features.bas` for any new feature or command to prevent regression by future agents.
+- Write new automated unit tests in the appropriate feature test module under `Modules\Tests` (such as `Lib_Tests_Feat_*.bas`) for any new feature or command to prevent regression by future agents.
 
 ### Response & Output Expectations
 - Keep explanations short, practical, and concrete.

@@ -70,7 +70,10 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As 
     
     ' Copy captureRange to Undo Sheet at the same address so relative formulas
     ' keep their original references instead of being re-based from A1.
-    captureRange.Copy Destination:=undoSh.Range(captureRange.Address)
+    Dim area As Range
+    For Each area In captureRange.Areas
+        area.Copy Destination:=undoSh.Range(area.Address)
+    Next area
 
     ' Prefix external formulas in the undo sheet to prevent external links from being active in the session.
     On Error Resume Next
@@ -242,10 +245,10 @@ Public Sub PerformUndo()
     
     ' Restore data from the same address it was captured at so formula
     ' references are restored exactly as they were before the mutation.
-    Dim dataRange As Range
-    Set dataRange = undoSh.Range(addr)
-
-    dataRange.Copy Destination:=targetRange
+    Dim area As Range
+    For Each area In targetRange.Areas
+        undoSh.Range(area.Address).Copy Destination:=area
+    Next area
     
     ' Restore formulas by replacing the prefix back to empty string
     On Error Resume Next

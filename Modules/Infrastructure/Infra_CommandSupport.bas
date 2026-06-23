@@ -794,7 +794,17 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
             If isFmtsArray Then
                 oldFormat = CStr(fmts(r, c))
             ElseIf isFmtsNull Then
-                oldFormat = CStr(area.Cells(r, c).NumberFormat)
+                Dim needsFormat As Boolean
+                needsFormat = False
+                If TypeName(transformer) = "FeatCmd_ModifyData" Then
+                    If VarType(oldVal) = vbDate Then needsFormat = True
+                End If
+                
+                If needsFormat Then
+                    oldFormat = CStr(area.Cells(r, c).NumberFormat)
+                Else
+                    oldFormat = vbNullString
+                End If
             Else
                 oldFormat = CStr(fmts)
             End If

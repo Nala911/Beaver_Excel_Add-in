@@ -1,13 +1,13 @@
 ﻿{
-    "timestamp":  "2026-06-23T01:10:13+05:30",
+    "timestamp":  "2026-06-23T09:36:27+05:30",
     "status":  "success",
-    "commandLine":  ". (Join-Path $PSScriptRoot \"BuildSupport.ps1\")\n",
+    "commandLine":  ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
     "buildMode":  "full",
     "system":  {
                    "os":  "Microsoft Windows NT 10.0.26200.0",
                    "powershellVersion":  "5.1.26100.8655",
                    "excelProcess":  {
-                                        "pid":  15704,
+                                        "pid":  15172,
                                         "wasAlreadyOpen":  false,
                                         "reusedSession":  true,
                                         "lockRecovered":  false
@@ -28,55 +28,55 @@
                    {
                        "name":  "manifest_sync",
                        "status":  "success",
-                       "durationMs":  275.63,
+                       "durationMs":  85.69,
                        "details":  "features synced from features.json"
                    },
                    {
                        "name":  "command_registry_generation",
                        "status":  "success",
-                       "durationMs":  101.55,
+                       "durationMs":  49.79,
                        "details":  "command registry and help manifest refreshed"
                    },
                    {
                        "name":  "ui_entry_generation",
                        "status":  "success",
-                       "durationMs":  109.59,
+                       "durationMs":  33.84,
                        "details":  "UI entry modules refreshed"
                    },
                    {
                        "name":  "test_manifest_generation",
                        "status":  "success",
-                       "durationMs":  75.26,
+                       "durationMs":  42.13,
                        "details":  "test manifest refreshed"
                    },
                    {
                        "name":  "validation",
                        "status":  "success",
-                       "durationMs":  489.25,
+                       "durationMs":  326.28,
                        "details":  "ribbon, syntax, lint, and form checks passed"
                    },
                    {
                        "name":  "environment_checks",
                        "status":  "success",
-                       "durationMs":  83,
+                       "durationMs":  23.7,
                        "details":  "workbook available"
                    },
                    {
                        "name":  "workbook_update",
                        "status":  "success",
-                       "durationMs":  10947.15,
+                       "durationMs":  4841.98,
                        "details":  "modules imported and workbook saved"
                    },
                    {
                        "name":  "ribbon_injection",
                        "status":  "success",
-                       "durationMs":  146.49,
+                       "durationMs":  73.26,
                        "details":  "customUI14.xml refreshed"
                    },
                    {
                        "name":  "runtime_tests",
                        "status":  "success",
-                       "durationMs":  10941,
+                       "durationMs":  4229.22,
                        "details":  ""
                    }
                ],
@@ -149,13 +149,18 @@
                                              "Modules/Infrastructure/Infra_ValueConversion.bas",
                                              "Modules/Libraries/Lib_HelpManifest.bas",
                                              "Modules/Libraries/Lib_JsonConverter.bas",
-                                             "Modules/Libraries/Lib_TestManifest.bas",
-                                             "Modules/Libraries/Lib_Tests.bas",
-                                             "Modules/Libraries/Lib_Tests_CommandInfrastructure.bas",
-                                             "Modules/Libraries/Lib_Tests_Features.bas",
                                              "Modules/Libraries/Lib_UdfRegistry.bas",
                                              "Modules/Libraries/Lib_XFilterFunction.bas",
                                              "Modules/Libraries/Lib_XUnpivotFunction.bas",
+                                             "Modules/Tests/Lib_TestManifest.bas",
+                                             "Modules/Tests/Lib_Tests.bas",
+                                             "Modules/Tests/Lib_Tests_CommandInfrastructure.bas",
+                                             "Modules/Tests/Lib_Tests_Feat_CleanData.bas",
+                                             "Modules/Tests/Lib_Tests_Feat_Editing.bas",
+                                             "Modules/Tests/Lib_Tests_Feat_General.bas",
+                                             "Modules/Tests/Lib_Tests_Feat_HighlightData.bas",
+                                             "Modules/Tests/Lib_Tests_Feat_ModifyData.bas",
+                                             "Modules/Tests/Lib_Tests_Feat_Workbook.bas",
                                              "Modules/UI/UI_HelpCenter.frm",
                                              "Modules/UI/UI_Hotkeys.bas",
                                              "Modules/UI/UI_OptionPicker.frm",
@@ -178,10 +183,10 @@
                                                  "error":  null
                                              },
                         "unitTests":  {
-                                          "total":  488,
-                                          "passed":  488,
+                                          "total":  491,
+                                          "passed":  491,
                                           "failed":  0,
-                                          "durationMs":  9352,
+                                          "durationMs":  3563,
                                           "failures":  [
 
                                                        ]
@@ -194,5 +199,5 @@
                                                                ]
                                               }
                     },
-    "totalDurationMs":  25483.66
+    "totalDurationMs":  11543.62
 }

@@ -16,6 +16,7 @@ Implements ICommand
 ' @Description: Forces text-formatted numbers in the selection to become actual numeric values.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: ICommand, Infra_ActionContext, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction, Infra_Config
+' Pipeline optimization test comment 2
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyBulkWrite()

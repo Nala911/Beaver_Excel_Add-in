@@ -325,6 +325,30 @@ function Invoke-EnhancedLinting {
                 }
             }
 
+            # --- Rule D: Implicit Reference Check ---
+            if ($file.Name -ne "Lib_JsonConverter.bas" -and $file.Name -notmatch "Lib_Tests") {
+                if ($line.IndexOf("Range", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+                    $line.IndexOf("Cells", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+                    $line.IndexOf("Rows", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+                    $line.IndexOf("Columns", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                    
+                    if ($line -match '(?<!\bAs\s+)(?<!\w\.)(?<!\.)\b(Range|Cells|Rows|Columns)\b' -and 
+                        $line -notmatch '^\s*''' -and
+                        $line -notmatch '^\s*(?:Public |Private |Static )?(?:Sub |Function |Property |Type |Enum )\b' -and
+                        $line -notmatch '".*\b(Range|Cells|Rows|Columns)\b.*"') {
+                        
+                        Write-Host "  [$fileName] Warning: Unqualified reference to '$($Matches[1])' at line $($i + 1). Use explicit worksheet qualification (e.g. ws.$($Matches[1])) to prevent ActiveSheet bugs." -ForegroundColor Yellow
+                    }
+                }
+            }
+
+            # --- Rule E: Localized Sheet Name Warning ---
+            if ($file.Name -ne "Lib_JsonConverter.bas" -and $file.Name -notmatch "Lib_Tests") {
+                if ($line -match '"(?:Sheet|Tabelle|Feuille|Hoja|Foglio|Planilha|Flik|Tabell)\d+"' -and $line -notmatch '^\s*''') {
+                    Write-Host "  [$fileName] Warning: Hardcoded localized sheet name $($Matches[0]) detected at line $($i + 1). This will fail in non-English Excel environments." -ForegroundColor Yellow
+                }
+            }
+
             if ($line.IndexOf("Sub", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or 
                 $line.IndexOf("Function", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
                 $isProcStart = $false
@@ -468,4 +492,65 @@ function Test-FormFilesValidity {
         }
     }
     return $allPassed
+}
+
+function Invoke-TestCoverageAudit {
+    param (
+        [string]$SourceDir
+    )
+    Write-Host "Running Test Coverage Audit..." -ForegroundColor Cyan
+
+    $projectRoot = Split-Path $PSScriptRoot -Parent
+    $commandsDir = Join-Path $SourceDir "Commands"
+    
+    # 1. Find all FeatCmd_*.cls files
+    if (-not (Test-Path $commandsDir)) {
+        Write-Host "  No Commands directory found at: $commandsDir" -ForegroundColor Yellow
+        return $true
+    }
+    
+    $commandFiles = Get-ChildItem -Path $commandsDir -Filter "FeatCmd_*.cls"
+    if ($commandFiles.Count -eq 0) {
+        Write-Host "  No FeatCmd_*.cls modules found." -ForegroundColor Yellow
+        return $true
+    }
+    
+    # 2. Read all test files content in Tests directory
+    $testDir = Join-Path $SourceDir "Tests"
+    if (-not (Test-Path $testDir)) {
+        Write-Host "  Test directory not found: $testDir" -ForegroundColor Red
+        return $false
+    }
+    
+    $testFiles = Get-ChildItem -Path $testDir -Filter "*.bas"
+    if ($testFiles.Count -eq 0) {
+        Write-Host "  No test modules found in: $testDir" -ForegroundColor Red
+        return $false
+    }
+    
+    $testContent = ""
+    foreach ($testFile in $testFiles) {
+        if ($testFile.Name -eq "Lib_TestManifest.bas") { continue }
+        $testContent += [System.IO.File]::ReadAllText($testFile.FullName) + "`r`n"
+    }
+    
+    # Exclusions: commands that are mock, interactive UI, or have other reasons for no direct headless test
+    $exclusions = @("Dog", "ShowHelpCenter", "Duplicate")
+    $allCovered = $true
+
+    foreach ($file in $commandFiles) {
+        $cmdName = $file.BaseName -replace "^FeatCmd_", ""
+        if ($exclusions -contains $cmdName) { continue }
+        
+        # Check if the command name is referenced in the tests
+        if ($testContent -notmatch "(?i)(?:\b|_)(Test_$cmdName|FeatCmd_$cmdName|$cmdName)(?:\b|_)") {
+            Write-Host "  [WARNING] Test Coverage: Command '$($file.Name)' has no corresponding tests in any test modules under '$testDir'." -ForegroundColor Yellow
+            $allCovered = $false
+        }
+    }
+    
+    if ($allCovered) {
+        Write-Host "  All feature commands have corresponding unit tests." -ForegroundColor Green
+    }
+    return $true
 }
