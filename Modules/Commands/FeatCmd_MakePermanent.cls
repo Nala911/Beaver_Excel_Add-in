@@ -38,7 +38,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim expandedRange As Range
     Set expandedRange = Infra_ValueConversion.ResolveSpillExpandedRange(rng)
 
-    If Not Infra_Undo.SaveStateOrConfirm(expandedRange, "Make Permanent") Then GoTo CleanExit
+    If Not Infra_Undo.SaveStateOrConfirm(expandedRange, "Make Permanent", UndoCaptureFormulaOnly) Then GoTo CleanExit
     Infra_Progress.StartProgress "Converting Selection to Values", 1
 
     ' Reuse the shared value-conversion helper so hotkey and ribbon flows stay aligned.

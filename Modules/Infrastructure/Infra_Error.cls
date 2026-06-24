@@ -350,13 +350,32 @@ End Function
 
 Private Sub LogErrorContext(ByVal ctx As Infra_ErrorContext)
     If ctx Is Nothing Then Exit Sub
-    Infra_Diagnostics.LogError ctx.ProcedureName, _
-        "number=" & ctx.ErrorNumber & _
-        " | description=" & SanitizeForLog(ctx.ErrorDescription) & _
-        " | source=" & SanitizeForLog(ctx.ErrorSource) & _
-        " | severity=" & SanitizeForLog(ctx.Severity) & _
-        " | category=" & SanitizeForLog(ctx.Category) & _
-        " | breadcrumbs=" & SanitizeForLog(ctx.Breadcrumbs)
+    
+    Dim jsonDetails As String
+    jsonDetails = "{" & _
+                  """number"":" & ctx.ErrorNumber & "," & _
+                  Trim$("""description"":""" & Infra_Diagnostics.EscapeJson(ctx.ErrorDescription) & """,") & _
+                  Trim$("""source"":""" & Infra_Diagnostics.EscapeJson(ctx.ErrorSource) & """,") & _
+                  Trim$("""severity"":""" & Infra_Diagnostics.EscapeJson(ctx.Severity) & """,") & _
+                  Trim$("""category"":""" & Infra_Diagnostics.EscapeJson(ctx.Category) & """,") & _
+                  Trim$("""breadcrumbs"":""" & Infra_Diagnostics.EscapeJson(ctx.Breadcrumbs) & """")
+                  
+    If ctx.WorkbookName <> "" Then
+        jsonDetails = jsonDetails & Trim$(",""workbook"":""" & Infra_Diagnostics.EscapeJson(ctx.WorkbookName) & """")
+    End If
+    If ctx.WorksheetName <> "" Then
+        jsonDetails = jsonDetails & Trim$(",""worksheet"":""" & Infra_Diagnostics.EscapeJson(ctx.WorksheetName) & """")
+    End If
+    If ctx.SelectionAddress <> "" Then
+        jsonDetails = jsonDetails & Trim$(",""selection"":""" & Infra_Diagnostics.EscapeJson(ctx.SelectionAddress) & """")
+    End If
+    If ctx.StateDump <> "" Then
+        jsonDetails = jsonDetails & Trim$(",""state_dump"":""" & Infra_Diagnostics.EscapeJson(ctx.StateDump) & """")
+    End If
+    
+    jsonDetails = jsonDetails & "}"
+    
+    Infra_Diagnostics.LogError ctx.ProcedureName, jsonDetails
 End Sub
 
 Private Sub ResetApplicationState()

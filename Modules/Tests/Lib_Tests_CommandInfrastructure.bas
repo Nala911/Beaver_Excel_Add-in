@@ -76,3 +76,75 @@ ErrHandler:
     Infra_Error.HandleError "Test_CommandRegistryCreatesKnownCommands", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_DiagnosticsEscapeJson()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_DiagnosticsEscapeJson")
+    On Error GoTo ErrHandler
+
+    Dim testStr As String
+    testStr = "Hello " & Chr$(34) & "World" & Chr$(34) & " \ " & vbCrLf & vbTab
+    
+    Dim escaped As String
+    escaped = Infra_Diagnostics.EscapeJson(testStr)
+    
+    Dim expected As String
+    expected = "Hello \" & Chr$(34) & "World\" & Chr$(34) & " \\ \n\t"
+    
+    AssertEqual escaped, expected, "JSON escaping should correctly escape quotes, backslashes, newlines, and tabs"
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "Test_DiagnosticsEscapeJson", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_DiagnosticsLogsJSON()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_DiagnosticsLogsJSON")
+    On Error GoTo ErrHandler
+
+    Dim testMsg As String
+    testMsg = "Test warning message " & Format$(Now, "hhnnss")
+    
+    ' Log warning
+    Infra_Diagnostics.LogWarning "Test_DiagnosticsLogsJSON", testMsg
+    
+    ' Read log file
+    Dim fso As Object
+    Dim logPath As String
+    Dim stream As Object
+    Dim lastLine As String
+    Dim lineText As String
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    logPath = Environ$("TEMP") & "\BeaverAddin_" & Infra_Diagnostics.GetPid() & ".log"
+    
+    AssertTrue fso.FileExists(logPath), "Log file should exist"
+    
+    Set stream = fso.OpenTextFile(logPath, 1)
+    Do Until stream.AtEndOfStream
+        lineText = stream.ReadLine
+        If Trim$(lineText) <> "" Then
+            lastLine = lineText
+        End If
+    Loop
+    stream.Close
+    
+    ' Verify lastLine is valid JSON containing our testMsg
+    AssertTrue Left$(lastLine, 1) = "{", "Log line should start with {"
+    AssertTrue Right$(lastLine, 1) = "}", "Log line should end with }"
+    AssertTrue InStr(lastLine, """event"":""warning""") > 0, "Log should contain warning event name"
+    AssertTrue InStr(lastLine, """procedure"":""Test_DiagnosticsLogsJSON""") > 0, "Log should contain procedure name"
+    AssertTrue InStr(lastLine, """message"":""" & testMsg & """") > 0, "Log should contain the message payload"
+
+CleanExit:
+    Set stream = Nothing
+    Set fso = Nothing
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "Test_DiagnosticsLogsJSON", Err
+    Resume CleanExit
+End Sub
+

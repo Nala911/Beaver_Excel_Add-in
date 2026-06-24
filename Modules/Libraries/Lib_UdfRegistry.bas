@@ -4,7 +4,7 @@ Option Private Module
 
 ' @Module: Lib_UdfRegistry
 ' @Category: Library
-' @Description: Central registry of User Defined Functions (UDFs) metadata for Beaver Add-in.
+' @Description: Generated registry of User Defined Functions (UDFs) metadata for Beaver Add-in.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: Infra_Error
 
@@ -21,14 +21,8 @@ Public Function GetAllUdfs() As Collection
 
     Dim registry As New Collection
 
-    ' Register XFilter
     registry.Add GetXFilterMetadata()
-
-    ' Register XUnpivot
     registry.Add GetXUnpivotMetadata()
-
-    ' In the future, additional UDFs can register here:
-    ' registry.Add GetAnotherFunctionMetadata()
 
     Set GetAllUdfs = registry
 
@@ -39,8 +33,6 @@ ErrHandler:
     Infra_Error.HandleError "GetAllUdfs", Err
     Resume CleanExit
 End Function
-
-' --- PRIVATE UDF METADATA BUILDERS ---
 
 Private Function GetXFilterMetadata() As Object
     Dim metadata As Object
@@ -72,4 +64,3 @@ Private Function GetXUnpivotMetadata() As Object
         "Optional boolean. If True, skips unpivot cells that are blank or empty (default is False).")
     Set GetXUnpivotMetadata = metadata
 End Function
-

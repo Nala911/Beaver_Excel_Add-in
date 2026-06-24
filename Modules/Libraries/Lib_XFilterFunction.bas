@@ -35,13 +35,20 @@ Public Function XFilter(ByVal Range_A As Variant, ByVal Range_B As Variant, Opti
     arrA = Infra_ValueConversion.Ensure2DArray(Range_A)
     arrB = Infra_ValueConversion.Ensure2DArray(Range_B)
     
-    ' 2. Use a Dictionary for O(1) lookup speed (Late Bound)
-    Set dictB = CreateObject("Scripting.Dictionary")
-    If case_sensitive Then
-        dictB.CompareMode = 0 ' BinaryCompare (case-sensitive)
+    ' 2. Use a Dictionary for O(1) lookup speed (Late Bound, reused statically to prevent CPU overhead)
+    Static staticDict As Object
+    If staticDict Is Nothing Then
+        Set staticDict = CreateObject("Scripting.Dictionary")
     Else
-        dictB.CompareMode = 1 ' TextCompare (case-insensitive)
+        staticDict.RemoveAll
     End If
+    
+    If case_sensitive Then
+        staticDict.CompareMode = 0 ' BinaryCompare (case-sensitive)
+    Else
+        staticDict.CompareMode = 1 ' TextCompare (case-insensitive)
+    End If
+    Set dictB = staticDict
     
     For r = LBound(arrB, 1) To UBound(arrB, 1)
         For c = LBound(arrB, 2) To UBound(arrB, 2)

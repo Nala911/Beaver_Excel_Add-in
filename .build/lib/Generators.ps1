@@ -495,6 +495,100 @@ function Sync-UiHotkeysModule {
     Write-Host "  Hotkey entry module generated." -ForegroundColor Green
 }
 
+function Sync-UdfRegistry {
+    param(
+        [string]$ManifestPath,
+        [string]$OutputPath
+    )
+
+    Write-Host "Generating UDF registry..." -ForegroundColor Cyan
+    $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
+    
+    $udfs = @()
+    if ($null -ne $manifest -and $null -ne $manifest.UDFs) {
+        $udfs = @($manifest.UDFs)
+    }
+
+    $lines = @(
+        'Attribute VB_Name = "Lib_UdfRegistry"',
+        'Option Explicit',
+        'Option Private Module',
+        '',
+        ''' @Module: Lib_UdfRegistry',
+        ''' @Category: Library',
+        ''' @Description: Generated registry of User Defined Functions (UDFs) metadata for Beaver Add-in.',
+        ''' @ManagedBy: BeaverAddin Agent',
+        ''' @Dependencies: Infra_Error',
+        '',
+        ''' Returns a collection of metadata dictionaries for all registered UDFs.',
+        ''' Each dictionary contains:',
+        '''   - Name: String',
+        '''   - Description: String',
+        '''   - Category: String',
+        '''   - Syntax: String',
+        '''   - ArgumentDescriptions: Variant Array of Strings',
+        'Public Function GetAllUdfs() As Collection',
+        '    Dim tracker As Object: Set tracker = Infra_Error.Track("GetAllUdfs")',
+        '    On Error GoTo ErrHandler',
+        '',
+        '    Dim registry As New Collection',
+        ''
+    )
+
+    foreach ($udf in $udfs) {
+        $lines += '    registry.Add Get{0}Metadata()' -f $udf.Name
+    }
+
+    $lines += @(
+        '',
+        '    Set GetAllUdfs = registry',
+        '',
+        'CleanExit:',
+        '    Exit Function',
+        '',
+        'ErrHandler:',
+        '    Infra_Error.HandleError "GetAllUdfs", Err',
+        '    Resume CleanExit',
+        'End Function',
+        ''
+    )
+
+    foreach ($udf in $udfs) {
+        $name = $udf.Name
+        $description = $udf.Description.Replace('"', '""')
+        $category = $udf.Category.Replace('"', '""')
+        $syntax = $udf.Syntax.Replace('"', '""')
+        
+        $argLines = @()
+        if ($null -ne $udf.ArgumentDescriptions) {
+            foreach ($arg in $udf.ArgumentDescriptions) {
+                $argLines += '        "{0}"' -f $arg.Replace('"', '""')
+            }
+        }
+        
+        $argArrayText = if ($argLines.Count -gt 0) {
+            "Array( _`r`n" + ($argLines -join ", _`r`n") + ")"
+        } else {
+            "Array()"
+        }
+
+        $lines += "Private Function Get{0}Metadata() As Object" -f $name
+        $lines += "    Dim metadata As Object"
+        $lines += "    Set metadata = CreateObject(""Scripting.Dictionary"")"
+        $lines += "    metadata.Add ""Name"", ""{0}""" -f $name
+        $lines += "    metadata.Add ""Description"", ""{0}""" -f $description
+        $lines += "    metadata.Add ""Category"", ""{0}""" -f $category
+        $lines += "    metadata.Add ""Syntax"", ""{0}""" -f $syntax
+        $lines += "    metadata.Add ""ArgumentDescriptions"", {0}" -f $argArrayText
+        $lines += "    Set Get{0}Metadata = metadata" -f $name
+        $lines += "End Function"
+        $lines += ""
+    }
+
+    $null = Write-FileIfChanged -Path $OutputPath -Content ($lines -join "`r`n")
+    Write-Host "  UDF registry generated with $($udfs.Count) function(s)." -ForegroundColor Green
+}
+
 function New-NormalizedImportCopy {
     param(
         [Parameter(Mandatory = $true)]

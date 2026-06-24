@@ -12,11 +12,12 @@ Private Const UNDO_META_WORKBOOK_NAME As String = "BeaverUndoWorkbook"
 Private Const UNDO_META_WORKSHEET_NAME As String = "BeaverUndoWorksheet"
 Private Const UNDO_META_ADDRESS_NAME As String = "BeaverUndoAddress"
 Private Const UNDO_META_ACTION_NAME As String = "BeaverUndoAction"
+Private Const UNDO_META_CAPTURE_MODE As String = "BeaverUndoCaptureMode"
 Private m_PendingUndoAction As String
 
 ' Captures the state of a range and registers an Undo action.
 ' Call this BEFORE modifying the range.
-Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As Boolean
+Public Function SaveState(ByVal Target As Range, ByVal ActionName As String, Optional ByVal CaptureMode As UndoCaptureMode = UndoCaptureFull) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("SaveState")
     Dim links As Variant
     Dim undoRange As Range
@@ -26,9 +27,32 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As 
     Dim extCells As Collection
     Dim c As Variant
     Dim i As Long
+    Dim area As Range
     On Error GoTo ErrHandler
     
     If Target Is Nothing Then GoTo CleanExit
+    
+    ' Detect if the target range contains any legacy CSE array formulas.
+    ' If it does, we must fallback to UndoCaptureFull because formula/value assignment
+    ' via .Formula2 cannot restore CSE array boundaries.
+    Dim actualCaptureMode As UndoCaptureMode
+    actualCaptureMode = CaptureMode
+    
+    If CaptureMode = UndoCaptureFormulaOnly Then
+        Dim hasLegacyArray As Boolean
+        hasLegacyArray = False
+        On Error Resume Next
+        If IsNull(Target.HasArray) Then
+            hasLegacyArray = True
+        ElseIf Target.HasArray Then
+            hasLegacyArray = True
+        End If
+        On Error GoTo ErrHandler
+        
+        If hasLegacyArray Then
+            actualCaptureMode = UndoCaptureFull
+        End If
+    End If
     
     Dim captureRange As Range
     Set captureRange = Target
@@ -68,76 +92,102 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String) As 
     ' Clear previous undo data
     undoSh.Cells.Clear
     
-    ' Copy captureRange to Undo Sheet at the same address so relative formulas
-    ' keep their original references instead of being re-based from A1.
-    Dim area As Range
-    For Each area In captureRange.Areas
-        area.Copy Destination:=undoSh.Range(area.Address)
-    Next area
-
-    ' Prefix external formulas in the undo sheet to prevent external links from being active in the session.
-    On Error Resume Next
-    links = ThisWorkbook.LinkSources(Type:=xlLinkTypeExcelLinks)
-    On Error GoTo 0
-    
-    If Not IsEmpty(links) Then
-        Set undoRange = undoSh.Range(captureRange.Address)
-        If undoRange.CountLarge = 1 Then
-            If undoRange.HasFormula Then
-                Set formulaCells = undoRange
-            End If
-        Else
-            On Error Resume Next
-            Set formulaCells = undoRange.SpecialCells(xlCellTypeFormulas)
-            On Error GoTo 0
-        End If
-        
-        If Not formulaCells Is Nothing Then
-            Set extCells = New Collection
-            Dim hasUndoExt As Boolean
-            hasUndoExt = False
+    ' Copy captureRange to Undo Sheet
+    If actualCaptureMode = UndoCaptureFormulaOnly Then
+        For Each area In captureRange.Areas
+            Dim formulas As Variant
+            formulas = area.Formula2
             
-            If formulaCells.Cells.CountLarge = 1 Then
-                If InStr(1, formulaCells.Formula2, "[", vbTextCompare) > 0 Then
-                    extCells.Add formulaCells
-                    hasUndoExt = True
+            If IsArray(formulas) Then
+                Dim r As Long, col As Long
+                For r = LBound(formulas, 1) To UBound(formulas, 1)
+                    For col = LBound(formulas, 2) To UBound(formulas, 2)
+                        Dim cellForm As Variant
+                        cellForm = formulas(r, col)
+                        If VarType(cellForm) = vbString Then
+                            If Left$(cellForm, 1) = "=" And InStr(1, cellForm, "[", vbTextCompare) > 0 Then
+                                formulas(r, col) = "__BEAVER_UNDO_FORMULA_PREFIX__" & cellForm
+                            End If
+                        End If
+                    Next col
+                Next r
+                undoSh.Range(area.Address).Formula2 = formulas
+            Else
+                If VarType(formulas) = vbString Then
+                    If Left$(formulas, 1) = "=" And InStr(1, formulas, "[", vbTextCompare) > 0 Then
+                        formulas = "__BEAVER_UNDO_FORMULA_PREFIX__" & formulas
+                    End If
+                End If
+                undoSh.Range(area.Address).Formula2 = formulas
+            End If
+        Next area
+    Else
+        For Each area In captureRange.Areas
+            area.Copy Destination:=undoSh.Range(area.Address)
+        Next area
+
+        ' Prefix external formulas in the undo sheet to prevent external links from being active in the session.
+        On Error Resume Next
+        links = ThisWorkbook.LinkSources(Type:=xlLinkTypeExcelLinks)
+        On Error GoTo 0
+        
+        If Not IsEmpty(links) Then
+            Set undoRange = undoSh.Range(captureRange.Address)
+            If undoRange.CountLarge = 1 Then
+                If undoRange.HasFormula Then
+                    Set formulaCells = undoRange
                 End If
             Else
                 On Error Resume Next
-                Set foundCell = formulaCells.Find(What:="[", LookIn:=xlFormulas, LookAt:=xlPart)
-                If Not foundCell Is Nothing Then
-                    firstAddress = foundCell.Address
-                    Do
-                        extCells.Add foundCell
-                        Set foundCell = formulaCells.FindNext(foundCell)
-                        If foundCell Is Nothing Then Exit Do
-                    Loop While foundCell.Address <> firstAddress
-                    hasUndoExt = True
-                End If
+                Set formulaCells = undoRange.SpecialCells(xlCellTypeFormulas)
                 On Error GoTo 0
             End If
             
-            If hasUndoExt Then
-                For Each c In extCells
-                    c.Value = "__BEAVER_UNDO_FORMULA_PREFIX__" & c.Formula2
-                Next c
+            If Not formulaCells Is Nothing Then
+                Set extCells = New Collection
+                Dim hasUndoExt As Boolean
+                hasUndoExt = False
+                
+                If formulaCells.Cells.CountLarge = 1 Then
+                    If InStr(1, formulaCells.Formula2, "[", vbTextCompare) > 0 Then
+                        extCells.Add formulaCells
+                        hasUndoExt = True
+                    End If
+                Else
+                    On Error Resume Next
+                    Set foundCell = formulaCells.Find(What:="[", LookIn:=xlFormulas, LookAt:=xlPart)
+                    If Not foundCell Is Nothing Then
+                        firstAddress = foundCell.Address
+                        Do
+                            extCells.Add foundCell
+                            Set foundCell = formulaCells.FindNext(foundCell)
+                            If foundCell Is Nothing Then Exit Do
+                        Loop While foundCell.Address <> firstAddress
+                        hasUndoExt = True
+                    End If
+                    On Error GoTo 0
+                End If
+                
+                If hasUndoExt Then
+                    For Each c In extCells
+                        c.Value = "__BEAVER_UNDO_FORMULA_PREFIX__" & c.Formula2
+                    Next c
+                End If
             End If
-        End If
-        
-        ' Clean up any active external links created in ThisWorkbook (the add-in) due to the copy.
-        ' Only run if ThisWorkbook is NOT the target workbook to prevent breaking links prematurely.
-        If Not ThisWorkbook Is targetWb Then
-            For i = LBound(links) To UBound(links)
-                On Error Resume Next
-                ThisWorkbook.BreakLink Name:=links(i), Type:=xlLinkTypeExcelLinks
-                On Error GoTo 0
-            Next i
+            
+            ' Clean up any active external links created in ThisWorkbook (the add-in) due to the copy.
+            ' Only run if ThisWorkbook is NOT the target workbook to prevent breaking links prematurely.
+            If Not ThisWorkbook Is targetWb Then
+                For i = LBound(links) To UBound(links)
+                    On Error Resume Next
+                    ThisWorkbook.BreakLink Name:=links(i), Type:=xlLinkTypeExcelLinks
+                    On Error GoTo 0
+                Next i
+            End If
         End If
     End If
 
-    ' Store metadata outside the undo payload so large target ranges cannot
-    ' overwrite it.
-    StoreUndoMetadata Target.Worksheet.Parent.Name, Target.Worksheet.Name, captureRange.Address, ActionName
+    StoreUndoMetadata Target.Worksheet.Parent.Name, Target.Worksheet.Name, captureRange.Address, ActionName, actualCaptureMode
     
     ' Stage the Undo macro (registration happens later)
     m_PendingUndoAction = ActionName
@@ -159,14 +209,14 @@ End Function
 ' Captures the state of a range and registers an Undo action.
 ' If capture fails (e.g. range size exceeds safety limits), explicitly prompts or warns the user before proceeding.
 ' Returns True if the action should proceed, False if cancelled.
-Public Function SaveStateOrConfirm(ByVal Target As Range, ByVal ActionName As String) As Boolean
+Public Function SaveStateOrConfirm(ByVal Target As Range, ByVal ActionName As String, Optional ByVal CaptureMode As UndoCaptureMode = UndoCaptureFull) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("SaveStateOrConfirm")
     On Error GoTo ErrHandler
 
     SaveStateOrConfirm = True
     If Target Is Nothing Then GoTo CleanExit
 
-    If Not SaveState(Target, ActionName) Then
+    If Not SaveState(Target, ActionName, CaptureMode) Then
         SaveStateOrConfirm = Infra_Interaction.Confirm( _
             "The selected range is too large to support Undo for '" & ActionName & "'." & vbCrLf & vbCrLf & _
             "Do you want to proceed with the operation anyway?", _
@@ -220,6 +270,9 @@ Public Sub PerformUndo()
     Dim wbName As String: wbName = GetUndoMetadataValue(UNDO_META_WORKBOOK_NAME)
     Dim wsName As String: wsName = GetUndoMetadataValue(UNDO_META_WORKSHEET_NAME)
     Dim addr As String: addr = GetUndoMetadataValue(UNDO_META_ADDRESS_NAME)
+    Dim capModeStr As String: capModeStr = GetUndoMetadataValue(UNDO_META_CAPTURE_MODE)
+    Dim capMode As UndoCaptureMode
+    capMode = IIf(capModeStr = "1", UndoCaptureFormulaOnly, UndoCaptureFull)
     
     If wbName = "" Or wsName = "" Or addr = "" Then GoTo CleanExit
     
@@ -243,11 +296,14 @@ Public Sub PerformUndo()
     Dim targetRange As Range
     Set targetRange = targetWs.Range(addr)
     
-    ' Restore data from the same address it was captured at so formula
-    ' references are restored exactly as they were before the mutation.
+    ' Restore data
     Dim area As Range
     For Each area In targetRange.Areas
-        undoSh.Range(area.Address).Copy Destination:=area
+        If capMode = UndoCaptureFormulaOnly Then
+            area.Formula2 = undoSh.Range(area.Address).Formula2
+        Else
+            undoSh.Range(area.Address).Copy Destination:=area
+        End If
     Next area
     
     ' Restore formulas by replacing the prefix back to empty string
@@ -285,7 +341,7 @@ Private Function GetUndoSheet() As Worksheet
     On Error GoTo 0
 End Function
 
-Private Sub StoreUndoMetadata(ByVal WorkbookName As String, ByVal WorksheetName As String, ByVal AddressText As String, ByVal ActionName As String)
+Private Sub StoreUndoMetadata(ByVal WorkbookName As String, ByVal WorksheetName As String, ByVal AddressText As String, ByVal ActionName As String, ByVal CaptureMode As UndoCaptureMode)
     Dim tracker As Object: Set tracker = Infra_Error.Track("StoreUndoMetadata")
     On Error GoTo ErrHandler
 
@@ -293,6 +349,7 @@ Private Sub StoreUndoMetadata(ByVal WorkbookName As String, ByVal WorksheetName 
     SetUndoMetadataValue UNDO_META_WORKSHEET_NAME, WorksheetName
     SetUndoMetadataValue UNDO_META_ADDRESS_NAME, AddressText
     SetUndoMetadataValue UNDO_META_ACTION_NAME, ActionName
+    SetUndoMetadataValue UNDO_META_CAPTURE_MODE, CStr(CaptureMode)
 
 CleanExit:
     Exit Sub
@@ -306,6 +363,7 @@ Private Sub ClearUndoMetadata()
     DeleteUndoMetadataValue UNDO_META_WORKSHEET_NAME
     DeleteUndoMetadataValue UNDO_META_ADDRESS_NAME
     DeleteUndoMetadataValue UNDO_META_ACTION_NAME
+    DeleteUndoMetadataValue UNDO_META_CAPTURE_MODE
 End Sub
 
 Private Sub SetUndoMetadataValue(ByVal NameText As String, ByVal ValueText As String)

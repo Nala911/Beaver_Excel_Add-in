@@ -24,3 +24,10 @@ Public Enum SheetInsertPosition
     SheetInsertPositionBeforeCurrent = 1
     SheetInsertPositionAfterCurrent = 2
 End Enum
+
+' Capture modes for Undo.
+Public Enum UndoCaptureMode
+    UndoCaptureFull = 0
+    UndoCaptureFormulaOnly = 1
+End Enum
+

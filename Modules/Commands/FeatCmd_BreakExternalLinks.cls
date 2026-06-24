@@ -64,7 +64,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     ' 4. EXECUTION
     Dim stats As String
     If request.Scope = TargetScopeActiveSheet Then
-        If Not Infra_Undo.SaveStateOrConfirm(ctx.WorksheetRef.UsedRange, "Break Links") Then GoTo CleanExit
+        If Not Infra_Undo.SaveStateOrConfirm(ctx.WorksheetRef.UsedRange, "Break Links", UndoCaptureFormulaOnly) Then GoTo CleanExit
     End If
     stats = ExecuteBreakLinks(wb, request, linkArr)
     If request.Scope = TargetScopeActiveSheet And hasWorkbookLevelItems Then

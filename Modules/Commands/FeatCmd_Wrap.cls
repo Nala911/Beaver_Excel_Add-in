@@ -98,7 +98,7 @@ Private Sub ExecuteWrapperCellMode(ByVal targetRange As Range)
         GoTo CleanExit
     End If
 
-    If Not Infra_Undo.SaveStateOrConfirm(targetRange, COMMAND_NAME) Then GoTo CleanExit
+    If Not Infra_Undo.SaveStateOrConfirm(targetRange, COMMAND_NAME, UndoCaptureFormulaOnly) Then GoTo CleanExit
     Application.StatusBar = "Wrapping " & Format(targetRange.CountLarge, "#,##0") & " cells using the selected wrapper cell..."
 
     If targetRange.CountLarge = 1 Then
@@ -141,7 +141,7 @@ Private Sub ExecuteTypedPatternMode(ByVal ctx As Infra_ActionContext, ByVal rng 
     userPattern = Infra_UIFactory.PromptForWrapFormulaPattern(ctx, PLACEHOLDER)
     If userPattern = vbNullString Then GoTo CleanExit
 
-    If Not Infra_Undo.SaveStateOrConfirm(rng, COMMAND_NAME) Then GoTo CleanExit
+    If Not Infra_Undo.SaveStateOrConfirm(rng, COMMAND_NAME, UndoCaptureFormulaOnly) Then GoTo CleanExit
     Application.StatusBar = "Wrapping " & Format(rng.CountLarge, "#,##0") & " cells with a typed formula pattern..."
 
     If rng.CountLarge = 1 Then

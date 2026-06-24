@@ -22,12 +22,16 @@ Public Function NextOperationId(ByVal procedureName As String) As String
     On Error GoTo 0
 End Function
 
+Public Function GetPid() As Long
+    GetPid = GetCurrentProcessId()
+End Function
+
 Public Sub LogOperationStart(ByVal operationId As String, ByVal procedureName As String)
     LogEvent "operation_start", procedureName, operationId, ""
 End Sub
 
 Public Sub LogOperationFinish(ByVal operationId As String, ByVal procedureName As String, ByVal elapsedSeconds As Double)
-    LogEvent "operation_finish", procedureName, operationId, "elapsed_seconds=" & Format$(elapsedSeconds, "0.000")
+    LogEvent "operation_finish", procedureName, operationId, "{" & """elapsed_seconds"":" & Format$(elapsedSeconds, "0.000") & "}"
 End Sub
 
 Public Sub LogWarning(ByVal procedureName As String, ByVal detail As String)
@@ -38,20 +42,39 @@ Public Sub LogError(ByVal procedureName As String, ByVal detail As String)
     LogEvent "error", procedureName, "", detail
 End Sub
 
+Public Function EscapeJson(ByVal value As String) As String
+    Dim res As String
+    res = Replace(value, "\", "\\")
+    res = Replace(res, """", "\""")
+    res = Replace(res, vbCrLf, "\n")
+    res = Replace(res, vbCr, "\r")
+    res = Replace(res, vbLf, "\n")
+    res = Replace(res, vbTab, "\t")
+    EscapeJson = res
+End Function
+
 Public Sub LogEvent(ByVal eventName As String, ByVal procedureName As String, ByVal operationId As String, ByVal detail As String)
     On Error Resume Next
 
     Dim lineText As String
-    lineText = Format$(Now, "yyyy-mm-dd hh:nn:ss") & " | " & _
-               "event=" & eventName & " | " & _
-               "procedure=" & procedureName
+    lineText = "{" & _
+               """timestamp"":""" & Format$(Now, "yyyy-mm-dd hh:nn:ss") & """," & _
+               """event"":""" & EscapeJson(eventName) & """," & _
+               """procedure"":""" & EscapeJson(procedureName) & """"
 
     If operationId <> "" Then
-        lineText = lineText & " | op=" & operationId
+        lineText = lineText & ",""op"":""" & EscapeJson(operationId) & """"
     End If
+    
     If detail <> "" Then
-        lineText = lineText & " | " & detail
+        If Left$(detail, 1) = "{" And Right$(detail, 1) = "}" Then
+            lineText = lineText & ",""payload"":" & detail
+        Else
+            lineText = lineText & ",""payload"":{""message"":""" & EscapeJson(detail) & """}"
+        End If
     End If
+    
+    lineText = lineText & "}"
 
     Debug.Print lineText
     

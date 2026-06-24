@@ -68,13 +68,15 @@ Private Sub Class_Terminate()
     Infra_AppState.GuardNestingLevel = Infra_AppState.GuardNestingLevel - 1
     If Infra_AppState.GuardNestingLevel < 0 Then Infra_AppState.GuardNestingLevel = 0
 
-    ' Restore original application state in a failsafe manner
-    With Application
-        If .ScreenUpdating <> m_OriginalScreenUpdating Then .ScreenUpdating = m_OriginalScreenUpdating
-        If .EnableEvents <> m_OriginalEnableEvents Then .EnableEvents = m_OriginalEnableEvents
-        If .DisplayAlerts <> m_OriginalDisplayAlerts Then .DisplayAlerts = m_OriginalDisplayAlerts
-        If .Calculation <> m_OriginalCalculation Then .Calculation = m_OriginalCalculation
-    End With
+    ' Restore original application state in a failsafe manner ONLY when returning to outer-most level (0)
+    If Infra_AppState.GuardNestingLevel = 0 Then
+        With Application
+            If .ScreenUpdating <> Infra_AppState.OriginalScreenUpdating Then .ScreenUpdating = Infra_AppState.OriginalScreenUpdating
+            If .EnableEvents <> Infra_AppState.OriginalEnableEvents Then .EnableEvents = Infra_AppState.OriginalEnableEvents
+            If .DisplayAlerts <> Infra_AppState.OriginalDisplayAlerts Then .DisplayAlerts = Infra_AppState.OriginalDisplayAlerts
+            If .Calculation <> Infra_AppState.OriginalCalculation Then .Calculation = Infra_AppState.OriginalCalculation
+        End With
+    End If
     On Error GoTo 0
 End Sub
 

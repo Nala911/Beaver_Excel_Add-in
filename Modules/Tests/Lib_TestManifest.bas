@@ -18,6 +18,8 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_CommandInfrastructure.Test_CommandRegistryCreatesKnownCommands", filterPattern) Then Lib_Tests_CommandInfrastructure.Test_CommandRegistryCreatesKnownCommands
     If MatchesFilter("Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesHotkeyEntries", filterPattern) Then Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesHotkeyEntries
     If MatchesFilter("Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesRibbonEntries", filterPattern) Then Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesRibbonEntries
+    If MatchesFilter("Lib_Tests_CommandInfrastructure.Test_DiagnosticsEscapeJson", filterPattern) Then Lib_Tests_CommandInfrastructure.Test_DiagnosticsEscapeJson
+    If MatchesFilter("Lib_Tests_CommandInfrastructure.Test_DiagnosticsLogsJSON", filterPattern) Then Lib_Tests_CommandInfrastructure.Test_DiagnosticsLogsJSON
     If MatchesFilter("Lib_Tests_Feat_CleanData.Test_CleanData_CheckboxOptions", filterPattern) Then Lib_Tests_Feat_CleanData.Test_CleanData_CheckboxOptions
     If MatchesFilter("Lib_Tests_Feat_CleanData.Test_CleanData_HygieneOptions", filterPattern) Then Lib_Tests_Feat_CleanData.Test_CleanData_HygieneOptions
     If MatchesFilter("Lib_Tests_Feat_CleanData.Test_CleanData_LargeSelectionSafety", filterPattern) Then Lib_Tests_Feat_CleanData.Test_CleanData_LargeSelectionSafety

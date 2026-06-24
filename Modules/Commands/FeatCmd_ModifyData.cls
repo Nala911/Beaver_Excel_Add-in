@@ -95,7 +95,7 @@ Private Sub ExecuteModifyData(ByVal request As Infra_ModifyDataRequest)
     Set m_CurrentRequest = request
     
     Dim totalModified As Long
-    totalModified = Infra_BatchProcessor.Execute(request.Context, TargetScopeSelection, Me, "Modify Data", False)
+    totalModified = Infra_BatchProcessor.Execute(request.Context, TargetScopeSelection, Me, "Modify Data", False, UndoCaptureFormulaOnly)
     
     Dim msg As String
     msg = "Done! Modified " & totalModified & " cells in the selected range."

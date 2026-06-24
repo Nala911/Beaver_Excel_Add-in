@@ -445,7 +445,35 @@
                         "CommandName":  "Delete",
                         "Description":  "Clear or delete selection"
                     }
-                ]
+                ],
+    "UDFs": [
+        {
+            "Name": "XFilter",
+            "Description": "Filters Range_A based on existence (or non-existence) in Range_B.",
+            "Category": "User Defined",
+            "Syntax": "XFilter(Range_A, Range_B, [code_number], [if_empty], [case_sensitive])",
+            "ArgumentDescriptions": [
+                "The source range or array to filter. Comparison is done using the first column.",
+                "The reference range or array to check against.",
+                "Optional Mode: 1 = Intersection (default, In A and B), 2 = Difference (In A but not in B).",
+                "Optional value to return if no match is found (default is \"Not found\").",
+                "Optional. Set to True for case-sensitive matching; defaults to False."
+            ]
+        },
+        {
+            "Name": "XUnpivot",
+            "Description": "Unpivots wide range data into a long 2D layout, auto-detecting numerical columns from the first data row.",
+            "Category": "User Defined",
+            "Syntax": "XUnpivot(data_range, [attribute_header], [value_header], [skip_blanks])",
+            "ArgumentDescriptions": [
+                "The source range or array to unpivot. First row must contain column headers.",
+                "Optional name for the attribute/variable column (default is \"Attribute\").",
+                "Optional name for the value column (default is \"Value\").",
+                "Optional boolean. If True, skips unpivot cells that are blank or empty (default is False)."
+            ]
+        }
+    ]
 }
+
 
 

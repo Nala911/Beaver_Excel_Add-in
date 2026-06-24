@@ -125,12 +125,15 @@ try {
 
     Invoke-Stage -Stage "command_registry_generation" -Action {
         $helpManifestPath = Join-Path $modulesDir "Libraries\Lib_HelpManifest.bas"
+        $udfRegistryPath = Join-Path $modulesDir "Libraries\Lib_UdfRegistry.bas"
         $registryMissing = -not (Test-Path $commandRegistryPath)
         $helpMissing = -not (Test-Path $helpManifestPath)
+        $udfMissing = -not (Test-Path $udfRegistryPath)
         $registryGenerated = $false
         $helpGenerated = $false
+        $udfGenerated = $false
         
-        if ($forceFullBuild -or $manifestStructureChanged -or $manifestChanged -or $registryMissing -or $helpMissing) {
+        if ($forceFullBuild -or $manifestStructureChanged -or $manifestChanged -or $registryMissing -or $helpMissing -or $udfMissing) {
             if ($forceFullBuild -or $manifestStructureChanged -or $registryMissing) {
                 Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
                 $registryGenerated = $true
@@ -139,11 +142,16 @@ try {
                 Sync-HelpManifest -ManifestPath $featureManifestPath -OutputPath $helpManifestPath
                 $helpGenerated = $true
             }
+            if ($forceFullBuild -or $manifestChanged -or $udfMissing) {
+                Sync-UdfRegistry -ManifestPath $featureManifestPath -OutputPath $udfRegistryPath
+                $udfGenerated = $true
+            }
             
             if (-not $forceFullBuild) {
                 $generatedRelPaths = @()
                 if ($registryGenerated) { $generatedRelPaths += "Modules/Infrastructure/Infra_CommandRegistry.bas" }
                 if ($helpGenerated) { $generatedRelPaths += "Modules/Libraries/Lib_HelpManifest.bas" }
+                if ($udfGenerated) { $generatedRelPaths += "Modules/Libraries/Lib_UdfRegistry.bas" }
 
                 foreach ($relPath in $generatedRelPaths) {
                     if ($changedFiles -notcontains $relPath) {
@@ -153,12 +161,14 @@ try {
                     }
                 }
             }
-            if ($registryGenerated -and $helpGenerated) {
-                return "command registry and help manifest refreshed"
-            } elseif ($registryGenerated) {
-                return "command registry refreshed"
-            } elseif ($helpGenerated) {
-                return "help manifest refreshed"
+            
+            $refreshed = @()
+            if ($registryGenerated) { $refreshed += "command registry" }
+            if ($helpGenerated) { $refreshed += "help manifest" }
+            if ($udfGenerated) { $refreshed += "UDF registry" }
+            
+            if ($refreshed.Count -gt 0) {
+                return ($refreshed -join ", ") + " refreshed"
             }
             return "skipped (generated files already current)"
         } else {

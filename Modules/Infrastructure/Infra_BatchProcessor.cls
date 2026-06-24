@@ -20,7 +20,8 @@ Public Function Execute( _
     ByVal scope As TargetScope, _
     ByVal processor As IBatchProcessor, _
     ByVal operationName As String, _
-    Optional ByVal showCompletionMsg As Boolean = True) As Long
+    Optional ByVal showCompletionMsg As Boolean = True, _
+    Optional ByVal captureMode As UndoCaptureMode = UndoCaptureFull) As Long
 
     Dim tracker As Object: Set tracker = Infra_Error.Track("Infra_BatchProcessor.Execute")
     Dim guard As New Infra_AppStateGuard
@@ -59,7 +60,7 @@ Public Function Execute( _
     End If
 
     If Not targetRange Is Nothing Then
-        If Not Infra_Undo.SaveStateOrConfirm(targetRange, operationName) Then GoTo CleanExit
+        If Not Infra_Undo.SaveStateOrConfirm(targetRange, operationName, captureMode) Then GoTo CleanExit
     End If
 
     ' --- 2. Configure app state ---

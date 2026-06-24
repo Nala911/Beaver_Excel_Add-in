@@ -95,7 +95,7 @@ Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
     Set m_CurrentRequest = request
     
     Dim totalCleaned As Long
-    totalCleaned = Infra_BatchProcessor.Execute(request.Context, request.Scope, Me, "Clean Data", False)
+    totalCleaned = Infra_BatchProcessor.Execute(request.Context, request.Scope, Me, "Clean Data", False, UndoCaptureFormulaOnly)
     
     Dim scopeLabel As String
     Select Case request.Scope

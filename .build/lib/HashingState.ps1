@@ -162,9 +162,102 @@ function Set-BuildStateTestsPassed {
     }
 }
 
+function Get-VbaStructuralHash {
+    param([string]$FilePath)
+    if (-not (Test-Path $FilePath)) { return "" }
+    
+    try {
+        $lines = [System.IO.File]::ReadAllLines($FilePath)
+        $structuralLines = [System.Collections.Generic.List[string]]::new()
+        
+        $extension = [System.IO.Path]::GetExtension($FilePath).ToLower()
+        $inCodeSection = $true
+        if ($extension -eq ".frm" -or $extension -eq ".cls") {
+            $inCodeSection = $false
+        }
+        
+        foreach ($line in $lines) {
+            if (-not $inCodeSection) {
+                if ($line -match '^Attribute\s+VB_Name\s*=') {
+                    $inCodeSection = $true
+                }
+                if ($line -match '^Attribute\s+') {
+                    [void]$structuralLines.Add($line.Trim())
+                }
+                continue
+            }
+            
+            $trimmed = $line.Trim()
+            if ($trimmed -eq "") { continue }
+            
+            # Skip pure comment lines, but keep metadata comments starting with '@'
+            if ($trimmed -match "^'" -and $trimmed -notmatch "^'\s*@") {
+                continue
+            }
+            
+            # Strip trailing comments (basic logic: find "'" outside quotes)
+            $cleanLine = ""
+            $inQuote = $false
+            for ($i = 0; $i -lt $trimmed.Length; $i++) {
+                $char = $trimmed[$i]
+                if ($char -eq '"') {
+                    $inQuote = -not $inQuote
+                }
+                if ($char -eq "'" -and -not $inQuote) {
+                    # Inline comment starts here, strip the rest of the line (but check if it's metadata)
+                    $commentText = $trimmed.Substring($i).Trim()
+                    if ($commentText -match "^'\s*@") {
+                        $cleanLine += $commentText
+                    }
+                    break
+                }
+                $cleanLine += $char
+            }
+            
+            $cleanTrimmed = $cleanLine.Trim()
+            if ($cleanTrimmed -eq "") { continue }
+            
+            # Collapse multiple spaces
+            $collapsed = [regex]::Replace($cleanTrimmed, '\s+', ' ')
+            [void]$structuralLines.Add($collapsed)
+        }
+        
+        $joined = $structuralLines -join "`n"
+        
+        $md5 = [System.Security.Cryptography.MD5]::Create()
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($joined)
+        $hashBytes = $md5.ComputeHash($bytes)
+        $md5.Dispose()
+        
+        $sb = [System.Text.StringBuilder]::new()
+        foreach ($b in $hashBytes) {
+            [void]$sb.Append($b.ToString("x2"))
+        }
+        return $sb.ToString().ToUpperInvariant()
+    } catch {
+        # Fallback to simple file hash
+        $md5 = [System.Security.Cryptography.MD5]::Create()
+        $stream = [System.IO.File]::OpenRead($FilePath)
+        $hashBytes = $md5.ComputeHash($stream)
+        $stream.Close()
+        $md5.Dispose()
+        
+        $sb = [System.Text.StringBuilder]::new()
+        foreach ($b in $hashBytes) {
+            [void]$sb.Append($b.ToString("x2"))
+        }
+        return $sb.ToString().ToUpperInvariant()
+    }
+}
+
 function Get-FileHashOptimized {
     param([string]$FilePath)
     if (-not (Test-Path $FilePath)) { return "" }
+    
+    $extension = [System.IO.Path]::GetExtension($FilePath).ToLower()
+    if ($extension -in @(".bas", ".cls", ".frm")) {
+        return Get-VbaStructuralHash -FilePath $FilePath
+    }
     
     $md5 = [System.Security.Cryptography.MD5]::Create()
     $stream = [System.IO.File]::OpenRead($FilePath)
@@ -178,6 +271,7 @@ function Get-FileHashOptimized {
     }
     return $sb.ToString().ToUpperInvariant()
 }
+
 
 function Test-BuildStateFileChanged {
     param(
