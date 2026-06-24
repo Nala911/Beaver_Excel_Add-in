@@ -570,34 +570,39 @@ End Sub
 
 Public Sub ClearWorkbookHighlights(ByVal wb As Workbook)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ClearWorkbookHighlights")
+    Dim guard As New Infra_AppStateGuard
     On Error GoTo ErrHandler
 
     Dim targetColor As Long
     targetColor = Infra_Config.HIGHLIGHT_COLOR
     
-    ' Temporarily adjust FindFormat
+    ' Set up search and replace formats
     Application.FindFormat.Clear
     Application.FindFormat.Interior.Color = targetColor
     
+    Application.ReplaceFormat.Clear
+    Application.ReplaceFormat.Interior.ColorIndex = xlNone
+    
+    ' Configure app state to optimize replacement performance
+    guard.ScreenUpdating = False
+    guard.EnableEvents = False
+    guard.Calculation = xlCalculationManual
+    guard.UpdateState
+
     Dim ws As Worksheet
     For Each ws In wb.Worksheets
         If Left$(ws.Name, 1) <> "_" Then
-            Dim foundCell As Range
-            Dim visited As Object
-            Set visited = CreateObject("Scripting.Dictionary")
-            
-            Do
-                Set foundCell = ws.UsedRange.Find(What:="", SearchFormat:=True)
-                If foundCell Is Nothing Then Exit Do
-                If visited.Exists(foundCell.Address) Then Exit Do ' Safety loop exit
-                visited.Add foundCell.Address, True
-                foundCell.Interior.ColorIndex = xlNone
-            Loop
+            On Error Resume Next
+            ws.UsedRange.Replace What:="", Replacement:="", SearchFormat:=True, ReplaceFormat:=True
+            On Error GoTo ErrHandler
         End If
     Next ws
 
 CleanExit:
+    On Error Resume Next
     Application.FindFormat.Clear
+    Application.ReplaceFormat.Clear
+    On Error GoTo 0
     Exit Sub
 ErrHandler:
     Infra_Error.HandleError "ClearWorkbookHighlights", Err

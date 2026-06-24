@@ -798,14 +798,12 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
                 needsFormat = False
                 If TypeName(transformer) = "FeatCmd_ModifyData" Then
                     If VarType(oldVal) = vbDate Then needsFormat = True
-                ElseIf TypeName(transformer) = "FeatCmd_ForceNumber" Then
-                    needsFormat = True
                 End If
                 
                 If needsFormat Then
                     oldFormat = CStr(area.Cells(r, c).NumberFormat)
                 Else
-                    oldFormat = vbNullString
+                    oldFormat = "__MIXED__"
                 End If
             Else
                 oldFormat = CStr(fmts)
@@ -819,7 +817,18 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
                 changeCount = changeCount + 1
                 hasChanged = True
                 
-                If newFormat <> vbNullString And newFormat <> oldFormat Then
+                ' Resolve lazy/deferred format check if needed
+                If newFormat = "__FORCE_GENERAL_IF_TEXT__" Then
+                    Dim actualFmt As String
+                    actualFmt = CStr(area.Cells(r, c).NumberFormat)
+                    If InStr(1, actualFmt, "@") > 0 Or LCase$(actualFmt) = "text" Then
+                        newFormat = "General"
+                    Else
+                        newFormat = vbNullString
+                    End If
+                End If
+                
+                If newFormat <> vbNullString And newFormat <> "__MIXED__" And (oldFormat = "__MIXED__" Or newFormat <> oldFormat) Then
                     formatChangeCount = formatChangeCount + 1
                     commonFormat = newFormat
                     Dim cellAddr As String

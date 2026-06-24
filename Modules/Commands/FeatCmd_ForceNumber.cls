@@ -71,7 +71,9 @@ Private Function ICellTransformer_TransformCell( _
     Dim outNum As Variant
     If Infra_ValueConversion.TryConvertToNumber(rawValue, outNum) Then
         outValue = outNum
-        If InStr(1, currentFormat, "@") > 0 Or LCase$(currentFormat) = "text" Then
+        If currentFormat = "__MIXED__" Then
+            outFormat = "__FORCE_GENERAL_IF_TEXT__"
+        ElseIf InStr(1, currentFormat, "@") > 0 Or LCase$(currentFormat) = "text" Then
             outFormat = "General"
         Else
             outFormat = currentFormat
