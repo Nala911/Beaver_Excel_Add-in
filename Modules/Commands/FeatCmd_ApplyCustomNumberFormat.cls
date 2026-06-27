@@ -35,7 +35,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set targetRange = ctx.SelectionRange
     If targetRange Is Nothing Then GoTo CleanExit
 
-    If Not Infra_Undo.SaveStateOrConfirm(targetRange, "Apply Format") Then GoTo CleanExit
+    If Not Infra_Undo.SaveStateOrConfirm(targetRange, "Apply Format", UndoCaptureFormatOnly) Then GoTo CleanExit
     targetRange.NumberFormat = Infra_Config.Model.DefaultNumberFormat
 
 CleanExit:

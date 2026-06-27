@@ -45,6 +45,10 @@ function Get-TestProcedureDependencies {
         }
         $componentPattern = "\b(" + ($escapedComps -join "|") + ")\b"
         
+        # Pre-compile the regex objects
+        $compRegex = [regex]::new($componentPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Compiled)
+        $stringRegex = [regex]::new('"([A-Za-z0-9_]+)"', [System.Text.RegularExpressions.RegexOptions]::Compiled)
+        
         foreach ($line in $lines) {
             if ($line -match "^\s*Public Sub (Test_[A-Za-z0-9_]+)\s*\(") {
                 $currentTest = $Matches[1]
@@ -56,15 +60,15 @@ function Get-TestProcedureDependencies {
                 }
             } elseif ($null -ne $currentTest) {
                 # Scan for component references
-                if ($line -match $componentPattern) {
-                    $matches = [regex]::Matches($line, $componentPattern)
+                if ($compRegex.IsMatch($line)) {
+                    $matches = $compRegex.Matches($line)
                     foreach ($m in $matches) {
                         [void]$currentTestDeps.Add($m.Value)
                     }
                 }
                 # Scan for string literals matching command names (e.g. CreateCommandContext("HelloWorld"))
-                if ($line -match '"([A-Za-z0-9_]+)"') {
-                    $matches = [regex]::Matches($line, '"([A-Za-z0-9_]+)"')
+                if ($stringRegex.IsMatch($line)) {
+                    $matches = $stringRegex.Matches($line)
                     foreach ($m in $matches) {
                         $cmdName = $m.Groups[1].Value
                         if ($ComponentNames -contains "FeatCmd_$cmdName") {
@@ -258,4 +262,105 @@ function Get-AllTestProcedures {
     }
     
     return $testProcedures
+}
+
+function Show-Dependencies {
+    param(
+        [string]$Target
+    )
+    
+    $buildState = Get-BuildState
+    if ($null -eq $buildState -or $null -eq $buildState.Metadata) {
+        Write-Error "No build state found. Run build first to populate metadata."
+        return
+    }
+    
+    # Target can be "all", or a specific component/file name
+    $targetComp = $Target
+    if ($Target.EndsWith(".bas") -or $Target.EndsWith(".cls") -or $Target.EndsWith(".frm")) {
+        $targetComp = [System.IO.Path]::GetFileNameWithoutExtension($Target)
+    }
+    
+    $projectDeps = [ordered]@{}
+    foreach ($prop in $buildState.Metadata.PSObject.Properties) {
+        $relPath = $prop.Name
+        $meta = $prop.Value
+        $compName = [System.IO.Path]::GetFileNameWithoutExtension($relPath)
+        
+        if ($meta.PSObject.Properties.Name -contains "Dependencies") {
+            $projectDeps[$compName] = @($meta.Dependencies)
+        }
+    }
+    
+    if ($targetComp -eq "all") {
+        Microsoft.PowerShell.Utility\Write-Output "--- Project Dependency Tree ---"
+        foreach ($comp in $projectDeps.Keys) {
+            $deps = $projectDeps[$comp]
+            if ($deps.Count -gt 0) {
+                Microsoft.PowerShell.Utility\Write-Output "$comp depends on:"
+                foreach ($dep in $deps) {
+                    Microsoft.PowerShell.Utility\Write-Output "  - $dep"
+                }
+            } else {
+                Microsoft.PowerShell.Utility\Write-Output "$comp has no dependencies."
+            }
+        }
+    } else {
+        # Show what $targetComp depends on
+        if ($projectDeps.Contains($targetComp)) {
+            Microsoft.PowerShell.Utility\Write-Output "--- Dependencies of $targetComp ---"
+            $deps = $projectDeps[$targetComp]
+            if ($deps.Count -gt 0) {
+                foreach ($dep in $deps) {
+                    Microsoft.PowerShell.Utility\Write-Output "  - $dep"
+                }
+            } else {
+                Microsoft.PowerShell.Utility\Write-Output "  (none)"
+            }
+            
+            # Show what depends on $targetComp (transitive/direct dependents)
+            Microsoft.PowerShell.Utility\Write-Output ""
+            Microsoft.PowerShell.Utility\Write-Output "--- Impact Assessment: Components depending on $targetComp ---"
+            
+            $dependents = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+            
+            # Helper script block to recursively find what depends on a component
+            $getDependentsRecursive = {
+                param($currentComp)
+                foreach ($comp in $projectDeps.Keys) {
+                    if ($projectDeps[$comp] -contains $currentComp) {
+                        if (-not $dependents.Contains($comp)) {
+                            [void]$dependents.Add($comp)
+                            & $MyInvocation.MyCommand.ScriptBlock -currentComp $comp
+                        }
+                    }
+                }
+            }
+            
+            # Define recursive helper block inline
+            $recBlock = {
+                param($currentComp)
+                foreach ($comp in $projectDeps.Keys) {
+                    if ($projectDeps[$comp] -contains $currentComp) {
+                        if (-not $dependents.Contains($comp)) {
+                            [void]$dependents.Add($comp)
+                            & $recBlock $comp
+                        }
+                    }
+                }
+            }
+            
+            & $recBlock $targetComp
+            
+            if ($dependents.Count -gt 0) {
+                foreach ($dep in $dependents) {
+                    Microsoft.PowerShell.Utility\Write-Output "  - $dep"
+                }
+            } else {
+                Microsoft.PowerShell.Utility\Write-Output "  (none)"
+            }
+        } else {
+            Write-Error "Component '$targetComp' not found in build metadata."
+        }
+    }
 }

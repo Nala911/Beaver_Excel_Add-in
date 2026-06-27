@@ -328,13 +328,20 @@ Private Sub ProcessSheetInternal(ByVal ws As Worksheet, ByRef fCount As Long, By
                             fCount = fCount + 1
                         End If
                     Else
-                        For Each cell In area.Cells
-                            If cell.HasFormula Then
-                                If InStr(1, cell.Formula2, "[", vbTextCompare) > 0 Then
-                                    fCount = fCount + Infra_ValueConversion.ConvertCellToStatic(cell)
-                                End If
+                        If isFormulaArrArray Then
+                            For r = 1 To UBound(formulaArr, 1)
+                                For c = 1 To UBound(formulaArr, 2)
+                                    If InStr(1, formulaArr(r, c), "[", vbTextCompare) > 0 Then
+                                        fCount = fCount + Infra_ValueConversion.ConvertCellToStatic(area.Cells(r, c))
+                                    End If
+                                Next c
+                            Next r
+                        Else
+                            ' Fallback for single cell area (though area.Cells.CountLarge = 1 is handled above)
+                            If InStr(1, formulaArr, "[", vbTextCompare) > 0 Then
+                                fCount = fCount + Infra_ValueConversion.ConvertCellToStatic(area)
                             End If
-                        Next cell
+                        End If
                     End If
                 End If
             End If

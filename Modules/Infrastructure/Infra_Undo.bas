@@ -121,6 +121,12 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String, Opt
                 undoSh.Range(area.Address).Formula2 = formulas
             End If
         Next area
+    ElseIf actualCaptureMode = UndoCaptureFormatOnly Then
+        For Each area In captureRange.Areas
+            Dim formats As Variant
+            formats = area.NumberFormat
+            undoSh.Range(area.Address).NumberFormat = formats
+        Next area
     Else
         For Each area In captureRange.Areas
             area.Copy Destination:=undoSh.Range(area.Address)
@@ -272,7 +278,7 @@ Public Sub PerformUndo()
     Dim addr As String: addr = GetUndoMetadataValue(UNDO_META_ADDRESS_NAME)
     Dim capModeStr As String: capModeStr = GetUndoMetadataValue(UNDO_META_CAPTURE_MODE)
     Dim capMode As UndoCaptureMode
-    capMode = IIf(capModeStr = "1", UndoCaptureFormulaOnly, UndoCaptureFull)
+    capMode = CInt(capModeStr)
     
     If wbName = "" Or wsName = "" Or addr = "" Then GoTo CleanExit
     
@@ -301,15 +307,19 @@ Public Sub PerformUndo()
     For Each area In targetRange.Areas
         If capMode = UndoCaptureFormulaOnly Then
             area.Formula2 = undoSh.Range(area.Address).Formula2
+        ElseIf capMode = UndoCaptureFormatOnly Then
+            area.NumberFormat = undoSh.Range(area.Address).NumberFormat
         Else
             undoSh.Range(area.Address).Copy Destination:=area
         End If
     Next area
     
     ' Restore formulas by replacing the prefix back to empty string
-    On Error Resume Next
-    targetRange.Replace What:="__BEAVER_UNDO_FORMULA_PREFIX__", Replacement:="", LookAt:=xlPart
-    On Error GoTo 0
+    If capMode <> UndoCaptureFormatOnly Then
+        On Error Resume Next
+        targetRange.Replace What:="__BEAVER_UNDO_FORMULA_PREFIX__", Replacement:="", LookAt:=xlPart
+        On Error GoTo 0
+    End If
     
     ' Clear undo sheet to prevent accidental double-restore
     undoSh.Cells.Clear

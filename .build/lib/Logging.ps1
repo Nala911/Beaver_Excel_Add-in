@@ -4,6 +4,27 @@
 
 Set-StrictMode -Version Latest
 
+# Metaprogramming override to suppress Write-Host output in JSON format mode
+function Write-Host {
+    [CmdletBinding()]
+    param(
+        [Parameter(Position=0, ValueFromPipeline=$true)]
+        [object]$Object,
+        [string]$ForegroundColor,
+        [string]$BackgroundColor,
+        [switch]$NoNewline
+    )
+    if ($global:BeaverFormatJson) {
+        return
+    }
+    $params = @{}
+    if ($null -ne $Object) { $params["Object"] = $Object }
+    if ($ForegroundColor) { $params["ForegroundColor"] = $ForegroundColor }
+    if ($BackgroundColor) { $params["BackgroundColor"] = $BackgroundColor }
+    if ($NoNewline) { $params["NoNewline"] = $true }
+    Microsoft.PowerShell.Utility\Write-Host @params
+}
+
 # --- Stage Execution Tracking ---
 if (-not (Get-Variable -Name "StageResults" -Scope Script -ErrorAction SilentlyContinue)) {
     $script:StageResults = New-Object System.Collections.ArrayList
@@ -195,6 +216,10 @@ function Save-BuildLog {
     }
     Write-Host "  Log File:     $logPath" -ForegroundColor DarkGray
     Write-Host "========================================" -ForegroundColor Cyan
+    
+    if ($global:BeaverFormatJson) {
+        Microsoft.PowerShell.Utility\Write-Output $json
+    }
 }
 
 function Stop-Script {

@@ -81,8 +81,16 @@ Public Function ConvertRangeToValues(ByVal targetRange As Range) As Long
                     hasSpillVal = area.HasSpill
                     On Error GoTo ErrHandler
                     
-                    If IsNull(hasSpillVal) Or (hasSpillVal = True) Then
-                        ' Spills or mixed: loop cell-by-cell in this area
+                    If hasSpillVal = True Then
+                        ' All are spills: try bulk conversion of the expanded area
+                        Dim areaExpanded As Range
+                        Set areaExpanded = ResolveSpillExpandedRange(area)
+                        If Not areaExpanded Is Nothing Then
+                            areaExpanded.Value = areaExpanded.Value
+                            processedCount = processedCount + area.Cells.CountLarge
+                        End If
+                    ElseIf IsNull(hasSpillVal) Then
+                        ' Spills and non-spills mixed: loop cell-by-cell in this area
                         For Each cell In area.Cells
                             processedCount = processedCount + ConvertCellToStatic(cell)
                         Next cell
@@ -328,22 +336,43 @@ Public Function ResolveSpillExpandedRange(ByVal sourceRange As Range) As Range
     On Error GoTo ErrHandler
     
     If Not formulaCellsSelection Is Nothing Then
-        For Each cell In formulaCellsSelection.Cells
-            Dim isArray As Boolean
-            On Error Resume Next
-            isArray = cell.HasArray
-            On Error GoTo ErrHandler
-            
-            If isArray Then
-                Dim arrRange As Range
+        ' Check if the whole selection has no array formulas in a single COM call
+        Dim selectionHasArray As Variant
+        selectionHasArray = Null
+        On Error Resume Next
+        selectionHasArray = formulaCellsSelection.HasArray
+        On Error GoTo ErrHandler
+        
+        If IsNull(selectionHasArray) Or (selectionHasArray = True) Then
+            If selectionHasArray = True Then
+                ' The entire selection is one array
+                Dim selectionArrRange As Range
                 On Error Resume Next
-                Set arrRange = cell.CurrentArray
+                Set selectionArrRange = formulaCellsSelection.CurrentArray
                 On Error GoTo ErrHandler
-                If Not arrRange Is Nothing Then
-                    Set expanded = Application.Union(expanded, arrRange)
+                If Not selectionArrRange Is Nothing Then
+                    Set expanded = Application.Union(expanded, selectionArrRange)
                 End If
+            Else
+                ' Mixed: scan cell-by-cell
+                For Each cell In formulaCellsSelection.Cells
+                    Dim isArray As Boolean
+                    On Error Resume Next
+                    isArray = cell.HasArray
+                    On Error GoTo ErrHandler
+                    
+                    If isArray Then
+                        Dim arrRange As Range
+                        On Error Resume Next
+                        Set arrRange = cell.CurrentArray
+                        On Error GoTo ErrHandler
+                        If Not arrRange Is Nothing Then
+                            Set expanded = Application.Union(expanded, arrRange)
+                        End If
+                    End If
+                Next cell
             End If
-        Next cell
+        End If
     End If
 
     ' 2. Expand for dynamic array spill ranges intersecting the selection
@@ -367,28 +396,40 @@ Public Function ResolveSpillExpandedRange(ByVal sourceRange As Range) As Range
             
             If formulaCount > 0 And formulaCount < scanRange.Cells.CountLarge Then
                 ' Optimization: Scan only the formula cells on the sheet
-                Dim fCell As Range
-                For Each fCell In sheetFormulas.Cells
-                    Dim isSpill As Boolean
-                    isSpill = False
+                Dim formulaArea As Range
+                For Each formulaArea In sheetFormulas.Areas
+                    Dim areaSpill As Variant
+                    areaSpill = False
                     On Error Resume Next
-                    isSpill = fCell.HasSpill
+                    areaSpill = formulaArea.HasSpill
                     On Error GoTo ErrHandler
                     
-                    If isSpill Then
-                        Dim spRange As Range
-                        On Error Resume Next
-                        Set spRange = fCell.SpillingToRange
-                        On Error GoTo ErrHandler
-                        
-                        If Not spRange Is Nothing Then
-                            ' Check if this spill range intersects our scanRange
-                            If Not Application.Intersect(scanRange, spRange) Is Nothing Then
-                                Set expanded = Application.Union(expanded, spRange)
+                    ' Only scan this area if it contains at least one spill parent/cell
+                    If IsNull(areaSpill) Or (areaSpill = True) Then
+                        Dim fCell As Range
+                        For Each fCell In formulaArea.Cells
+                            Dim isSpill As Boolean
+                            isSpill = False
+                            On Error Resume Next
+                            isSpill = fCell.HasSpill
+                            On Error GoTo ErrHandler
+                            
+                            If isSpill Then
+                                Dim spRange As Range
+                                On Error Resume Next
+                                Set spRange = fCell.SpillingToRange
+                                On Error GoTo ErrHandler
+                                
+                                If Not spRange Is Nothing Then
+                                    ' Check if this spill range intersects our scanRange
+                                    If Not Application.Intersect(scanRange, spRange) Is Nothing Then
+                                        Set expanded = Application.Union(expanded, spRange)
+                                    End If
+                                End If
                             End If
-                        End If
+                        Next fCell
                     End If
-                Next fCell
+                Next formulaArea
             Else
                 ' Default path: Scan each cell in scanRange
                 For Each cell In scanRange.Cells

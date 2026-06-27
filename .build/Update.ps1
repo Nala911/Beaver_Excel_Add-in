@@ -14,7 +14,11 @@ param(
     [switch]$SkipLint,
     [switch]$Visible,
     [switch]$Clean,
-    [switch]$KeepAlive
+    [switch]$KeepAlive,
+    [string]$Format = "Text",
+    [switch]$FailedOnly,
+    [switch]$AutoFix,
+    [string]$ShowDeps
 )
 
 Set-StrictMode -Version Latest
@@ -25,6 +29,7 @@ $ErrorActionPreference = "Stop"
 # Enable orchestrator mode to share Excel session and hashes across stages
 $global:BeaverOrchestratorActive = $true
 $global:BeaverKeepAliveActive = $KeepAlive
+$global:BeaverFormatJson = ($Format -eq "Json")
 $global:BeaverSourceHashes = $null
 $global:BeaverSharedExcel = $null
 $global:BeaverExcelWasAlreadyOpen = $false
@@ -34,6 +39,11 @@ $global:BeaverFeatureManifestCache = $null
 $global:BeaverFileContentCache = $null
 
 try {
+    if ($ShowDeps) {
+        Show-Dependencies -Target $ShowDeps
+        exit 0
+    }
+
     if ($ListTests) {
         $listParams = @{ ListTests = $true }
         if ($Filter) { $listParams["Filter"] = $Filter }
@@ -85,7 +95,7 @@ try {
         }
 
         # Check if we can skip the entire build/test pipeline
-        $hasAnyChanges = ($changedFiles.Count -gt 0 -or $deletedFiles.Count -gt 0)
+        $hasAnyChanges = (@($changedFiles).Count -gt 0 -or @($deletedFiles).Count -gt 0)
         $testsPassed = $false
         if ($buildState.PSObject.Properties.Name.Contains("TestsPassed") -and $buildState.TestsPassed -eq $true) {
             $testsPassed = $true
@@ -112,7 +122,7 @@ try {
                 break
             }
         }
-        if ($deletedFiles.Count -gt 0) {
+        if (@($deletedFiles).Count -gt 0) {
             $hasVbaChanges = $true
         }
 
@@ -133,9 +143,9 @@ try {
         
         # Smart Test Filtering: calculate affected tests dynamically using dependency tracing
         if (-not $Filter -and -not $Force -and -not $manifestChanged) {
-            if ($changedFiles.Count -gt 0) {
+            if (@($changedFiles).Count -gt 0) {
                 $impactedTestNames = Get-ImpactedTests -ChangedFiles $changedFiles -DeletedFiles $deletedFiles
-                if ($impactedTestNames.Count -gt 0) {
+                if (@($impactedTestNames).Count -gt 0) {
                     $patterns = @()
                     foreach ($testName in $impactedTestNames) {
                         $patterns += "*$testName*"
@@ -161,6 +171,7 @@ try {
     $buildParams = @{}
     if ($Force) { $buildParams["Force"] = $true }
     if ($SkipLint) { $buildParams["SkipLint"] = $true }
+    if ($AutoFix) { $buildParams["AutoFix"] = $true }
 
     & "$PSScriptRoot\Build.ps1" @buildParams
     if (-not $?) {
@@ -192,6 +203,9 @@ try {
     if ($Visible) { $testParams["Visible"] = $true }
     if ($null -ne $skipUnitTests -and $skipUnitTests) {
         $testParams["SkipUnitTests"] = $true
+    }
+    if ($FailedOnly) {
+        $testParams["FailedOnly"] = $true
     }
 
     & "$PSScriptRoot\Test.ps1" @testParams

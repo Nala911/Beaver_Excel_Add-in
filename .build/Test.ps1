@@ -4,7 +4,8 @@ param(
     [string]$Filter,
     [switch]$ListTests,
     [switch]$Visible,
-    [switch]$SkipUnitTests
+    [switch]$SkipUnitTests,
+    [switch]$FailedOnly
 )
 
 Set-StrictMode -Version Latest
@@ -387,6 +388,42 @@ try {
 
             if ($testWorkbook.ReadOnly) {
                 throw "The workbook '$excelPath' was opened as Read-Only. Please ensure that no other Excel process is locking the file."
+            }
+
+            # Resolve FailedOnly if active
+            if ($FailedOnly) {
+                $logPath = Join-Path $PSScriptRoot "build_log.json"
+                if (Test-Path $logPath) {
+                    try {
+                        $logContent = Get-Content $logPath -Raw | ConvertFrom-Json
+                        if ($null -ne $logContent -and $null -ne $logContent.testResults -and $null -ne $logContent.testResults.unitTests -and $null -ne $logContent.testResults.unitTests.failures) {
+                            $failedTestNames = @()
+                            foreach ($fail in $logContent.testResults.unitTests.failures) {
+                                if ($null -ne $fail.name) {
+                                    $failedTestNames += $fail.name
+                                }
+                            }
+                            if ($failedTestNames.Count -gt 0) {
+                                $wrappedFailed = foreach ($name in $failedTestNames) {
+                                    "*$name*"
+                                }
+                                $Filter = $wrappedFailed -join ","
+                                Write-Host "Smart Retry: Found $($failedTestNames.Count) previous failure(s). Filtering tests to: $Filter" -ForegroundColor Yellow
+                            } else {
+                                Write-Host "Smart Retry: No previous test failures recorded. Skipping tests." -ForegroundColor Green
+                                $SkipUnitTests = $true
+                            }
+                        } else {
+                            Write-Host "Smart Retry: No previous test failures recorded in log. Skipping tests." -ForegroundColor Green
+                            $SkipUnitTests = $true
+                        }
+                    } catch {
+                        Write-Warning "Failed to parse build_log.json for Smart Retry: $($_.Exception.Message)"
+                    }
+                } else {
+                    Write-Host "Smart Retry: No build log found. Skipping tests." -ForegroundColor Green
+                    $SkipUnitTests = $true
+                }
             }
 
             # Prepare filter pattern

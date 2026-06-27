@@ -4,6 +4,91 @@
 
 Set-StrictMode -Version Latest
 
+# Compile high-performance C# helper for VBA structural hashing
+$vbaHelperCode = @"
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+public static class VbaHashHelper {
+    private static readonly Regex SpaceCollapseRegex = new Regex(@"\s+", RegexOptions.Compiled);
+    private static readonly Regex AttributeRegex = new Regex(@"^Attribute\s+VB_Name\s*=", RegexOptions.Compiled);
+    private static readonly Regex AttributeGeneralRegex = new Regex(@"^Attribute\s+", RegexOptions.Compiled);
+    private static readonly Regex MetadataCommentRegex = new Regex(@"^'\s*@", RegexOptions.Compiled);
+
+    public static string GetStructuralCode(string filePath) {
+        if (!System.IO.File.Exists(filePath)) return string.Empty;
+        
+        string[] lines = System.IO.File.ReadAllLines(filePath);
+        List<string> structuralLines = new List<string>(lines.Length);
+        
+        string extension = System.IO.Path.GetExtension(filePath).ToLower();
+        bool inCodeSection = true;
+        if (extension == ".frm" || extension == ".cls") {
+            inCodeSection = false;
+        }
+        
+        foreach (string line in lines) {
+            if (!inCodeSection) {
+                if (AttributeRegex.IsMatch(line)) {
+                    inCodeSection = true;
+                }
+                if (AttributeGeneralRegex.IsMatch(line)) {
+                    structuralLines.Add(line.Trim());
+                }
+                continue;
+            }
+            
+            string trimmed = line.Trim();
+            if (trimmed.Length == 0) continue;
+            
+            // Skip pure comment lines, but keep metadata comments starting with '@'
+            if (trimmed.StartsWith("'")) {
+                if (!MetadataCommentRegex.IsMatch(trimmed)) {
+                    continue;
+                }
+            }
+            
+            // Strip trailing comments (basic logic: find "'" outside quotes)
+            string cleanLine = trimmed;
+            bool inQuote = false;
+            int commentIdx = -1;
+            for (int i = 0; i < trimmed.Length; i++) {
+                char c = trimmed[i];
+                if (c == '"') {
+                    inQuote = !inQuote;
+                }
+                else if (c == '\'' && !inQuote) {
+                    commentIdx = i;
+                    break;
+                }
+            }
+            
+            if (commentIdx != -1) {
+                string comment = trimmed.Substring(commentIdx);
+                if (MetadataCommentRegex.IsMatch(comment)) {
+                    cleanLine = trimmed;
+                } else {
+                    cleanLine = trimmed.Substring(0, commentIdx).Trim();
+                }
+            }
+            
+            if (cleanLine.Length == 0) continue;
+            
+            // Collapse multiple spaces
+            string collapsed = SpaceCollapseRegex.Replace(cleanLine, " ");
+            structuralLines.Add(collapsed);
+        }
+        
+        return string.Join("\n", structuralLines);
+    }
+}
+"@
+
+if (-not ([System.Management.Automation.PSTypeName]"VbaHashHelper").Type) {
+    Add-Type -TypeDefinition $vbaHelperCode
+}
+
 function Get-BuildState {
     $buildStatePathVar = Get-Variable -Name "buildStatePath" -ErrorAction SilentlyContinue
     $resolvedBuildStatePath = if ($null -ne $buildStatePathVar) { $buildStatePathVar.Value } else { Join-Path (Split-Path $PSScriptRoot -Parent) ".build_state.json" }
@@ -167,62 +252,7 @@ function Get-VbaStructuralHash {
     if (-not (Test-Path $FilePath)) { return "" }
     
     try {
-        $lines = [System.IO.File]::ReadAllLines($FilePath)
-        $structuralLines = [System.Collections.Generic.List[string]]::new()
-        
-        $extension = [System.IO.Path]::GetExtension($FilePath).ToLower()
-        $inCodeSection = $true
-        if ($extension -eq ".frm" -or $extension -eq ".cls") {
-            $inCodeSection = $false
-        }
-        
-        foreach ($line in $lines) {
-            if (-not $inCodeSection) {
-                if ($line -match '^Attribute\s+VB_Name\s*=') {
-                    $inCodeSection = $true
-                }
-                if ($line -match '^Attribute\s+') {
-                    [void]$structuralLines.Add($line.Trim())
-                }
-                continue
-            }
-            
-            $trimmed = $line.Trim()
-            if ($trimmed -eq "") { continue }
-            
-            # Skip pure comment lines, but keep metadata comments starting with '@'
-            if ($trimmed -match "^'" -and $trimmed -notmatch "^'\s*@") {
-                continue
-            }
-            
-            # Strip trailing comments (basic logic: find "'" outside quotes)
-            $cleanLine = ""
-            $inQuote = $false
-            for ($i = 0; $i -lt $trimmed.Length; $i++) {
-                $char = $trimmed[$i]
-                if ($char -eq '"') {
-                    $inQuote = -not $inQuote
-                }
-                if ($char -eq "'" -and -not $inQuote) {
-                    # Inline comment starts here, strip the rest of the line (but check if it's metadata)
-                    $commentText = $trimmed.Substring($i).Trim()
-                    if ($commentText -match "^'\s*@") {
-                        $cleanLine += $commentText
-                    }
-                    break
-                }
-                $cleanLine += $char
-            }
-            
-            $cleanTrimmed = $cleanLine.Trim()
-            if ($cleanTrimmed -eq "") { continue }
-            
-            # Collapse multiple spaces
-            $collapsed = [regex]::Replace($cleanTrimmed, '\s+', ' ')
-            [void]$structuralLines.Add($collapsed)
-        }
-        
-        $joined = $structuralLines -join "`n"
+        $joined = [VbaHashHelper]::GetStructuralCode($FilePath)
         
         $md5 = [System.Security.Cryptography.MD5]::Create()
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($joined)

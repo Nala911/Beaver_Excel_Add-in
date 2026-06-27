@@ -393,11 +393,27 @@ Public Function GetChunkedRanges(ByVal targetRange As Range, Optional ByVal maxR
 
     Dim area As Range
     Dim r As Long, chunkRowsCount As Long
+    
+    Dim maxCellsPerChunk As Long
+    maxCellsPerChunk = 50000 ' Target cell limit per chunk to avoid heavy memory allocation and CPU spikes
+    
+    Dim dynamicMaxRows As Long
 
     For Each area In targetRange.Areas
-        If area.Rows.Count > maxRowsPerChunk Then
-            For r = 1 To area.Rows.Count Step maxRowsPerChunk
-                chunkRowsCount = maxRowsPerChunk
+        Dim colCount As Long
+        colCount = area.Columns.Count
+        
+        If colCount > 0 Then
+            dynamicMaxRows = maxCellsPerChunk \ colCount
+            If dynamicMaxRows < 1 Then dynamicMaxRows = 1
+            If dynamicMaxRows > maxRowsPerChunk Then dynamicMaxRows = maxRowsPerChunk
+        Else
+            dynamicMaxRows = maxRowsPerChunk
+        End If
+
+        If area.Rows.Count > dynamicMaxRows Then
+            For r = 1 To area.Rows.Count Step dynamicMaxRows
+                chunkRowsCount = dynamicMaxRows
                 If r + chunkRowsCount - 1 > area.Rows.Count Then
                     chunkRowsCount = area.Rows.Count - r + 1
                 End If
@@ -785,6 +801,9 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
     Dim addrList As String
     Dim commonFormat As String
     
+    Dim isModifyData As Boolean
+    isModifyData = (TypeName(transformer) = "FeatCmd_ModifyData")
+    
     For r = rowMin To rowMax
         For c = colMin To colMax
             Dim oldVal As Variant
@@ -796,7 +815,7 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
             ElseIf isFmtsNull Then
                 Dim needsFormat As Boolean
                 needsFormat = False
-                If TypeName(transformer) = "FeatCmd_ModifyData" Then
+                If isModifyData Then
                     If VarType(oldVal) = vbDate Then needsFormat = True
                 End If
                 

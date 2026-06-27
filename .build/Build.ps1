@@ -2,7 +2,8 @@
 param(
     [switch]$Force,
     [switch]$SkipLint,
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$AutoFix
 )
 
 Set-StrictMode -Version Latest
@@ -219,20 +220,18 @@ try {
         $filesToValidate = if ($forceFullBuild) { $null } else { $changedFiles }
         $validRibbon = if ($forceFullBuild -or $manifestChanged) { Test-RibbonValidity -XmlPath $ribbonXmlPath -ModulesDir $modulesDir } else { $true }
         
-        $validVba = $true
         $validLint = $true
         $validForms = $true
         
         if (-not $SkipLint) {
-            $validVba = Invoke-VbaSyntaxCheck -SourceDir $modulesDir -FilesToProcess $filesToValidate
-            $validLint = Invoke-EnhancedLinting -SourceDir $modulesDir -FilesToProcess $filesToValidate
+            $validLint = Invoke-VbaLint -SourceDir $modulesDir -FilesToProcess $filesToValidate -AutoFix:$AutoFix
             $validForms = Test-FormFilesValidity -SourceDir $modulesDir -FilesToProcess $filesToValidate
             $null = Invoke-TestCoverageAudit -SourceDir $modulesDir
         } else {
             Write-Host "  Skipping linting, syntax, and form validity checks (-SkipLint)." -ForegroundColor Yellow
         }
 
-        if (-not ($validRibbon -and $validVba -and $validLint -and $validForms)) {
+        if (-not ($validRibbon -and $validLint -and $validForms)) {
             throw "Pre-deployment validation failed"
         }
 
@@ -407,6 +406,11 @@ try {
                     $excel.ScreenUpdating = $false
                     $excel.EnableEvents = $false
                     $excel.Calculation = -4135 # xlCalculationManual
+
+                    # Hide VBE window during imports to prevent drawing/rendering CPU overhead
+                    if ($null -ne $excel.VBE) {
+                        $excel.VBE.MainWindow.Visible = $false
+                    }
                 }
             } catch {}
 

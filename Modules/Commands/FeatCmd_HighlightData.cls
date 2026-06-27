@@ -434,48 +434,84 @@ Public Function HasHardcodedValue(ByVal formula As String, Optional ByVal rePass
     ' Remove any leading "=" sign
     If Left$(formula, 1) = "=" Then formula = Mid$(formula, 2)
     
-    Dim re As Object
-    If rePassed Is Nothing Then
-        Set re = CreateObject("VBScript.RegExp")
-        re.Global = True
-        re.IgnoreCase = True
-    Else
-        Set re = rePassed
+    Static reTextLiteral As Object
+    Static reStringLiteral As Object
+    Static reTableCol As Object
+    Static reSheetRef As Object
+    Static reCellRef As Object
+    Static reColRef As Object
+    Static reRowRef As Object
+    Static reNumber As Object
+    Static initialized As Boolean
+
+    If Not initialized Then
+        Set reTextLiteral = CreateObject("VBScript.RegExp")
+        reTextLiteral.Global = True
+        reTextLiteral.IgnoreCase = True
+        reTextLiteral.Pattern = """([^""]+)"""
+
+        Set reStringLiteral = CreateObject("VBScript.RegExp")
+        reStringLiteral.Global = True
+        reStringLiteral.IgnoreCase = True
+        reStringLiteral.Pattern = """[^""]*"""
+
+        Set reTableCol = CreateObject("VBScript.RegExp")
+        reTableCol.Global = True
+        reTableCol.IgnoreCase = True
+        reTableCol.Pattern = "\[[^\]]*\]"
+
+        Set reSheetRef = CreateObject("VBScript.RegExp")
+        reSheetRef.Global = True
+        reSheetRef.IgnoreCase = True
+        reSheetRef.Pattern = "'[^']*'!|[A-Za-z0-9_\.]+!"
+
+        Set reCellRef = CreateObject("VBScript.RegExp")
+        reCellRef.Global = True
+        reCellRef.IgnoreCase = True
+        reCellRef.Pattern = "\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)?"
+
+        Set reColRef = CreateObject("VBScript.RegExp")
+        reColRef.Global = True
+        reColRef.IgnoreCase = True
+        reColRef.Pattern = "\$?[A-Z]{1,3}:\$?[A-Z]{1,3}"
+
+        Set reRowRef = CreateObject("VBScript.RegExp")
+        reRowRef.Global = True
+        reRowRef.IgnoreCase = True
+        reRowRef.Pattern = "\$?\d+:\$?\d+"
+
+        Set reNumber = CreateObject("VBScript.RegExp")
+        reNumber.Global = True
+        reNumber.IgnoreCase = True
+        reNumber.Pattern = "\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b"
+
+        initialized = True
     End If
-    
+
     ' 1. Check for non-empty text literals: "[^"]+" (excluding empty string "")
-    re.Pattern = """([^""]+)"""
-    If re.Test(formula) Then
+    If reTextLiteral.Test(formula) Then
         HasHardcodedValue = True
         GoTo CleanExit
     End If
     
     ' Replace all string literals with empty string to avoid parsing numbers/references in strings
-    re.Pattern = """[^""]*"""
-    formula = re.Replace(formula, "")
+    formula = reStringLiteral.Replace(formula, "")
     
     ' 2. Strip table column/field references [ColumnName] or [[Header],[ColumnName]]
-    re.Pattern = "\[[^\]]*\]"
-    formula = re.Replace(formula, "")
+    formula = reTableCol.Replace(formula, "")
     
     ' 3. Strip sheet references: 'Sheet Name'! or SheetName!
-    re.Pattern = "'[^']*'!|[A-Za-z0-9_\.]+!"
-    formula = re.Replace(formula, "")
+    formula = reSheetRef.Replace(formula, "")
     
     ' 4. Strip standard cell references: e.g. A1, $B$10, AA100, A1:B10, A:B, 1:2
-    re.Pattern = "\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)?"
-    formula = re.Replace(formula, "")
-    re.Pattern = "\$?[A-Z]{1,3}:\$?[A-Z]{1,3}"
-    formula = re.Replace(formula, "")
-    re.Pattern = "\$?\d+:\$?\d+"
-    formula = re.Replace(formula, "")
+    formula = reCellRef.Replace(formula, "")
+    formula = reColRef.Replace(formula, "")
+    formula = reRowRef.Replace(formula, "")
     
     ' 5. Look for standalone numbers.
     ' Word boundary \b ensures it's a standalone token.
-    re.Pattern = "\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b"
-    
     Dim matches As Object
-    Set matches = re.Execute(formula)
+    Set matches = reNumber.Execute(formula)
     If matches.Count > 0 Then
         ' Exclude 0 and 1 as they are common offsets/flags in MATCH, LEFT, VLOOKUP, etc.
         Dim match As Object

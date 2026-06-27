@@ -1,15 +1,15 @@
 ﻿{
-    "timestamp":  "2026-06-24T14:10:39+05:30",
+    "timestamp":  "2026-06-27T15:43:17+05:30",
     "status":  "success",
     "commandLine":  ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
-    "buildMode":  "skipped",
+    "buildMode":  "incremental",
     "system":  {
                    "os":  "Microsoft Windows NT 10.0.26200.0",
                    "powershellVersion":  "5.1.26100.8737",
                    "excelProcess":  {
-                                        "pid":  11788,
+                                        "pid":  0,
                                         "wasAlreadyOpen":  false,
-                                        "reusedSession":  true,
+                                        "reusedSession":  false,
                                         "lockRecovered":  false
                                     }
                },
@@ -25,12 +25,7 @@
                     "manifestStructureChanged":  false
                 },
     "stages":  [
-                   {
-                       "name":  "runtime_tests",
-                       "status":  "success",
-                       "durationMs":  12967.71,
-                       "details":  ""
-                   }
+
                ],
     "lintResults":  {
                         "checkedFiles":  [
@@ -45,17 +40,17 @@
                            "errorDetails":  null
                        },
     "testResults":  {
-                        "runTests":  true,
-                        "filter":  "",
+                        "runTests":  false,
+                        "filter":  null,
                         "ribbonValidation":  {
-                                                 "status":  "skipped",
+                                                 "status":  "success",
                                                  "error":  null
                                              },
                         "unitTests":  {
-                                          "total":  507,
-                                          "passed":  507,
+                                          "total":  0,
+                                          "passed":  0,
                                           "failed":  0,
-                                          "durationMs":  8268,
+                                          "durationMs":  0,
                                           "failures":  [
 
                                                        ]
@@ -68,5 +63,5 @@
                                                                ]
                                               }
                     },
-    "totalDurationMs":  15185.71
+    "totalDurationMs":  1512.46
 }

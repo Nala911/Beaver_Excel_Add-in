@@ -12,7 +12,11 @@ param(
     [switch]$SkipLint,
     [switch]$Visible,
     [switch]$Clean,
-    [switch]$KeepAlive
+    [switch]$KeepAlive,
+    [string]$Format = "Text",
+    [switch]$FailedOnly,
+    [switch]$AutoFix,
+    [string]$ShowDeps
 )
 
 Set-StrictMode -Version Latest
