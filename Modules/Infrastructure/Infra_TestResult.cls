@@ -1,4 +1,4 @@
-VERSION 1.0 CLASS
+﻿VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -11,7 +11,7 @@ Option Explicit
 
 ' @Module: Infra_TestResult
 ' @Category: Infrastructure
-' @Description: Simple object to hold a single unit test result for Lib_Tests.
+' @Description: Simple object to hold a single unit test result for Test_Runner.
 ' @ManagedBy: BeaverAddin Agent
 
 Public Name As String

@@ -64,7 +64,7 @@ Public Function Execute( _
     End If
 
     ' --- 2. Configure app state ---
-    guard.ScreenUpdating = (scope <> TargetScopeWorkbook)
+    guard.ScreenUpdating = False
     guard.EnableEvents = False
     guard.DisplayAlerts = True
     guard.Calculation = xlCalculationManual

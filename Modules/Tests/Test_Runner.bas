@@ -1,7 +1,7 @@
-Attribute VB_Name = "Lib_Tests"
+﻿Attribute VB_Name = "Test_Runner"
 Option Explicit
 
-' @Module: Lib_Tests
+' @Module: Test_Runner
 ' @Category: Infrastructure
 ' @Description: Lightweight unit testing framework with structured result export for automated verification.
 ' @ManagedBy: BeaverAddin Agent
@@ -242,7 +242,7 @@ Private Sub ReportResults()
     PersistResults pResults, passCount, failCount
     
     If failCount > 0 Then
-        Err.Raise 9999, "Lib_Tests", "Unit tests failed. See Immediate Window for details."
+        Err.Raise 9999, "Test_Runner", "Unit tests failed. See Immediate Window for details."
     End If
 
 CleanExit:

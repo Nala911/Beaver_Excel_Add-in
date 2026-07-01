@@ -456,9 +456,9 @@ try {
                         try {
                             if ($filterPattern) {
                                 Write-Host "  Running tests matching filter: '$filterPattern'..." -ForegroundColor Cyan
-                                $testExcel.Run("Lib_Tests.RunTestsFilter", $filterPattern)
+                                $testExcel.Run("Test_Runner.RunTestsFilter", $filterPattern)
                             } else {
-                                $testExcel.Run("Lib_Tests.RunAllTests")
+                                $testExcel.Run("Test_Runner.RunAllTests")
                             }
                             $runCompleted = $true
                         } catch {

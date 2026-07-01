@@ -1,11 +1,11 @@
-Attribute VB_Name = "Lib_Tests_Feat_CleanData"
+﻿Attribute VB_Name = "Test_Feat_CleanData"
 Option Explicit
 
-' @Module: Lib_Tests_Feat_CleanData
+' @Module: Test_Feat_CleanData
 ' @Category: Library
 ' @Description: Integration tests for data clean features.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, Lib_ValueConversion, FeatCmd_CleanData, CleanDataRequest
+' @Dependencies: Test_Runner, AppContainer, Infra_Error, Infra_Undo, Lib_ValueConversion, FeatCmd_CleanData, CleanDataRequest
 
 Public Sub Test_CleanData_TrimmingAndNumericalFixing()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CleanData_TrimmingAndNumericalFixing")
@@ -29,11 +29,11 @@ Public Sub Test_CleanData_TrimmingAndNumericalFixing()
     cleanedCount = cmd.CleanRangeDirect(ws.Range("A1:A4"))
 
     ' Asserts
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "hello world", "CleanData should trim and remove extra spaces"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, "123.45", "CleanData should leave numeric text unchanged since text number conversion was removed"
-    Lib_Tests.AssertEqual ws.Range("A2").NumberFormat, "@", "Number format should remain text"
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, "normal text", "CleanData should leave normal text untouched"
-    Lib_Tests.AssertEqual ws.Range("A4").Value2, "hello world", "CleanData should replace non-breaking spaces with standard spaces"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, "hello world", "CleanData should trim and remove extra spaces"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, "123.45", "CleanData should leave numeric text unchanged since text number conversion was removed"
+    Test_Runner.AssertEqual ws.Range("A2").NumberFormat, "@", "Number format should remain text"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, "normal text", "CleanData should leave normal text untouched"
+    Test_Runner.AssertEqual ws.Range("A4").Value2, "hello world", "CleanData should replace non-breaking spaces with standard spaces"
 
     ' Cleanup
     Application.DisplayAlerts = False
@@ -73,8 +73,8 @@ Public Sub Test_CleanData_CheckboxOptions()
     Dim cleanedCount As Long
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A1:A2"), request)
 
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "  hello   world  ", "CleanData should NOT trim spaces if CleanTrimSpaces is False"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, "helloworld", "CleanData should remove non-printable characters if CleanNonPrintables is True"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, "  hello   world  ", "CleanData should NOT trim spaces if CleanTrimSpaces is False"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, "helloworld", "CleanData should remove non-printable characters if CleanNonPrintables is True"
 
     Application.DisplayAlerts = False
     ws.Delete
@@ -119,24 +119,24 @@ Public Sub Test_CleanData_NewEnhancements()
     Dim cmd As New FeatCmd_CleanData
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A1:A4"), req)
 
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "helloworld", "Should remove zero-width space"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, "BOMtest", "Should remove BOM"
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, "thin space", "Should convert thin space to standard space"
-    Lib_Tests.AssertEqual ws.Range("A4").Value2, "narrow space", "Should convert narrow space to standard space"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, "helloworld", "Should remove zero-width space"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, "BOMtest", "Should remove BOM"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, "thin space", "Should convert thin space to standard space"
+    Test_Runner.AssertEqual ws.Range("A4").Value2, "narrow space", "Should convert narrow space to standard space"
 
     ' 2. Test Line Breaks: Replace with space
     ws.Range("B1").Value2 = "line1" & vbCrLf & "line2" & vbLf & "line3"
     req.CleanInvisibleChars = False
     req.CleanReplaceLineBreaksWithSpace = True
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("B1"), req)
-    Lib_Tests.AssertEqual ws.Range("B1").Value2, "line1 line2 line3", "Should replace line breaks with spaces"
+    Test_Runner.AssertEqual ws.Range("B1").Value2, "line1 line2 line3", "Should replace line breaks with spaces"
 
     ' 3. Test Line Breaks: Remove entirely
     ws.Range("B2").Value2 = "line1" & vbCrLf & "line2" & vbLf & "line3"
     req.CleanReplaceLineBreaksWithSpace = False
     req.CleanRemoveLineBreaks = True
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("B2"), req)
-    Lib_Tests.AssertEqual ws.Range("B2").Value2, "line1line2line3", "Should remove line breaks entirely"
+    Test_Runner.AssertEqual ws.Range("B2").Value2, "line1line2line3", "Should remove line breaks entirely"
 
     ' 4. Test Line Breaks: Standardize to single LF and protect from non-printables
     ws.Range("B3").Value2 = "line1" & vbCrLf & vbCrLf & "line2" & vbCr & vbCr & "line3"
@@ -144,7 +144,7 @@ Public Sub Test_CleanData_NewEnhancements()
     req.CleanStandardizeLineBreaks = True
     req.CleanNonPrintables = True
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("B3"), req)
-    Lib_Tests.AssertEqual ws.Range("B3").Value2, "line1" & vbLf & "line2" & vbLf & "line3", "Should standardize line breaks to single LF and protect them"
+    Test_Runner.AssertEqual ws.Range("B3").Value2, "line1" & vbLf & "line2" & vbLf & "line3", "Should standardize line breaks to single LF and protect them"
 
     ' 5. Test numeric text conversion
     ws.Range("C1").NumberFormat = "@"
@@ -156,9 +156,9 @@ Public Sub Test_CleanData_NewEnhancements()
     req.CleanConvertNumbers = True
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("C1:C2"), req)
     
-    Lib_Tests.AssertEqual ws.Range("C1").Value2, 123.45, "Should convert numeric text to number"
-    Lib_Tests.AssertEqual VarType(ws.Range("C1").Value2), vbDouble, "Converted number should be double"
-    Lib_Tests.AssertEqual ws.Range("C2").Value2, " &HFF ", "Should NOT convert hex strings to number"
+    Test_Runner.AssertEqual ws.Range("C1").Value2, 123.45, "Should convert numeric text to number"
+    Test_Runner.AssertEqual VarType(ws.Range("C1").Value2), vbDouble, "Converted number should be double"
+    Test_Runner.AssertEqual ws.Range("C2").Value2, " &HFF ", "Should NOT convert hex strings to number"
 
     Application.DisplayAlerts = False
     ws.Delete
@@ -205,11 +205,11 @@ Public Sub Test_CleanData_UserRequestedEnhancements()
 
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A1:A5"), req)
 
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "helloworld", "Should remove tabs"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, "BulletText", "Should remove bullets"
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, "Company", "Should remove trademark"
-    Lib_Tests.AssertEqual ws.Range("A4").Value2, "Brand", "Should remove registered"
-    Lib_Tests.AssertEqual ws.Range("A5").Value2, "Copyright2026", "Should remove copyright"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, "helloworld", "Should remove tabs"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, "BulletText", "Should remove bullets"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, "Company", "Should remove trademark"
+    Test_Runner.AssertEqual ws.Range("A4").Value2, "Brand", "Should remove registered"
+    Test_Runner.AssertEqual ws.Range("A5").Value2, "Copyright2026", "Should remove copyright"
 
     ' 2. Test Standardize Dashes (convert en-dash, em-dash, unicode minus sign to standard hyphen)
     ws.Range("B1").Value2 = "a" & ChrW$(8211) & "b"
@@ -222,10 +222,10 @@ Public Sub Test_CleanData_UserRequestedEnhancements()
 
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("B1:B3"), req)
 
-    Lib_Tests.AssertEqual ws.Range("B1").Value2, "a-b", "Should convert en dash to hyphen"
-    Lib_Tests.AssertEqual ws.Range("B2").Value2, "c-d", "Should convert em dash to hyphen"
-    Lib_Tests.AssertEqual ws.Range("B3").Value2, -15.2, "Should convert minus sign to hyphen and parse as numeric"
-    Lib_Tests.AssertEqual VarType(ws.Range("B3").Value2), vbDouble, "Minus sign converted numeric should be a Double"
+    Test_Runner.AssertEqual ws.Range("B1").Value2, "a-b", "Should convert en dash to hyphen"
+    Test_Runner.AssertEqual ws.Range("B2").Value2, "c-d", "Should convert em dash to hyphen"
+    Test_Runner.AssertEqual ws.Range("B3").Value2, -15.2, "Should convert minus sign to hyphen and parse as numeric"
+    Test_Runner.AssertEqual VarType(ws.Range("B3").Value2), vbDouble, "Minus sign converted numeric should be a Double"
 
     ' 3. Test Remove Accents (José -> Jose, François -> Francois, Müller -> Muller)
     ws.Range("C1").Value2 = "Jos" & ChrW$(233)
@@ -239,10 +239,10 @@ Public Sub Test_CleanData_UserRequestedEnhancements()
 
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("C1:C4"), req)
 
-    Lib_Tests.AssertEqual ws.Range("C1").Value2, "Jose", "Should remove accent from Jose"
-    Lib_Tests.AssertEqual ws.Range("C2").Value2, "Francois", "Should remove cedilla from Francois"
-    Lib_Tests.AssertEqual ws.Range("C3").Value2, "Muller", "Should remove umlaut from Muller"
-    Lib_Tests.AssertEqual ws.Range("C4").Value2, "Strasse & AEther & oeuf", "Should replace multi-character accents"
+    Test_Runner.AssertEqual ws.Range("C1").Value2, "Jose", "Should remove accent from Jose"
+    Test_Runner.AssertEqual ws.Range("C2").Value2, "Francois", "Should remove cedilla from Francois"
+    Test_Runner.AssertEqual ws.Range("C3").Value2, "Muller", "Should remove umlaut from Muller"
+    Test_Runner.AssertEqual ws.Range("C4").Value2, "Strasse & AEther & oeuf", "Should replace multi-character accents"
 
     Application.DisplayAlerts = False
     ws.Delete
@@ -287,7 +287,7 @@ Public Sub Test_CleanData_HygieneOptions()
     Dim cleanedCount As Long
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A1"), req)
     
-    Lib_Tests.AssertEqual True, ws.Range("A1").Comment Is Nothing, "Comment should be removed"
+    Test_Runner.AssertEqual True, ws.Range("A1").Comment Is Nothing, "Comment should be removed"
     req.CleanComments = False
     
     ' 2. Test Clear Validation
@@ -308,7 +308,7 @@ Public Sub Test_CleanData_HygieneOptions()
     If Err.Number = 0 Then hasValidation = True
     On Error GoTo ErrHandler
     
-    Lib_Tests.AssertEqual False, hasValidation, "Validation rule should be deleted"
+    Test_Runner.AssertEqual False, hasValidation, "Validation rule should be deleted"
     req.CleanValidation = False
 
     ' 3. Test Clear Conditional Formatting
@@ -318,7 +318,7 @@ Public Sub Test_CleanData_HygieneOptions()
     
     req.CleanConditionalFormatting = True
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A3"), req)
-    Lib_Tests.AssertEqual 0, ws.Range("A3").FormatConditions.Count, "Conditional formatting should be deleted"
+    Test_Runner.AssertEqual 0, ws.Range("A3").FormatConditions.Count, "Conditional formatting should be deleted"
     req.CleanConditionalFormatting = False
 
     ' 4. Test Clear Cell Formatting (keep values)
@@ -328,9 +328,9 @@ Public Sub Test_CleanData_HygieneOptions()
     
     req.CleanFormats = True
     cleanedCount = cmd.CleanRangeWithOptionsDirect(ws.Range("A4"), req)
-    Lib_Tests.AssertEqual "Bold Text", ws.Range("A4").Value2, "Value should be kept"
-    Lib_Tests.AssertEqual False, ws.Range("A4").Font.Bold, "Font bold formatting should be cleared"
-    Lib_Tests.AssertEqual xlNone, ws.Range("A4").Interior.ColorIndex, "Fill color should be cleared"
+    Test_Runner.AssertEqual "Bold Text", ws.Range("A4").Value2, "Value should be kept"
+    Test_Runner.AssertEqual False, ws.Range("A4").Font.Bold, "Font bold formatting should be cleared"
+    Test_Runner.AssertEqual xlNone, ws.Range("A4").Interior.ColorIndex, "Fill color should be cleared"
     req.CleanFormats = False
 
     ' 5. Test Remove Shapes/Images
@@ -350,7 +350,7 @@ Public Sub Test_CleanData_HygieneOptions()
     Set testSh = ws.Shapes("TestRectangle")
     If Not testSh Is Nothing Then shapeExists = True
     On Error GoTo ErrHandler
-    Lib_Tests.AssertEqual False, shapeExists, "Shape in selection should be deleted"
+    Test_Runner.AssertEqual False, shapeExists, "Shape in selection should be deleted"
     req.CleanShapes = False
 
     ' 6. Test Remove Sheet-scoped Named Ranges
@@ -369,7 +369,7 @@ Public Sub Test_CleanData_HygieneOptions()
     Set nm = ws.Names("LocalName")
     If Not nm Is Nothing Then nameExists = True
     On Error GoTo ErrHandler
-    Lib_Tests.AssertEqual False, nameExists, "Sheet-scoped name should be deleted"
+    Test_Runner.AssertEqual False, nameExists, "Sheet-scoped name should be deleted"
     req.CleanSheetNames = False
 
     Application.DisplayAlerts = False
@@ -412,8 +412,8 @@ Public Sub Test_CleanData_LargeSelectionSafety()
     Dim changes As Long
     changes = cmd.CleanRangeWithOptionsDirect(ws.Cells, request)
 
-    Lib_Tests.AssertEqual ws.Range("C3").Value2, "dirty text", "C3 should be trimmed"
-    Lib_Tests.AssertTrue changes >= 1, "Should report at least 1 change"
+    Test_Runner.AssertEqual ws.Range("C3").Value2, "dirty text", "C3 should be trimmed"
+    Test_Runner.AssertTrue changes >= 1, "Should report at least 1 change"
 
     ' Cleanup
     Application.DisplayAlerts = False
@@ -460,27 +460,27 @@ Public Sub Test_ForceNumber_Execution_And_Undo()
     AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnForceNumber", "ForceNumber", "Ribbon"
     
     ' Check values and types
-    Lib_Tests.AssertEqual VarType(ws.Range("A1").Value), vbDouble, "A1 is Double"
-    Lib_Tests.AssertEqual ws.Range("A1").Value, 1250.5, "A1 value is 1250.5"
-    Lib_Tests.AssertEqual ws.Range("A1").NumberFormat, "General", "A1 format is General"
+    Test_Runner.AssertEqual VarType(ws.Range("A1").Value), vbDouble, "A1 is Double"
+    Test_Runner.AssertEqual ws.Range("A1").Value, 1250.5, "A1 value is 1250.5"
+    Test_Runner.AssertEqual ws.Range("A1").NumberFormat, "General", "A1 format is General"
     
-    Lib_Tests.AssertEqual VarType(ws.Range("A2").Value), vbDouble, "A2 is Double"
-    Lib_Tests.AssertEqual ws.Range("A2").Value, 1500#, "A2 value is 1500"
+    Test_Runner.AssertEqual VarType(ws.Range("A2").Value), vbDouble, "A2 is Double"
+    Test_Runner.AssertEqual ws.Range("A2").Value, 1500#, "A2 value is 1500"
     
-    Lib_Tests.AssertEqual VarType(ws.Range("A3").Value), vbDouble, "A3 is Double"
-    Lib_Tests.AssertEqual ws.Range("A3").Value, -150#, "A3 value is -150"
+    Test_Runner.AssertEqual VarType(ws.Range("A3").Value), vbDouble, "A3 is Double"
+    Test_Runner.AssertEqual ws.Range("A3").Value, -150#, "A3 value is -150"
     
-    Lib_Tests.AssertEqual VarType(ws.Range("A4").Value), vbDouble, "A4 is Double"
-    Lib_Tests.AssertEqual ws.Range("A4").Value, 0.05, "A4 value is 0.05"
+    Test_Runner.AssertEqual VarType(ws.Range("A4").Value), vbDouble, "A4 is Double"
+    Test_Runner.AssertEqual ws.Range("A4").Value, 0.05, "A4 value is 0.05"
     
     ' Test Undo
     Infra_Undo.RegisterPendingUndo
     Infra_Undo.PerformUndo
     
     ' Check if format and values are restored
-    Lib_Tests.AssertEqual ws.Range("A1").NumberFormat, "@", "A1 format is text again"
-    Lib_Tests.AssertEqual ws.Range("A1").Value, "1250.50", "A1 value is text again"
-    Lib_Tests.AssertEqual ws.Range("A4").Value, "5%", "A4 value is text again"
+    Test_Runner.AssertEqual ws.Range("A1").NumberFormat, "@", "A1 format is text again"
+    Test_Runner.AssertEqual ws.Range("A1").Value, "1250.50", "A1 value is text again"
+    Test_Runner.AssertEqual ws.Range("A4").Value, "5%", "A4 value is text again"
     
     wb.Close SaveChanges:=False
     
@@ -513,25 +513,25 @@ Public Sub Test_UnmergeFill_Execution_And_Undo()
     targetRange.Select
     
     Dim cmd As ICommand: Set cmd = AppContainer.ResolveCommand("UnmergeFill")
-    Lib_Tests.AssertEqual Not cmd Is Nothing, True, "Resolve UnmergeFill"
+    Test_Runner.AssertEqual Not cmd Is Nothing, True, "Resolve UnmergeFill"
     
     ' Execute
     AppContainer.ExecuteEntryPoint "UI_Ribbon.Ribbon_OnUnmergeFill", "UnmergeFill", "Ribbon"
     
     ' Check if unmerged and populated
-    Lib_Tests.AssertEqual targetRange.MergeCells, False, "Should be unmerged"
-    Lib_Tests.AssertEqual ws.Range("A1").Value, "TestMerged", "A1 has value"
-    Lib_Tests.AssertEqual ws.Range("A2").Value, "TestMerged", "A2 has value"
-    Lib_Tests.AssertEqual ws.Range("B1").Value, "TestMerged", "B1 has value"
-    Lib_Tests.AssertEqual ws.Range("B2").Value, "TestMerged", "B2 has value"
+    Test_Runner.AssertEqual targetRange.MergeCells, False, "Should be unmerged"
+    Test_Runner.AssertEqual ws.Range("A1").Value, "TestMerged", "A1 has value"
+    Test_Runner.AssertEqual ws.Range("A2").Value, "TestMerged", "A2 has value"
+    Test_Runner.AssertEqual ws.Range("B1").Value, "TestMerged", "B1 has value"
+    Test_Runner.AssertEqual ws.Range("B2").Value, "TestMerged", "B2 has value"
     
     ' Test Undo
     Infra_Undo.RegisterPendingUndo
     Infra_Undo.PerformUndo
     
     ' Check if merged again and restored
-    Lib_Tests.AssertEqual targetRange.MergeCells, True, "Should be merged again after Undo"
-    Lib_Tests.AssertEqual ws.Range("A1").Value, "TestMerged", "A1 still has value"
+    Test_Runner.AssertEqual targetRange.MergeCells, True, "Should be merged again after Undo"
+    Test_Runner.AssertEqual ws.Range("A1").Value, "TestMerged", "A1 still has value"
     
     wb.Close SaveChanges:=False
     
@@ -550,14 +550,14 @@ Public Sub Test_UnifiedHelpers_And_CleanDataDisjoint()
     On Error GoTo ErrHandler
 
     ' 1. Test GetExcelErrorText
-    Lib_Tests.AssertEqual Infra_ValueConversion.GetExcelErrorText(CVErr(xlErrDiv0)), "#DIV/0!", "Should return #DIV/0! for xlErrDiv0"
-    Lib_Tests.AssertEqual Infra_ValueConversion.GetExcelErrorText(CVErr(xlErrNA)), "#N/A", "Should return #N/A for xlErrNA"
-    Lib_Tests.AssertEqual Infra_ValueConversion.GetExcelErrorText("Hello"), "Hello", "Should return string itself for non-error string"
+    Test_Runner.AssertEqual Infra_ValueConversion.GetExcelErrorText(CVErr(xlErrDiv0)), "#DIV/0!", "Should return #DIV/0! for xlErrDiv0"
+    Test_Runner.AssertEqual Infra_ValueConversion.GetExcelErrorText(CVErr(xlErrNA)), "#N/A", "Should return #N/A for xlErrNA"
+    Test_Runner.AssertEqual Infra_ValueConversion.GetExcelErrorText("Hello"), "Hello", "Should return string itself for non-error string"
 
     ' 2. Test GetSystemDateFormatPattern
     Dim sysPattern As String
     sysPattern = Infra_ValueConversion.GetSystemDateFormatPattern()
-    Lib_Tests.AssertTrue Len(sysPattern) > 0, "System date format pattern should not be empty"
+    Test_Runner.AssertTrue Len(sysPattern) > 0, "System date format pattern should not be empty"
 
     ' 3. Test Disjoint Clean Data Optimization
     Dim ws As Worksheet
@@ -577,7 +577,7 @@ Public Sub Test_UnifiedHelpers_And_CleanDataDisjoint()
         End If
     Next i
     
-    Lib_Tests.AssertEqual unionRange.Areas.Count, 120, "Should have 120 disjoint areas"
+    Test_Runner.AssertEqual unionRange.Areas.Count, 120, "Should have 120 disjoint areas"
 
     Dim request As New CleanDataRequest
     request.CleanTrimSpaces = True
@@ -587,11 +587,11 @@ Public Sub Test_UnifiedHelpers_And_CleanDataDisjoint()
     Dim cleanedCount As Long
     cleanedCount = cleanCmd.CleanRangeWithOptionsDirect(unionRange, request)
     
-    Lib_Tests.AssertEqual cleanedCount, 120, "Should have cleaned 120 cells"
+    Test_Runner.AssertEqual cleanedCount, 120, "Should have cleaned 120 cells"
     
     ' Verify values are trimmed
     For i = 1 To 240 Step 2
-        Lib_Tests.AssertEqual ws.Cells(i, 1).Value2, "text", "Value at row " & i & " should be trimmed"
+        Test_Runner.AssertEqual ws.Cells(i, 1).Value2, "text", "Value at row " & i & " should be trimmed"
     Next i
 
     ' Cleanup temporary sheet
@@ -621,31 +621,31 @@ Public Sub Test_TryConvertToNumber_Unification()
 
     ' 1. Standard number
     success = Infra_ValueConversion.TryConvertToNumber("123.45", outVal)
-    Lib_Tests.AssertTrue success, "Should successfully convert standard numeric string"
-    Lib_Tests.AssertEqual outVal, 123.45, "Should return 123.45"
+    Test_Runner.AssertTrue success, "Should successfully convert standard numeric string"
+    Test_Runner.AssertEqual outVal, 123.45, "Should return 123.45"
 
     ' 2. Trailing minus
     success = Infra_ValueConversion.TryConvertToNumber("123.45-", outVal)
-    Lib_Tests.AssertTrue success, "Should successfully convert trailing minus"
-    Lib_Tests.AssertEqual outVal, -123.45, "Should return -123.45"
+    Test_Runner.AssertTrue success, "Should successfully convert trailing minus"
+    Test_Runner.AssertEqual outVal, -123.45, "Should return -123.45"
 
     ' 3. Percent
     success = Infra_ValueConversion.TryConvertToNumber("45%", outVal)
-    Lib_Tests.AssertTrue success, "Should successfully convert percent string"
-    Lib_Tests.AssertEqual outVal, 0.45, "Should return 0.45"
+    Test_Runner.AssertTrue success, "Should successfully convert percent string"
+    Test_Runner.AssertEqual outVal, 0.45, "Should return 0.45"
 
     ' 4. Currency and spaces
     success = Infra_ValueConversion.TryConvertToNumber(" $ 1,234.50 ", outVal)
-    Lib_Tests.AssertTrue success, "Should successfully convert formatted currency string"
-    Lib_Tests.AssertEqual outVal, 1234.5, "Should return 1234.5"
+    Test_Runner.AssertTrue success, "Should successfully convert formatted currency string"
+    Test_Runner.AssertEqual outVal, 1234.5, "Should return 1234.5"
 
     ' 5. Hex/Octal exclusion
     success = Infra_ValueConversion.TryConvertToNumber("&HFF", outVal)
-    Lib_Tests.AssertTrue Not success, "Should reject hexadecimal strings"
+    Test_Runner.AssertTrue Not success, "Should reject hexadecimal strings"
 
     ' 6. Non-numeric
     success = Infra_ValueConversion.TryConvertToNumber("hello", outVal)
-    Lib_Tests.AssertTrue Not success, "Should reject non-numeric string"
+    Test_Runner.AssertTrue Not success, "Should reject non-numeric string"
 
 CleanExit:
     Exit Sub

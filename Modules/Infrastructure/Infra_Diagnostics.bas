@@ -56,6 +56,13 @@ End Function
 Public Sub LogEvent(ByVal eventName As String, ByVal procedureName As String, ByVal operationId As String, ByVal detail As String)
     On Error Resume Next
 
+    ' Performance optimization: Short circuit trace events if tracing is disabled
+    If Not ENABLE_TRACE_LOGGING Then
+        If eventName = "operation_start" Or eventName = "operation_finish" Then
+            Exit Sub
+        End If
+    End If
+
     Dim lineText As String
     lineText = "{" & _
                """timestamp"":""" & Format$(Now, "yyyy-mm-dd hh:nn:ss") & """," & _

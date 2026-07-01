@@ -278,7 +278,7 @@ function Invoke-VbaLint {
             }
 
             # --- Rule D: Implicit Reference Check ---
-            if ($fileName -ne "Lib_JsonConverter.bas" -and $fileName -notmatch "Lib_Tests") {
+            if ($fileName -ne "Lib_JsonConverter.bas" -and $fileName -notmatch "Test_") {
                 if ($line.IndexOf("Range", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
                     $line.IndexOf("Cells", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
                     $line.IndexOf("Rows", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
@@ -295,7 +295,7 @@ function Invoke-VbaLint {
             }
 
             # --- Rule E: Localized Sheet Name Warning ---
-            if ($fileName -ne "Lib_JsonConverter.bas" -and $fileName -notmatch "Lib_Tests") {
+            if ($fileName -ne "Lib_JsonConverter.bas" -and $fileName -notmatch "Test_") {
                 if ($line -match '"(?:Sheet|Tabelle|Feuille|Hoja|Foglio|Planilha|Flik|Tabell)\d+"' -and $line -notmatch '^\s*''') {
                     Write-Host "  [$fileName] Warning: Hardcoded localized sheet name $($Matches[0]) detected at line $lineNum. This will fail in non-English Excel environments." -ForegroundColor Yellow
                 }

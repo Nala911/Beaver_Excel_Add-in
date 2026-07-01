@@ -688,6 +688,12 @@ End Function
 
 ' Centralized helper to determine local system date pattern (dd-mm-yyyy, mm-dd-yyyy, or yyyy-mm-dd).
 Public Function GetSystemDateFormatPattern() As String
+    Static cachedPattern As String
+    If cachedPattern <> "" Then
+        GetSystemDateFormatPattern = cachedPattern
+        Exit Function
+    End If
+
     Dim dateOrder As Long
     On Error Resume Next
     dateOrder = Application.International(xlDateOrder)
@@ -698,11 +704,12 @@ Public Function GetSystemDateFormatPattern() As String
     On Error GoTo 0
     
     Select Case dateOrder
-        Case 0: GetSystemDateFormatPattern = "mm-dd-yyyy"
-        Case 1: GetSystemDateFormatPattern = "dd-mm-yyyy"
-        Case 2: GetSystemDateFormatPattern = "yyyy-mm-dd"
-        Case Else: GetSystemDateFormatPattern = "dd-mm-yyyy"
+        Case 0: cachedPattern = "mm-dd-yyyy"
+        Case 1: cachedPattern = "dd-mm-yyyy"
+        Case 2: cachedPattern = "yyyy-mm-dd"
+        Case Else: cachedPattern = "dd-mm-yyyy"
     End Select
+    GetSystemDateFormatPattern = cachedPattern
 End Function
 
 

@@ -1,7 +1,7 @@
-Attribute VB_Name = "Lib_XUnpivotFunction"
+Attribute VB_Name = "Udf_XUnpivot"
 Option Explicit
 
-' @Module: Lib_XUnpivotFunction
+' @Module: Udf_XUnpivot
 ' @Category: Library
 ' @Description: UDF to unpivot wide data into long format, auto-detecting columns by trailing numeric values.
 ' @ManagedBy: BeaverAddin Agent
@@ -24,6 +24,7 @@ Public Function XUnpivot(ByVal data_range As Variant, _
                          Optional ByVal attribute_header As String = "Attribute", _
                          Optional ByVal value_header As String = "Value", _
                          Optional ByVal skip_blanks As Boolean = False) As Variant
+    Dim tracker As Object: Set tracker = Infra_Error.Track("XUnpivot")
     On Error GoTo ErrHandler
     
     ' --- Optimization: Read ranges into memory arrays ---

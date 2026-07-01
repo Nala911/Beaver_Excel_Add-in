@@ -10,7 +10,7 @@ This project is a VBA-based Microsoft Excel Add-in called **Beaver Add-in** that
 - `Modules/Core/`: Base classes/interfaces (e.g., `AppContainer.cls`, `ICommand.cls`, `IConfig.cls`).
 - `Modules/Infrastructure/`: Cross-cutting concerns (e.g., `Infra_Error.cls`, `Infra_Undo.bas`, `Infra_Config.cls`).
 - `Modules/Libraries/`: Helper code (e.g., `Lib_JsonConverter.bas`, custom UDFs).
-- `Modules/Tests/`: Unit tests (e.g., `Lib_Tests_Feat_*.bas`, `Lib_Tests.bas`).
+- `Modules/Tests/`: Unit tests (e.g., `Test_Feat_*.bas`, `Test_Runner.bas`).
 - `Modules/UI/`: Forms and Ribbon bindings (e.g., `UI_Ribbon.bas`).
 - `config.json`: Constant and Hotkey declarations.
 - `features.json`: Declarative registry of ribbon controls, hotkeys, and features.
@@ -76,3 +76,11 @@ Every code file is automatically verified by `.build/Linter.ps1`. Adhere to the 
 
 ### 7. Sheet Localization
 - Do not hardcode localized sheet names (e.g., `"Sheet1"`), which fail in non-English Excel environments. Use constants or dynamic discovery.
+
+### 8. Standardized Naming Conventions
+- **Commands/Features**: Prefix files and VB_Name with `FeatCmd_` (e.g., `FeatCmd_CleanData.cls`).
+- **Infrastructure**: Prefix files and VB_Name with `Infra_` (e.g., `Infra_Error.cls`, `Infra_Config.cls`).
+- **UI Dialogs & Entrypoints**: Prefix files and VB_Name with `UI_` (e.g., `UI_Ribbon.bas`, `UI_DialogShared.bas`).
+- **UDF Modules**: Prefix files and VB_Name with `Udf_` (e.g., `Udf_XFilter.bas`, `Udf_XUnpivot.bas`).
+- **Unit Tests**: Prefix files and VB_Name with `Test_` or `Test_Feat_` (e.g., `Test_Feat_CleanData.bas`, `Test_Runner.bas`).
+- **Variable Casing**: Use camelCase for local variables and internal method parameters. Reserve PascalCase/Snake_Case strictly for public APIs and Excel-exposed properties.

@@ -615,17 +615,28 @@ End Function
 ' Converts column indices (e.g. 28) to letters (e.g. "AB") purely in memory.
 Public Function GetColLetter(ByVal colNum As Long) As String
     ' [Bypass Lint] PushContext "GetColLetter" / PopContext / Infra_Error.Track (exempt for CPU performance)
+    Static cachedLetters(1 To 16384) As String
+    
+    If colNum < 1 Or colNum > 16384 Then Exit Function
+    
+    If cachedLetters(colNum) <> vbNullString Then
+        GetColLetter = cachedLetters(colNum)
+        Exit Function
+    End If
+
     On Error GoTo ErrHandler
 
     Dim temp As Long
     temp = colNum
-    GetColLetter = vbNullString
+    Dim letter As String
     Do While temp > 0
         Dim remainder As Long
         remainder = (temp - 1) Mod 26
-        GetColLetter = Chr$(65 + remainder) & GetColLetter
+        letter = Chr$(65 + remainder) & letter
         temp = (temp - remainder) \ 26
     Loop
+    cachedLetters(colNum) = letter
+    GetColLetter = letter
 
 CleanExit:
     Exit Function

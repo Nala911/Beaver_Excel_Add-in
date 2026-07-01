@@ -1,4 +1,4 @@
-VERSION 1.0 CLASS
+﻿VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -91,7 +91,7 @@ Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As
     
     ' 2. Record runtime error if running unit tests
     On Error Resume Next
-    If Lib_Tests.IsRunning Then
+    If Test_Runner.IsRunning Then
         If category = "runtime" And severity = "fatal" Then
             Dim testName As String
             testName = GetCallingTest()
@@ -99,7 +99,7 @@ Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As
                 testName = procedureName
             End If
             If testName <> "Unknown" Then
-                Lib_Tests.RecordRuntimeError testName, errNum, errDesc
+                Test_Runner.RecordRuntimeError testName, errNum, errDesc
             End If
         End If
     End If
@@ -113,7 +113,7 @@ Public Sub HandleErrorDetailed(ByVal procedureName As String, ByRef errSource As
     
     ' 5. Non-blocking user notification for interactive use
     On Error Resume Next
-    If Not Lib_Tests.IsRunning Then
+    If Not Test_Runner.IsRunning Then
         Application.StatusBar = "Beaver Error: (" & errNum & ") " & errDesc & " (Check Ctrl+G or temp logs)"
     End If
     On Error GoTo 0

@@ -1,11 +1,11 @@
-Attribute VB_Name = "Lib_Tests_CommandInfrastructure"
+﻿Attribute VB_Name = "Test_CommandInfrastructure"
 Option Explicit
 
-' @Module: Lib_Tests_CommandInfrastructure
+' @Module: Test_CommandInfrastructure
 ' @Category: Infrastructure
 ' @Description: Tests for manifest-driven command resolution and typed command context capture.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, Infra_CommandRegistry, AppContainer, Infra_Error
+' @Dependencies: Test_Runner, Infra_CommandRegistry, AppContainer, Infra_Error
 
 Public Sub Test_CommandRegistryResolvesRibbonEntries()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CommandRegistryResolvesRibbonEntries")

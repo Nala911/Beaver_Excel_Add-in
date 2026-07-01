@@ -1,11 +1,11 @@
-Attribute VB_Name = "Lib_Tests_Feat_Editing"
+﻿Attribute VB_Name = "Test_Feat_Editing"
 Option Explicit
 
-' @Module: Lib_Tests_Feat_Editing
+' @Module: Test_Feat_Editing
 ' @Category: Library
 ' @Description: Integration tests for basic cell editing, deleting, fill, and filter features.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, FeatCmd_MakePermanent, FeatCmd_FillDown, FeatCmd_Delete, FeatCmd_FilterByCell
+' @Dependencies: Test_Runner, AppContainer, Infra_Error, Infra_Undo, FeatCmd_MakePermanent, FeatCmd_FillDown, FeatCmd_Delete, FeatCmd_FilterByCell
 
 Public Sub Test_MakePermanent_SpillHandling_And_Undo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_MakePermanent_SpillHandling_And_Undo")
@@ -23,9 +23,9 @@ Public Sub Test_MakePermanent_SpillHandling_And_Undo()
     Infra_ValueConversion.WaitForCalculation
     
     ' Asserts before execution
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 should be 1"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 should be 2"
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 should be 3"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, 1#, "A1 should be 1"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, 2#, "A2 should be 2"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, 3#, "A3 should be 3"
 
     ' Initialize AppContainer
     AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
@@ -47,21 +47,21 @@ Public Sub Test_MakePermanent_SpillHandling_And_Undo()
     cmd.Execute ctx
     
     ' Assert that formulas are gone and values are static
-    Lib_Tests.AssertEqual ws.Range("A1").HasFormula, False, "A1 formula should be removed"
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 static value should be 1"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 static value should be 2"
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 static value should be 3"
+    Test_Runner.AssertEqual ws.Range("A1").HasFormula, False, "A1 formula should be removed"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, 1#, "A1 static value should be 1"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, 2#, "A2 static value should be 2"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, 3#, "A3 static value should be 3"
 
     ' Now register and perform undo
     Infra_Undo.RegisterPendingUndo
     Infra_Undo.PerformUndo
     
     ' Assert that formula and dynamic array are restored
-    Lib_Tests.AssertEqual ws.Range("A1").HasFormula, True, "A1 formula should be restored"
-    Lib_Tests.AssertEqual ws.Range("A1").Formula2, "=SEQUENCE(3, 1)", "A1 formula content should be restored"
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 restored value should be 1"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 restored value should be 2"
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 restored value should be 3"
+    Test_Runner.AssertEqual ws.Range("A1").HasFormula, True, "A1 formula should be restored"
+    Test_Runner.AssertEqual ws.Range("A1").Formula2, "=SEQUENCE(3, 1)", "A1 formula content should be restored"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, 1#, "A1 restored value should be 1"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, 2#, "A2 restored value should be 2"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, 3#, "A3 restored value should be 3"
 
     ' Cleanup the temporary worksheet
     Application.DisplayAlerts = False
@@ -94,10 +94,10 @@ Public Sub Test_MakePermanent_LegacyArray_And_Undo()
     Infra_ValueConversion.WaitForCalculation
 
     ' Asserts before execution
-    Lib_Tests.AssertEqual ws.Range("A1").HasArray, True, "A1 should be part of an array formula"
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 should be 1"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 should be 2"
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 should be 3"
+    Test_Runner.AssertEqual ws.Range("A1").HasArray, True, "A1 should be part of an array formula"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, 1#, "A1 should be 1"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, 2#, "A2 should be 2"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, 3#, "A3 should be 3"
 
     ' Initialize AppContainer
     AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
@@ -119,20 +119,20 @@ Public Sub Test_MakePermanent_LegacyArray_And_Undo()
     cmd.Execute ctx
 
     ' Assert that formulas are gone and values are static
-    Lib_Tests.AssertEqual ws.Range("A1").HasFormula, False, "A1 formula should be removed"
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 static value should be 1"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 static value should be 2"
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 static value should be 3"
+    Test_Runner.AssertEqual ws.Range("A1").HasFormula, False, "A1 formula should be removed"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, 1#, "A1 static value should be 1"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, 2#, "A2 static value should be 2"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, 3#, "A3 static value should be 3"
 
     ' Now register and perform undo
     Infra_Undo.RegisterPendingUndo
     Infra_Undo.PerformUndo
 
     ' Assert that CSE array formula is restored
-    Lib_Tests.AssertEqual ws.Range("A1").HasArray, True, "A1 array formula should be restored"
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, 1#, "A1 restored value should be 1"
-    Lib_Tests.AssertEqual ws.Range("A2").Value2, 2#, "A2 restored value should be 2"
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, 3#, "A3 restored value should be 3"
+    Test_Runner.AssertEqual ws.Range("A1").HasArray, True, "A1 array formula should be restored"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, 1#, "A1 restored value should be 1"
+    Test_Runner.AssertEqual ws.Range("A2").Value2, 2#, "A2 restored value should be 2"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, 3#, "A3 restored value should be 3"
 
     ' Cleanup
     Application.DisplayAlerts = False
@@ -177,9 +177,9 @@ Public Sub Test_FillDown_Features()
     Set cmd = AppContainer.ResolveCommand("FillDown")
     cmd.Execute ctx
 
-    Lib_Tests.AssertEqual ws.Range("A5").Value2, 10#, "Multi-column filldown: A5 should be 10"
-    Lib_Tests.AssertEqual ws.Range("B5").Value2, 20#, "Multi-column filldown: B5 should be 20"
-    Lib_Tests.AssertEqual ws.Range("A6").Value2, vbEmpty, "Multi-column filldown: A6 should be empty"
+    Test_Runner.AssertEqual ws.Range("A5").Value2, 10#, "Multi-column filldown: A5 should be 10"
+    Test_Runner.AssertEqual ws.Range("B5").Value2, 20#, "Multi-column filldown: B5 should be 20"
+    Test_Runner.AssertEqual ws.Range("A6").Value2, vbEmpty, "Multi-column filldown: A6 should be empty"
 
     ' --- TEST 2: Proximity Search Distance Limit ---
     ws.Cells.Clear
@@ -193,12 +193,12 @@ Public Sub Test_FillDown_Features()
     ctx.ActionContext.HasRangeSelection = True
     
     cmd.Execute ctx
-    Lib_Tests.AssertEqual ws.Range("A5").Value2, vbEmpty, "Proximity limit: A5 should be empty when neighbor is > 10 columns away"
+    Test_Runner.AssertEqual ws.Range("A5").Value2, vbEmpty, "Proximity limit: A5 should be empty when neighbor is > 10 columns away"
 
     ' Neighbor at column 11 (distance = 10 columns)
     ws.Range("K1:K5").Value2 = "Ref"
     cmd.Execute ctx
-    Lib_Tests.AssertEqual ws.Range("A5").Value2, 100#, "Proximity limit: A5 should be 100 when neighbor is exactly 10 columns away"
+    Test_Runner.AssertEqual ws.Range("A5").Value2, 100#, "Proximity limit: A5 should be 100 when neighbor is exactly 10 columns away"
 
     ' --- TEST 3: Fragmentation Safety Limit ---
     ws.Cells.Clear
@@ -227,8 +227,8 @@ Public Sub Test_FillDown_Features()
     
     ' Since the execution is aborted by the fragmentation safety guard,
     ' the copy/paste should not have run, so A3 and A10011 should remain empty.
-    Lib_Tests.AssertEqual ws.Range("A3").Value2, vbEmpty, "Fragmentation guard: A3 should remain empty"
-    Lib_Tests.AssertEqual ws.Range("A10011").Value2, vbEmpty, "Fragmentation guard: A10011 should remain empty"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, vbEmpty, "Fragmentation guard: A3 should remain empty"
+    Test_Runner.AssertEqual ws.Range("A10011").Value2, vbEmpty, "Fragmentation guard: A10011 should remain empty"
 
     ' Cleanup
     ws.AutoFilterMode = False
@@ -281,16 +281,16 @@ Public Sub Test_Backspace_LargeRange_Undo()
     cmd.Execute ctx
     
     ' Assert that the values are cleared
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, vbEmpty, "A1 should be cleared by Backspace"
-    Lib_Tests.AssertEqual ws.Range("A5").Value2, vbEmpty, "A5 should be cleared by Backspace"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, vbEmpty, "A1 should be cleared by Backspace"
+    Test_Runner.AssertEqual ws.Range("A5").Value2, vbEmpty, "A5 should be cleared by Backspace"
 
     ' Register and perform undo
     Infra_Undo.RegisterPendingUndo
     Infra_Undo.PerformUndo
 
     ' Assert that the values are fully restored
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "Value 1", "A1 should be restored by Undo"
-    Lib_Tests.AssertEqual ws.Range("A5").Value2, "Value 5", "A5 should be restored by Undo"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, "Value 1", "A1 should be restored by Undo"
+    Test_Runner.AssertEqual ws.Range("A5").Value2, "Value 5", "A5 should be restored by Undo"
 
     ' Cleanup the temporary worksheet
     Application.DisplayAlerts = False
@@ -331,21 +331,21 @@ Public Sub Test_Delete_Execution_And_Undo()
     Dim context As ICommandContext
     Set context = AppContainer.CreateCommandContext("Delete", vbNullString, "Test", vbNullString)
     
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "DeleteMe", "A1 should contain text initially"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, "DeleteMe", "A1 should contain text initially"
     
     ' Validate and Execute
     Dim valResult As CommandValidationResult
     Set valResult = cmd.Validate(context)
-    Lib_Tests.AssertEqual valResult.IsExecutable, True, "Command should be executable"
+    Test_Runner.AssertEqual valResult.IsExecutable, True, "Command should be executable"
     
     cmd.Execute context
     
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, Empty, "A1 should be cleared after Delete command"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, Empty, "A1 should be cleared after Delete command"
     
     ' Perform Undo
     Infra_Undo.PerformUndo
     
-    Lib_Tests.AssertEqual ws.Range("A1").Value2, "DeleteMe", "A1 value should be restored by Undo"
+    Test_Runner.AssertEqual ws.Range("A1").Value2, "DeleteMe", "A1 value should be restored by Undo"
     
     ' Test deleting a shape
     Dim shp As Shape
@@ -356,7 +356,7 @@ Public Sub Test_Delete_Execution_And_Undo()
     Set context = AppContainer.CreateCommandContext("Delete", vbNullString, "Test", vbNullString)
     cmd.Execute context
     
-    Lib_Tests.AssertEqual ws.Shapes.Count, 0#, "Shape should be deleted"
+    Test_Runner.AssertEqual ws.Shapes.Count, 0#, "Shape should be deleted"
 
     ' Cleanup
     Application.DisplayAlerts = False
@@ -409,11 +409,11 @@ Public Sub Test_FilterByCell_Execution()
     cmd.Execute context
     
     ' Assertions
-    Lib_Tests.AssertEqual ws.AutoFilterMode, True, "AutoFilter should be enabled"
+    Test_Runner.AssertEqual ws.AutoFilterMode, True, "AutoFilter should be enabled"
     
     Dim autoflt As AutoFilter
     Set autoflt = ws.AutoFilter
-    Lib_Tests.AssertEqual autoflt.Range.Address, ws.Range("A1:B4").Address, "Filter range should encompass A1:B4"
+    Test_Runner.AssertEqual autoflt.Range.Address, ws.Range("A1:B4").Address, "Filter range should encompass A1:B4"
     
     ' Cleanup
     Application.DisplayAlerts = False

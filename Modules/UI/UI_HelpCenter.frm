@@ -25,7 +25,7 @@ Public Sub DisplayHelp()
     Dim tracker As Object: Set tracker = Infra_Error.Track("DisplayHelp")
     On Error GoTo ErrHandler
     
-    If Application.Visible And Not Lib_Tests.IsRunning Then
+    If Application.Visible And Not Test_Runner.IsRunning Then
         Me.Show vbModal
     Else
         Debug.Print "  [SKIP] UI_HelpCenter.DisplayHelp vbModal display bypassed in headless/background environment or unit testing"

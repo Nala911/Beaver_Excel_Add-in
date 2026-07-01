@@ -1,7 +1,7 @@
-Attribute VB_Name = "Lib_XFilterFunction"
+Attribute VB_Name = "Udf_XFilter"
 Option Explicit
 
-' @Module: Lib_XFilterFunction
+' @Module: Udf_XFilter
 ' @Category: Library
 ' @Description: UDF for advanced set filtering (Intersection, Difference) between ranges.
 ' @ManagedBy: BeaverAddin Agent
@@ -22,6 +22,7 @@ Option Explicit
 ' RETURNS: A dynamic array that spills into the sheet.
 ' ==============================================================================
 Public Function XFilter(ByVal Range_A As Variant, ByVal Range_B As Variant, Optional ByVal code_number As Integer = 1, Optional ByVal if_empty As Variant, Optional ByVal case_sensitive As Boolean = False) As Variant
+    Dim tracker As Object: Set tracker = Infra_Error.Track("XFilter")
     On Error GoTo ErrHandler
     
     Dim arrA As Variant, arrB As Variant

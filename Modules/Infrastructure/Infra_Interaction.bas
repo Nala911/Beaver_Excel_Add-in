@@ -1,4 +1,4 @@
-Attribute VB_Name = "Infra_Interaction"
+﻿Attribute VB_Name = "Infra_Interaction"
 Option Explicit
 
 ' @Module: Infra_Interaction
@@ -16,7 +16,7 @@ Public Function ShowMessage(ByVal message As String, Optional ByVal style As VbM
     Dim isTestRunning As Boolean
     isTestRunning = False
     On Error Resume Next
-    isTestRunning = Lib_Tests.IsRunning
+    isTestRunning = Test_Runner.IsRunning
     On Error GoTo 0
 
     If Application.Visible And Not isTestRunning Then
@@ -106,7 +106,7 @@ Public Function PromptText(ByVal promptMsg As String, ByVal title As String, ByV
 
     Dim isTestRunning As Boolean: isTestRunning = False
     On Error Resume Next
-    isTestRunning = Lib_Tests.IsRunning
+    isTestRunning = Test_Runner.IsRunning
     On Error GoTo ErrHandler
 
     If isTestRunning Then
@@ -138,7 +138,7 @@ Public Function PromptRange(ByVal promptMsg As String, ByVal title As String, By
 
     Dim isTestRunning As Boolean: isTestRunning = False
     On Error Resume Next
-    isTestRunning = Lib_Tests.IsRunning
+    isTestRunning = Test_Runner.IsRunning
     On Error GoTo ErrHandler
 
     If isTestRunning Then
@@ -173,7 +173,7 @@ Public Function PromptOption(ByVal promptMsg As String, ByVal title As String, B
 
     Dim isTestRunning As Boolean: isTestRunning = False
     On Error Resume Next
-    isTestRunning = Lib_Tests.IsRunning
+    isTestRunning = Test_Runner.IsRunning
     On Error GoTo ErrHandler
 
     If isTestRunning Then
@@ -242,7 +242,7 @@ Public Function PromptMultiOption( _
 
     Dim isTestRunning As Boolean: isTestRunning = False
     On Error Resume Next
-    isTestRunning = Lib_Tests.IsRunning
+    isTestRunning = Test_Runner.IsRunning
     On Error GoTo ErrHandler
 
     If isTestRunning Then
@@ -316,7 +316,7 @@ Public Function PromptSaveAsPath(ByVal dialogTitle As String, ByVal initialPath 
 
     Dim isTestRunning As Boolean: isTestRunning = False
     On Error Resume Next
-    isTestRunning = Lib_Tests.IsRunning
+    isTestRunning = Test_Runner.IsRunning
     On Error GoTo ErrHandler
 
     If isTestRunning Then

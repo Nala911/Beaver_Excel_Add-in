@@ -1,11 +1,11 @@
-Attribute VB_Name = "Lib_Tests_Feat_Formatting"
+﻿Attribute VB_Name = "Test_Feat_Formatting"
 Option Explicit
 
-' @Module: Lib_Tests_Feat_Formatting
+' @Module: Test_Feat_Formatting
 ' @Category: Library
 ' @Description: Unit and integration tests for formatting feature commands.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, FeatCmd_ApplyCustomNumberFormat, FeatCmd_PasteFormat, FeatCmd_FormatRange
+' @Dependencies: Test_Runner, AppContainer, Infra_Error, Infra_Undo, FeatCmd_ApplyCustomNumberFormat, FeatCmd_PasteFormat, FeatCmd_FormatRange
 
 Public Sub Test_ApplyCustomNumberFormat_Execution()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ApplyCustomNumberFormat_Execution")
@@ -31,7 +31,7 @@ Public Sub Test_ApplyCustomNumberFormat_Execution()
     Set cmd = AppContainer.ResolveCommand("ApplyCustomNumberFormat")
     cmd.Execute ctx
 
-    Lib_Tests.AssertEqual ws.Range("A1").NumberFormat, Infra_Config.Model.DefaultNumberFormat, "Custom number format should be applied to A1"
+    Test_Runner.AssertEqual ws.Range("A1").NumberFormat, Infra_Config.Model.DefaultNumberFormat, "Custom number format should be applied to A1"
 
     ' Cleanup
     Application.DisplayAlerts = False
@@ -100,9 +100,9 @@ Public Sub Test_PasteFormat_Execution()
     Set cmd = AppContainer.ResolveCommand("PasteFormat")
     cmd.Execute ctx
 
-    Lib_Tests.AssertEqual ws.Range("B1").Value2, "Dest", "Value of B1 should remain unchanged"
-    Lib_Tests.AssertEqual ws.Range("B1").Font.Bold, True, "B1 should now have bold formatting"
-    Lib_Tests.AssertEqual ws.Range("B1").Interior.Color, vbGreen, "B1 should now have green fill color"
+    Test_Runner.AssertEqual ws.Range("B1").Value2, "Dest", "Value of B1 should remain unchanged"
+    Test_Runner.AssertEqual ws.Range("B1").Font.Bold, True, "B1 should now have bold formatting"
+    Test_Runner.AssertEqual ws.Range("B1").Interior.Color, vbGreen, "B1 should now have green fill color"
 
     ' Clear clipboard
     Application.CutCopyMode = False
@@ -160,12 +160,12 @@ Public Sub Test_FormatRange_Execution()
     cmd.FormatRangeDirect ws.Range("A1:E3"), ws
 
     ' Asserts
-    Lib_Tests.AssertEqual ws.ListObjects.Count, 0#, "All overlapping ListObject tables should be unlisted"
-    Lib_Tests.AssertEqual ws.Range("A3").MergeCells, False, "Merged cells should be unmerged"
-    Lib_Tests.AssertEqual ws.Range("A1").Font.Bold, True, "Header row A1 should be Bold"
-    Lib_Tests.AssertEqual ws.Range("A1").Font.Size, Infra_Config.Model.HeaderFontSize, "Header font size should match config"
-    Lib_Tests.AssertEqual ws.Range("A1").Interior.Color, Infra_Config.Model.HeaderColor, "Header color should match config"
-    Lib_Tests.AssertEqual ws.Range("A2").Font.Size, Infra_Config.Model.DefaultFontSize, "Data row font size should match default config"
+    Test_Runner.AssertEqual ws.ListObjects.Count, 0#, "All overlapping ListObject tables should be unlisted"
+    Test_Runner.AssertEqual ws.Range("A3").MergeCells, False, "Merged cells should be unmerged"
+    Test_Runner.AssertEqual ws.Range("A1").Font.Bold, True, "Header row A1 should be Bold"
+    Test_Runner.AssertEqual ws.Range("A1").Font.Size, Infra_Config.Model.HeaderFontSize, "Header font size should match config"
+    Test_Runner.AssertEqual ws.Range("A1").Interior.Color, Infra_Config.Model.HeaderColor, "Header color should match config"
+    Test_Runner.AssertEqual ws.Range("A2").Font.Size, Infra_Config.Model.DefaultFontSize, "Data row font size should match default config"
 
     ' Cleanup
     Application.DisplayAlerts = False
@@ -203,11 +203,11 @@ Public Sub Test_FormatRange_WholeSheetSafety()
     cmd.FormatRangeDirect ws.Cells, ws
 
     ' C3 should be formatted
-    Lib_Tests.AssertEqual ws.Range("C3").Font.Bold, True, "C3 should be bolded as it became the header of the intersected used range"
-    Lib_Tests.AssertEqual ws.Range("C3").Font.Size, 11#, "C3 font size should be 11"
+    Test_Runner.AssertEqual ws.Range("C3").Font.Bold, True, "C3 should be bolded as it became the header of the intersected used range"
+    Test_Runner.AssertEqual ws.Range("C3").Font.Size, 11#, "C3 font size should be 11"
 
     ' Cell outside used range (e.g., Z99) should remain unformatted
-    Lib_Tests.AssertEqual ws.Range("Z99").Font.Bold, False, "Z99 should not be bolded"
+    Test_Runner.AssertEqual ws.Range("Z99").Font.Bold, False, "Z99 should not be bolded"
 
     ' Cleanup
     Application.DisplayAlerts = False
@@ -247,8 +247,8 @@ Public Sub Test_FormatRange_ErrorSafety()
     cmd.FormatRangeDirect ws.Range("A1:B2"), ws
 
     ' A1 and B1 should be formatted as headers (bold, font size 11)
-    Lib_Tests.AssertEqual ws.Range("A1").Font.Bold, True, "A1 should be bold"
-    Lib_Tests.AssertEqual ws.Range("B1").Font.Bold, True, "B1 should be bold"
+    Test_Runner.AssertEqual ws.Range("A1").Font.Bold, True, "A1 should be bold"
+    Test_Runner.AssertEqual ws.Range("B1").Font.Bold, True, "B1 should be bold"
 
     ' Cleanup
     Application.DisplayAlerts = False

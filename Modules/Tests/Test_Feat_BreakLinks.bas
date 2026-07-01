@@ -1,11 +1,11 @@
-Attribute VB_Name = "Lib_Tests_Feat_BreakLinks"
+﻿Attribute VB_Name = "Test_Feat_BreakLinks"
 Option Explicit
 
-' @Module: Lib_Tests_Feat_BreakLinks
+' @Module: Test_Feat_BreakLinks
 ' @Category: Library
 ' @Description: Unit and integration tests for link breaking commands.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, AppContainer, Infra_Error, FeatCmd_BreakExternalLinks
+' @Dependencies: Test_Runner, AppContainer, Infra_Error, FeatCmd_BreakExternalLinks
 
 Public Sub Test_BreakExternalLinks_Execution()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_BreakExternalLinks_Execution")
@@ -25,7 +25,7 @@ Public Sub Test_BreakExternalLinks_Execution()
     namesRemoved = cmd.RemoveExternalWorkbookNamesDirect(ThisWorkbook)
 
     ' Assert external names removal works safely
-    Lib_Tests.AssertTrue namesRemoved >= 0, "RemoveExternalWorkbookNames should run safely and remove external names"
+    Test_Runner.AssertTrue namesRemoved >= 0, "RemoveExternalWorkbookNames should run safely and remove external names"
 
     ' Verify the name is gone
     Dim nameExists As Boolean
@@ -35,7 +35,7 @@ Public Sub Test_BreakExternalLinks_Execution()
     If Not nm Is Nothing Then nameExists = True
     On Error GoTo ErrHandler
 
-    Lib_Tests.AssertEqual nameExists, False, "External named range should be successfully deleted"
+    Test_Runner.AssertEqual nameExists, False, "External named range should be successfully deleted"
 
     ' Cleanup
     Application.DisplayAlerts = False
@@ -83,9 +83,9 @@ Public Sub Test_BreakExternalLinks_SpillHandling()
     Infra_ValueConversion.WaitForCalculation
     
     ' Check if it has a spill and correct values
-    Lib_Tests.AssertEqual ws.Range("B2").Value, "Apple", "B2 should be Apple before link breaking"
-    Lib_Tests.AssertEqual ws.Range("B3").Value, "Banana", "B3 should be Banana (spilled) before link breaking"
-    Lib_Tests.AssertEqual ws.Range("B4").Value, "Cherry", "B4 should be Cherry (spilled) before link breaking"
+    Test_Runner.AssertEqual ws.Range("B2").Value, "Apple", "B2 should be Apple before link breaking"
+    Test_Runner.AssertEqual ws.Range("B3").Value, "Banana", "B3 should be Banana (spilled) before link breaking"
+    Test_Runner.AssertEqual ws.Range("B4").Value, "Cherry", "B4 should be Cherry (spilled) before link breaking"
 
     ' 4. Break the links
     Dim cmd As New FeatCmd_BreakExternalLinks
@@ -103,12 +103,12 @@ Public Sub Test_BreakExternalLinks_SpillHandling()
 
     ' 5. Verify results
     ' Check that B2 formula is gone (replaced by static value)
-    Lib_Tests.AssertEqual ws.Range("B2").HasFormula, False, "B2 should not have formula after link breaking"
+    Test_Runner.AssertEqual ws.Range("B2").HasFormula, False, "B2 should not have formula after link breaking"
     
     ' Check that all spilled values are preserved
-    Lib_Tests.AssertEqual ws.Range("B2").Value, "Apple", "B2 value should be Apple after link breaking"
-    Lib_Tests.AssertEqual ws.Range("B3").Value, "Banana", "B3 value should be Banana after link breaking"
-    Lib_Tests.AssertEqual ws.Range("B4").Value, "Cherry", "B4 value should be Cherry after link breaking"
+    Test_Runner.AssertEqual ws.Range("B2").Value, "Apple", "B2 value should be Apple after link breaking"
+    Test_Runner.AssertEqual ws.Range("B3").Value, "Banana", "B3 value should be Banana after link breaking"
+    Test_Runner.AssertEqual ws.Range("B4").Value, "Cherry", "B4 value should be Cherry after link breaking"
     
     ' Cleanup target worksheet
     Application.DisplayAlerts = False

@@ -435,11 +435,16 @@ Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Clea
     End If
 
     ' --- 4. Application.Clean & Application.Trim ---
-    If request.CleanTrimSpaces And request.CleanNonPrintables Then
+    Dim doTrim As Boolean
+    Dim doClean As Boolean
+    If request.CleanTrimSpaces Then doTrim = NeedsTrim(textValue)
+    If request.CleanNonPrintables Then doClean = NeedsClean(textValue)
+    
+    If doTrim And doClean Then
         textValue = Application.Trim(Application.Clean(textValue))
-    ElseIf request.CleanTrimSpaces Then
+    ElseIf doTrim Then
         textValue = Application.Trim(textValue)
-    ElseIf request.CleanNonPrintables Then
+    ElseIf doClean Then
         textValue = Application.Clean(textValue)
     End If
 
@@ -484,10 +489,12 @@ Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Clea
 End Function
 
 Private Function HasNonAscii(ByRef text As String) As Boolean
-    Dim i As Long, charCode As Long
-    For i = 1 To Len(text)
-        charCode = AscW(Mid$(text, i, 1))
-        If charCode < 0 Or charCode > 127 Then
+    If text = vbNullString Then Exit Function
+    Dim bytes() As Byte
+    bytes = text
+    Dim i As Long
+    For i = 0 To UBound(bytes) Step 2
+        If bytes(i + 1) <> 0 Or bytes(i) > 127 Then
             HasNonAscii = True
             Exit Function
         End If
@@ -524,6 +531,12 @@ Private Function RemoveAccents(ByVal text As String) As String
 End Function
 
 Private Function GetAccentedChars() As String
+    Static cachedChars As String
+    If cachedChars <> "" Then
+        GetAccentedChars = cachedChars
+        Exit Function
+    End If
+    
     Dim chars As String
     ' ÀÁÂÃÄÅ
     chars = chars & ChrW$(192) & ChrW$(193) & ChrW$(194) & ChrW$(195) & ChrW$(196) & ChrW$(197)
@@ -563,7 +576,33 @@ Private Function GetAccentedChars() As String
     chars = chars & ChrW$(268) & ChrW$(269) & ChrW$(270) & ChrW$(271) & ChrW$(282) & ChrW$(283)
     chars = chars & ChrW$(327) & ChrW$(328) & ChrW$(344) & ChrW$(345) & ChrW$(356) & ChrW$(357)
     chars = chars & ChrW$(366) & ChrW$(367)
-    GetAccentedChars = chars
+    cachedChars = chars
+    GetAccentedChars = cachedChars
+End Function
+
+Private Function NeedsTrim(ByRef text As String) As Boolean
+    If text = vbNullString Then Exit Function
+    If Left$(text, 1) = " " Or Right$(text, 1) = " " Then
+        NeedsTrim = True
+        Exit Function
+    End If
+    If InStr(1, text, "  ") > 0 Then
+        NeedsTrim = True
+        Exit Function
+    End If
+End Function
+
+Private Function NeedsClean(ByRef text As String) As Boolean
+    If text = vbNullString Then Exit Function
+    Dim bytes() As Byte
+    bytes = text
+    Dim i As Long
+    For i = 0 To UBound(bytes) Step 2
+        If bytes(i + 1) = 0 And bytes(i) < 32 Then
+            NeedsClean = True
+            Exit Function
+        End If
+    Next i
 End Function
 
 
