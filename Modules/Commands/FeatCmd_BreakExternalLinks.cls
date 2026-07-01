@@ -16,7 +16,7 @@ Implements IBatchProcessor
 ' @Category: Feature
 ' @Description: Detects and breaks external Excel links, connections, and external named ranges.
 
-Private m_CurrentRequest As Infra_ScopedRequest
+Private m_CurrentRequest As ScopedRequest
 Private m_LinkArr As Variant
 Private m_BrokenLinks As Long
 Private m_ConnectionsRemoved As Long
@@ -40,8 +40,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim wb As Workbook
     Dim linkArr As Variant
     Dim linkInfo As String
-    Dim request As Infra_ScopedRequest
-    Dim ctx As Infra_ActionContext
+    Dim request As ScopedRequest
+    Dim ctx As ActionContext
     Dim hasWorkbookLevelItems As Boolean
     Dim hasSheetLevelItems As Boolean
     
@@ -58,7 +58,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     End If
 
     ' 2. CONFIRMATION + SCOPE
-    Set request = Infra_UIFactory.ShowBreakLinksDialog(ctx, linkInfo)
+    Set request = UI_Factory.ShowBreakLinksDialog(ctx, linkInfo)
     If request Is Nothing Then GoTo CleanExit
 
     ' 4. EXECUTION
@@ -150,7 +150,7 @@ ErrHandler:
 End Function
 
 
-Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_ScopedRequest, ByVal linkArr As Variant) As String
+Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As ScopedRequest, ByVal linkArr As Variant) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteBreakLinks")
     On Error GoTo ErrHandler
 
@@ -175,6 +175,7 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
             Dim i As Long
             For i = LBound(linkArr) To UBound(linkArr)
                 On Error Resume Next
+                Err.Clear
                 wb.BreakLink Name:=linkArr(i), Type:=xlLinkTypeExcelLinks
                 If Err.Number = 0 Then m_BrokenLinks = m_BrokenLinks + 1
                 On Error GoTo ErrHandler
@@ -208,6 +209,7 @@ Private Function ExecuteBreakLinks(ByVal wb As Workbook, ByVal request As Infra_
             For linkIndex = LBound(linkArr) To UBound(linkArr)
                 If CountLinkSourceReferences(wb, CStr(linkArr(linkIndex))) = 0 Then
                     On Error Resume Next
+                    Err.Clear
                     wb.BreakLink Name:=linkArr(linkIndex), Type:=xlLinkTypeExcelLinks
                     If Err.Number = 0 Then m_BrokenLinks = m_BrokenLinks + 1
                     On Error GoTo ErrHandler
@@ -432,7 +434,7 @@ End Function
 
 ' --- Testing Entry Points ---
 ' Allows headless automated testing of the link breaking and name removal logic.
-Public Function ExecuteBreakLinksDirect(ByVal wb As Workbook, ByVal request As Infra_ScopedRequest, ByRef linkArr As Variant) As String
+Public Function ExecuteBreakLinksDirect(ByVal wb As Workbook, ByVal request As ScopedRequest, ByRef linkArr As Variant) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteBreakLinksDirect")
     On Error GoTo ErrHandler
     

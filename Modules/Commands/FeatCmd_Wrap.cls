@@ -15,7 +15,7 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Wraps the current selection by either applying a typed pattern or reusing a wrapper formula from another cell.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: ICommand, Infra_CommandSupport, Infra_UIFactory, Infra_Interaction, Infra_Undo, Infra_Error
+' @Dependencies: ICommand, Infra_CommandSupport, UI_Factory, Infra_Interaction, Infra_Undo, Infra_Error
 
 Private Const PLACEHOLDER As String = "[value]"
 Private Const COMMAND_NAME As String = "Wrap"
@@ -34,7 +34,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Wrap.Execute")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Dim rng As Range
     Dim wrapMode As Long
 
@@ -49,7 +49,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         If Not Infra_Interaction.Confirm("You have selected " & Format(rng.CountLarge, "#,##0") & " cells. This may take a moment to process. Continue?") Then GoTo CleanExit
     End If
 
-    wrapMode = Infra_UIFactory.PromptForWrapMode(ctx)
+    wrapMode = UI_Factory.PromptForWrapMode(ctx)
     If wrapMode = 0 Then GoTo CleanExit
 
     Select Case wrapMode
@@ -78,7 +78,7 @@ Private Sub ExecuteWrapperCellMode(ByVal targetRange As Range)
     Dim constantCells As Range
     Dim totalErrors As Long
 
-    Set wrapperCell = Infra_UIFactory.PromptForRelatedCell(targetRange.Cells(1, 1))
+    Set wrapperCell = UI_Factory.PromptForRelatedCell(targetRange.Cells(1, 1))
     If wrapperCell Is Nothing Then GoTo CleanExit
     Set wrapperCell = wrapperCell.Cells(1, 1)
 
@@ -129,7 +129,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ExecuteTypedPatternMode(ByVal ctx As Infra_ActionContext, ByVal rng As Range)
+Private Sub ExecuteTypedPatternMode(ByVal ctx As ActionContext, ByVal rng As Range)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteTypedPatternMode")
     On Error GoTo ErrHandler
 
@@ -138,7 +138,7 @@ Private Sub ExecuteTypedPatternMode(ByVal ctx As Infra_ActionContext, ByVal rng 
     Dim userPattern As String
     Dim totalErrors As Long
 
-    userPattern = Infra_UIFactory.PromptForWrapFormulaPattern(ctx, PLACEHOLDER)
+    userPattern = UI_Factory.PromptForWrapFormulaPattern(ctx, PLACEHOLDER)
     If userPattern = vbNullString Then GoTo CleanExit
 
     If Not Infra_Undo.SaveStateOrConfirm(rng, COMMAND_NAME, UndoCaptureFormulaOnly) Then GoTo CleanExit

@@ -13,10 +13,10 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Centralized engine for executing scoped workbook/sheet/range batch operations with unified progress, undo, and state management.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: IBatchProcessor, Infra_ActionContext, Infra_Progress, Infra_Undo, Infra_Error, Infra_CommandSupport, Infra_Interaction
+' @Dependencies: IBatchProcessor, ActionContext, Infra_Progress, Infra_Undo, Infra_Error, Infra_CommandSupport, Infra_Interaction
 
 Public Function Execute( _
-    ByVal ctx As Infra_ActionContext, _
+    ByVal ctx As ActionContext, _
     ByVal scope As TargetScope, _
     ByVal processor As IBatchProcessor, _
     ByVal operationName As String, _
@@ -73,6 +73,26 @@ Public Function Execute( _
     ' --- 3. Resolve worksheets ---
     Set sheetsToProcess = Infra_CommandSupport.ResolveWorksheetsToProcess(ctx, scope)
     If sheetsToProcess Is Nothing Then GoTo CleanExit
+
+    ' --- 3b. Check worksheet protection in target scope ---
+    Dim wsCheck As Worksheet
+    Dim protectedSheetsList As String
+    Dim wsItemCheck As Variant
+    For Each wsItemCheck In sheetsToProcess
+        Set wsCheck = wsItemCheck
+        If wsCheck.ProtectContents Then
+            If protectedSheetsList = "" Then
+                protectedSheetsList = wsCheck.Name
+            Else
+                protectedSheetsList = protectedSheetsList & ", " & wsCheck.Name
+            End If
+        End If
+    Next wsItemCheck
+    
+    If protectedSheetsList <> "" Then
+        Infra_Interaction.ShowWarning "Cannot execute the operation because the following worksheet(s) in the target scope are protected: " & protectedSheetsList & ". Please unprotect them and try again.", operationName
+        GoTo CleanExit
+    End If
 
     ' --- 4. Start progress bar ---
     Infra_Progress.StartProgress operationName, sheetsToProcess.Count

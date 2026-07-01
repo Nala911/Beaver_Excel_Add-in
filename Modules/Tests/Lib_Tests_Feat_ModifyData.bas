@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Library
 ' @Description: Integration tests for data modification (casing, dates) features.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, FeatCmd_ModifyData, Infra_ModifyDataRequest
+' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, FeatCmd_ModifyData, ModifyDataRequest
 
 Public Sub Test_ModifyData_Casing()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ModifyData_Casing")
@@ -20,8 +20,8 @@ Public Sub Test_ModifyData_Casing()
     ws.Range("A3").Value2 = "heLLo wOrld"
 
     Dim cmd As New FeatCmd_ModifyData
-    Dim req As New Infra_ModifyDataRequest
-    Set req.Context = New Infra_ActionContext
+    Dim req As New ModifyDataRequest
+    Set req.Context = New ActionContext
     
     ' 1. Test UPPERCASE
     Dim changes As Long
@@ -71,8 +71,8 @@ Public Sub Test_ModifyData_DateStandardization()
     ws.Range("A4").Value = "20210215"    ' yyyymmdd -> Feb 15, 2021
 
     Dim cmd As New FeatCmd_ModifyData
-    Dim req As New Infra_ModifyDataRequest
-    Set req.Context = New Infra_ActionContext
+    Dim req As New ModifyDataRequest
+    Set req.Context = New ActionContext
     req.Operation = "Date Standardization"
 
     ' 1. Test dd/mm/yyyy
@@ -173,7 +173,7 @@ Public Sub Test_ModifyData_Undo()
     Set cmd = AppContainer.ResolveCommand("ModifyData")
 
     ' Run headless modification directly on A1 (Proper Case)
-    Dim req As New Infra_ModifyDataRequest
+    Dim req As New ModifyDataRequest
     Set req.Context = ctx.ActionContext
     req.Operation = "Case: Proper Case"
 
@@ -231,8 +231,8 @@ Public Sub Test_ModifyData_MixedFormats()
     ws.Range("A3").Value2 = "cherry"
 
     Dim cmd As New FeatCmd_ModifyData
-    Dim req As New Infra_ModifyDataRequest
-    Set req.Context = New Infra_ActionContext
+    Dim req As New ModifyDataRequest
+    Set req.Context = New ActionContext
     
     req.Operation = "Case: UPPERCASE"
     
@@ -280,8 +280,8 @@ Public Sub Test_ModifyData_MixedFormats_DateStandardization()
     ws.Range("A3").Value = 1000
 
     Dim cmd As New FeatCmd_ModifyData
-    Dim req As New Infra_ModifyDataRequest
-    Set req.Context = New Infra_ActionContext
+    Dim req As New ModifyDataRequest
+    Set req.Context = New ActionContext
     
     req.Operation = "Date Standardization"
     req.DatePattern = "dd/mm/yyyy"
@@ -316,5 +316,49 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_ModifyData_MixedFormats_DateStandardization", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ModifyData_BulkFormattingOverride()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ModifyData_BulkFormattingOverride")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_ModFmt"
+
+    ' Setup cells
+    ws.Range("A1:A2").NumberFormat = "@"
+    ws.Range("A1").Value2 = "05/12/2021" ' dd/mm/yyyy
+    ws.Range("A2").Value2 = "15/02/2021" ' dd/mm/yyyy
+
+    Dim cmd As New FeatCmd_ModifyData
+    Dim req As New ModifyDataRequest
+    Set req.Context = New ActionContext
+    req.Operation = "Date Standardization"
+    req.DatePattern = "dd/mm/yyyy"
+
+    ' Execute
+    Dim changes As Long
+    changes = cmd.ModifyRangeWithOptionsDirect(ws.Range("A1:A2"), req)
+    
+    Lib_Tests.AssertEqual changes, 2#, "Should perform 2 changes"
+    Lib_Tests.AssertEqual ws.Range("A1").NumberFormat, Infra_Config.Model.DisplayDateFormat, "A1 format should be display date format"
+    Lib_Tests.AssertEqual ws.Range("A2").NumberFormat, Infra_Config.Model.DisplayDateFormat, "A2 format should be display date format"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ModifyData_BulkFormattingOverride", Err
     Resume CleanExit
 End Sub

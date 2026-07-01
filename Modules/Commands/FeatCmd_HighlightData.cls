@@ -16,9 +16,9 @@ Implements IBatchProcessor
 ' @Category: Feature
 ' @Description: Advanced data highlighting tools (Inconsistent Formulas, Duplicates).
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: ICommand, Infra_ActionContext, Infra_HighlightDataRequest, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction
+' @Dependencies: ICommand, ActionContext, HighlightDataRequest, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction
 
-Private m_CurrentRequest As Infra_HighlightDataRequest
+Private m_CurrentRequest As HighlightDataRequest
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -32,8 +32,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("HighlightData.Execute")
     On Error GoTo ErrHandler
     
-    Dim ctx As Infra_ActionContext
-    Dim request As Infra_HighlightDataRequest
+    Dim ctx As ActionContext
+    Dim request As HighlightDataRequest
     Dim stateInfo As Collection
 
     Set stateInfo = Infra_Error.NewStateInfo()
@@ -54,7 +54,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         Infra_Error.AddState stateInfo, "Selection", ctx.SelectionRange.Address(False, False)
     End If
 
-    Set request = Infra_UIFactory.ShowHighlightDataDialog(ctx, context.CommandName)
+    Set request = UI_Factory.ShowHighlightDataDialog(ctx, context.CommandName)
     If request Is Nothing Then GoTo CleanExit
     
     ExecuteHighlightData request
@@ -67,7 +67,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ExecuteHighlightData(ByVal request As Infra_HighlightDataRequest)
+Private Sub ExecuteHighlightData(ByVal request As HighlightDataRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteHighlightData")
     On Error GoTo ErrHandler
     
@@ -112,7 +112,7 @@ Private Function IBatchProcessor_ProcessWorksheet(ByVal ws As Worksheet) As Long
     IBatchProcessor_ProcessWorksheet = 0
 End Function
 
-Private Sub ProcessRangeForHighlight(ByRef targetRange As Range, ByVal request As Infra_HighlightDataRequest)
+Private Sub ProcessRangeForHighlight(ByRef targetRange As Range, ByVal request As HighlightDataRequest)
     If targetRange Is Nothing Then Exit Sub
     
     Dim ws As Worksheet
@@ -581,7 +581,7 @@ Public Sub HighlightRangeDirect(ByVal targetRange As Range)
     Dim tracker As Object: Set tracker = Infra_Error.Track("HighlightRangeDirect")
     On Error GoTo ErrHandler
     
-    Dim request As New Infra_HighlightDataRequest
+    Dim request As New HighlightDataRequest
     ProcessRangeForHighlight targetRange, request
 
 CleanExit:
@@ -591,7 +591,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Public Sub HighlightRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As Infra_HighlightDataRequest)
+Public Sub HighlightRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As HighlightDataRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("HighlightRangeWithOptionsDirect")
     On Error GoTo ErrHandler
     

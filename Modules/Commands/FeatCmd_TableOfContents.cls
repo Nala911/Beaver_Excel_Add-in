@@ -60,7 +60,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("TableOfContents.Execute")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WorkbookRef Is Nothing Then GoTo CleanExit
@@ -103,19 +103,52 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim headerSize As Long: headerSize = Infra_Config.HEADER_FONT_SIZE
     Dim headerColor As Long: headerColor = Infra_Config.HEADER_COLOR
 
-    ' Format Title Block
+    ' Calculate sheet statistics in target scope
+    Dim visibleCount As Long
+    Dim hiddenCount As Long
+    Dim veryHiddenCount As Long
+    Dim totalSheetCount As Long
+    Dim ws As Worksheet
+    Dim wsItem As Variant
+    
+    For Each wsItem In wb.Worksheets
+        Set ws = wsItem
+        If ws.Name <> "Table of Contents" And _
+           ws.Name <> "_BeaverUndo" And _
+           ws.Name <> "_BeaverTests" And _
+           Left$(ws.Name, 10) <> "Test_Temp_" And _
+           Left$(ws.Name, 1) <> "_" Then
+            totalSheetCount = totalSheetCount + 1
+            Select Case ws.Visible
+                Case xlSheetVisible
+                    visibleCount = visibleCount + 1
+                Case xlSheetHidden
+                    hiddenCount = hiddenCount + 1
+                Case xlSheetVeryHidden
+                    veryHiddenCount = veryHiddenCount + 1
+            End Select
+        End If
+    Next wsItem
+
+    ' Format Title Block & Workbook Summary Card (Rows 2 & 3)
+    wsTOC.Range("B2:F3").Interior.Color = RGB(248, 250, 252) ' Light slate background
+    wsTOC.Range("B2:F3").Borders.LineStyle = xlContinuous
+    wsTOC.Range("B2:F3").Borders.Color = RGB(226, 232, 240) ' Soft border
+    
     wsTOC.Cells(2, 2).Value = "Workbook Table of Contents"
     With wsTOC.Cells(2, 2).Font
         .Name = fontName
-        .Size = 16
+        .Size = 14
         .Bold = True
+        .Color = RGB(30, 41, 59)
     End With
 
-    wsTOC.Cells(3, 2).Value = "Generated on " & Format$(Now, "yyyy-mm-dd hh:mm") & " | Total Sheets: " & wb.Worksheets.Count - 1
+    wsTOC.Cells(3, 2).Value = "Generated on " & Format$(Now, "yyyy-mm-dd hh:nn") & "  |  Sheets: " & visibleCount & " Visible, " & hiddenCount & " Hidden, " & veryHiddenCount & " Very Hidden (Total: " & totalSheetCount & ")"
     With wsTOC.Cells(3, 2).Font
         .Name = fontName
-        .Size = 10
+        .Size = 9
         .Italic = True
+        .Color = RGB(100, 116, 139)
     End With
 
     ' Format Headers
@@ -133,23 +166,29 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         .Font.Name = fontName
         .Font.Size = headerSize
         .Font.Bold = True
+        .Font.Color = RGB(255, 255, 255) ' White text on dark header color
         .Interior.Color = headerColor
         .Borders.LineStyle = xlContinuous
+        .Borders.Color = RGB(226, 232, 240)
     End With
 
     ' Write Sheet Info
-    Dim ws As Worksheet
-    Dim wsItem As Variant
     Dim rowIndex As Long: rowIndex = 6
     Dim count As Long: count = 1
 
     For Each wsItem In wb.Worksheets
         Set ws = wsItem
-        If ws.Name <> "Table of Contents" Then
+        If ws.Name <> "Table of Contents" And _
+           ws.Name <> "_BeaverUndo" And _
+           ws.Name <> "_BeaverTests" And _
+           Left$(ws.Name, 10) <> "Test_Temp_" And _
+           Left$(ws.Name, 1) <> "_" Then
+           
             ' #
             wsTOC.Cells(rowIndex, 2).Value = count
             wsTOC.Cells(rowIndex, 2).Font.Name = fontName
             wsTOC.Cells(rowIndex, 2).Font.Size = defaultSize
+            wsTOC.Cells(rowIndex, 2).Font.Color = RGB(100, 116, 139)
 
             ' Sheet Name (Hyperlink if visible)
             wsTOC.Cells(rowIndex, 3).Font.Name = fontName
@@ -162,27 +201,32 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
             Else
                 wsTOC.Cells(rowIndex, 3).Value = ws.Name
                 wsTOC.Cells(rowIndex, 3).Font.Italic = True
-                wsTOC.Cells(rowIndex, 3).Font.Color = RGB(128, 128, 128)
+                wsTOC.Cells(rowIndex, 3).Font.Color = RGB(148, 163, 184)
             End If
 
-            ' Visibility
+            ' Visibility (Clean styled indicators)
             Dim visibilityStr As String
+            Dim visColor As Long
             Select Case ws.Visible
                 Case xlSheetVisible
                     visibilityStr = "Visible"
+                    visColor = RGB(22, 163, 74) ' Calm Green
                 Case xlSheetHidden
                     visibilityStr = "Hidden"
+                    visColor = RGB(217, 119, 6) ' Amber
                 Case xlSheetVeryHidden
                     visibilityStr = "Very Hidden"
+                    visColor = RGB(220, 38, 38) ' Crimson
                 Case Else
                     visibilityStr = "Unknown"
+                    visColor = RGB(100, 116, 139)
             End Select
+            
             wsTOC.Cells(rowIndex, 4).Value = visibilityStr
             wsTOC.Cells(rowIndex, 4).Font.Name = fontName
             wsTOC.Cells(rowIndex, 4).Font.Size = defaultSize
-            If ws.Visible <> xlSheetVisible Then
-                wsTOC.Cells(rowIndex, 4).Font.Color = RGB(192, 0, 0)
-            End If
+            wsTOC.Cells(rowIndex, 4).Font.Color = visColor
+            wsTOC.Cells(rowIndex, 4).Font.Bold = (ws.Visible <> xlSheetVisible)
 
             ' Populated Cells
             Dim cellCount As Long
@@ -194,13 +238,17 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
             wsTOC.Cells(rowIndex, 5).Font.Name = fontName
             wsTOC.Cells(rowIndex, 5).Font.Size = defaultSize
             wsTOC.Cells(rowIndex, 5).NumberFormat = Infra_Config.DEFAULT_NUMBER_FORMAT
+            wsTOC.Cells(rowIndex, 5).Font.Color = RGB(71, 85, 105)
 
             ' Notes (Blank)
             wsTOC.Cells(rowIndex, 6).Font.Name = fontName
             wsTOC.Cells(rowIndex, 6).Font.Size = defaultSize
 
             ' Add borders to this row
-            wsTOC.Range(wsTOC.Cells(rowIndex, 2), wsTOC.Cells(rowIndex, 6)).Borders.LineStyle = xlContinuous
+            With wsTOC.Range(wsTOC.Cells(rowIndex, 2), wsTOC.Cells(rowIndex, 6)).Borders
+                .LineStyle = xlContinuous
+                .Color = RGB(226, 232, 240)
+            End With
 
             rowIndex = rowIndex + 1
             count = count + 1

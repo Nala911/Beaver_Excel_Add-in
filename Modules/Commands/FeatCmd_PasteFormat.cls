@@ -29,7 +29,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
     
     Dim targetRange As Range
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Dim tempWs As Worksheet
     Dim originalActiveSheet As Object
 
@@ -46,9 +46,9 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     ' Record the original active sheet to restore it later
     Set originalActiveSheet = Application.ActiveSheet
 
-    ' Create a temporary worksheet in the target range's workbook (which is visible/active, so PasteSpecial works)
+    ' Create a temporary worksheet in the add-in workbook (ThisWorkbook) to preserve the user's active workbook Undo stack
     On Error Resume Next
-    Set tempWs = targetRange.Worksheet.Parent.Worksheets.Add
+    Set tempWs = ThisWorkbook.Worksheets.Add
     If tempWs Is Nothing Then
         ' Fallback: If workbook structure is protected, paste directly without undo support
         On Error Resume Next

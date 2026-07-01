@@ -36,7 +36,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim desktopPath As String
     Dim affix As String
     Dim counter As Long
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit

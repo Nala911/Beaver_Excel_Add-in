@@ -1,6 +1,12 @@
 Attribute VB_Name = "Infra_ValueConversion"
 Option Explicit
 
+#If VBA7 Then
+    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+#Else
+    Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+#End If
+
 ' @Module: Infra_ValueConversion
 ' @Category: Infrastructure
 ' @Description: Shared helpers for converting selections, formulas, and spill ranges to static values.
@@ -295,9 +301,10 @@ Public Sub WaitForCalculation()
     On Error GoTo ErrHandler
 
     Dim i As Long
-    For i = 1 To 1000
+    For i = 1 To 100
         If Application.CalculationState = xlDone Then Exit Sub
         DoEvents
+        Sleep 10
     Next i
 
 CleanExit:

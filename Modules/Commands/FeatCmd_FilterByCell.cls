@@ -54,7 +54,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim offsetCols As Long
     Dim newWidth As Long
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WorksheetRef Is Nothing Then GoTo CleanExit

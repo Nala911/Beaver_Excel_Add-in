@@ -23,7 +23,7 @@ Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandV
     Dim tracker As Object: Set tracker = Infra_Error.Track("Delete.Validate")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then
@@ -48,7 +48,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
     
     ' Guard: for range selections, check modifiability
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Dim selectionRef As Object
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)

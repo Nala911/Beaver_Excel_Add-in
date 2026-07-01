@@ -11,27 +11,25 @@ Public OriginalDisplayAlerts As Boolean
 ' @Category: Infrastructure
 ' @Description: Shared helpers: consistent error dialogs, selection guards, Desktop path retrieval, and file system utilities.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Config, Infra_ActionContext, Infra_Error
+' @Dependencies: Infra_Config, ActionContext, Infra_Error
 
-' Returns True if the active cell on the active sheet can be modified.
-' Checks for sheet protection and the cell's locked status.
+' @Deprecated: Use AppContainer.ContextProvider.CanModifyActiveCell directly.
 Public Function CanModifyActiveCell() As Boolean
     CanModifyActiveCell = AppContainer.ContextProvider.CanModifyActiveCell
 End Function
 
-' Returns True if the current selection is a Range.
-' Use as a guard at the top of any macro that requires a range selection.
+' @Deprecated: Use AppContainer.ContextProvider.IsRangeSelected directly.
 Public Function IsRangeSelected() As Boolean
     IsRangeSelected = AppContainer.ContextProvider.IsRangeSelected
 End Function
 
-' Captures the current workbook, worksheet, selection, and active-cell state
-' into a typed object for downstream feature logic.
-Public Function CaptureActionContext() As Infra_ActionContext
+' @Deprecated: Use AppContainer.ContextProvider.CaptureActionContext directly.
+Public Function CaptureActionContext() As ActionContext
     Set CaptureActionContext = AppContainer.ContextProvider.CaptureActionContext()
 End Function
 
-Public Function CanModifyContext(ByVal ctx As Infra_ActionContext) As Boolean
+' @Deprecated: Use AppContainer.ContextProvider.CanModifyContext directly.
+Public Function CanModifyContext(ByVal ctx As ActionContext) As Boolean
     CanModifyContext = AppContainer.ContextProvider.CanModifyContext(ctx)
 End Function
 

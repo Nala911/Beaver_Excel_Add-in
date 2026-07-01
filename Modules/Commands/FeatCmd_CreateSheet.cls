@@ -29,16 +29,16 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
 
     Dim sheetName As String
     Dim newSheet As Worksheet
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Dim insertPosition As SheetInsertPosition
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
 
-    sheetName = Infra_UIFactory.PromptForSheetName(ctx)
+    sheetName = UI_Factory.PromptForSheetName(ctx)
     If sheetName = vbNullString Then GoTo CleanExit
 
-    insertPosition = Infra_UIFactory.PromptForSheetInsertPosition(ctx, sheetName)
+    insertPosition = UI_Factory.PromptForSheetInsertPosition(ctx, sheetName)
     If insertPosition = 0 Then GoTo CleanExit
 
     If insertPosition = SheetInsertPositionBeforeCurrent Then

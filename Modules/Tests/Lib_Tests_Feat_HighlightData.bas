@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Library
 ' @Description: Integration tests for data highlighting features.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, FeatCmd_HighlightData, Infra_HighlightDataRequest
+' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, FeatCmd_HighlightData, HighlightDataRequest
 
 Public Sub Test_HighlightData_InconsistentFormulasAndDuplicates()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HighlightData_InconsistentFormulasAndDuplicates")
@@ -145,7 +145,7 @@ Public Sub Test_HighlightData_Errors()
     ' Reset colors
     ws.Range("A1:A6").Interior.ColorIndex = xlNone
 
-    Dim req As New Infra_HighlightDataRequest
+    Dim req As New HighlightDataRequest
     req.HighlightInconsistentFormulas = False
     req.HighlightDuplicates = False
     req.HighlightErrors = True
@@ -218,7 +218,7 @@ Public Sub Test_HighlightData_HardcodedValues()
     ' Reset colors
     ws.Range("A1:A6").Interior.ColorIndex = xlNone
     
-    Dim req As New Infra_HighlightDataRequest
+    Dim req As New HighlightDataRequest
     req.HighlightInconsistentFormulas = False
     req.HighlightDuplicates = False
     req.HighlightErrors = False
@@ -271,7 +271,7 @@ Public Sub Test_HighlightData_DataValidations()
     ' Reset colors
     ws.Range("A1:A3").Interior.ColorIndex = xlNone
 
-    Dim req As New Infra_HighlightDataRequest
+    Dim req As New HighlightDataRequest
     req.HighlightInconsistentFormulas = False
     req.HighlightDuplicates = False
     req.HighlightDataValidations = True
@@ -318,7 +318,7 @@ Public Sub Test_HighlightData_ConditionalFormatting()
     ' Reset colors
     ws.Range("A1:A3").Interior.ColorIndex = xlNone
 
-    Dim req As New Infra_HighlightDataRequest
+    Dim req As New HighlightDataRequest
     req.HighlightInconsistentFormulas = False
     req.HighlightDuplicates = False
     req.HighlightConditionalFormatting = True

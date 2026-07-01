@@ -19,7 +19,7 @@ Private mSourceName As String
 Private mTriggerKind As String
 Private mCommandName As String
 Private mEntryMacro As String
-Private mActionContext As Infra_ActionContext
+Private mActionContext As ActionContext
 
 Public Property Get SourceName() As String
     SourceName = mSourceName
@@ -53,11 +53,11 @@ Public Property Let EntryMacro(ByVal value As String)
     mEntryMacro = value
 End Property
 
-Public Property Get ActionContext() As Infra_ActionContext
+Public Property Get ActionContext() As ActionContext
     Set ActionContext = mActionContext
 End Property
 
-Public Property Set ActionContext(ByVal value As Infra_ActionContext)
+Public Property Set ActionContext(ByVal value As ActionContext)
     Set mActionContext = value
 End Property
 
@@ -77,6 +77,6 @@ Private Property Get ICommandContext_EntryMacro() As String
     ICommandContext_EntryMacro = Me.EntryMacro
 End Property
 
-Private Property Get ICommandContext_ActionContext() As Infra_ActionContext
+Private Property Get ICommandContext_ActionContext() As ActionContext
     Set ICommandContext_ActionContext = Me.ActionContext
 End Property

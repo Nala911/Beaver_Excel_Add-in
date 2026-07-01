@@ -89,7 +89,7 @@ Public Sub Test_TableOfContents_Generation()
     Set wb = Workbooks.Add
 
     ' Add mock worksheets
-    Dim ws1 As Worksheet, ws2 As Worksheet
+    Dim ws1 As Worksheet, ws2 As Worksheet, wsFilter1 As Worksheet, wsFilter2 As Worksheet
     Set ws1 = wb.Worksheets.Add
     ws1.Name = "Test_TOC_Sheet1"
     ws1.Range("A1:B2").Value2 = "Data" ' 4 populated cells
@@ -97,6 +97,12 @@ Public Sub Test_TableOfContents_Generation()
     Set ws2 = wb.Worksheets.Add
     ws2.Name = "Test_TOC_Sheet2"
     ws2.Visible = xlSheetHidden
+
+    Set wsFilter1 = wb.Worksheets.Add
+    wsFilter1.Name = "Test_Temp_TOC_Filter"
+
+    Set wsFilter2 = wb.Worksheets.Add
+    wsFilter2.Name = "_BeaverTOC_Filter"
 
     ' Initialize AppContainer and create context
     AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
@@ -117,8 +123,8 @@ Public Sub Test_TableOfContents_Generation()
     Lib_Tests.AssertEqual wsTOC.Name, "Table of Contents", "First worksheet should be 'Table of Contents'"
 
     ' Validate info on wsTOC
-    Dim r As Long, foundSheet1 As Boolean, foundSheet2 As Boolean
-    For r = 6 To 15
+    Dim r As Long, foundSheet1 As Boolean, foundSheet2 As Boolean, foundFilter1 As Boolean, foundFilter2 As Boolean
+    For r = 6 To 18
         Dim sheetName As String
         sheetName = wsTOC.Cells(r, 3).Value
         If sheetName = "Test_TOC_Sheet1" Then
@@ -131,11 +137,17 @@ Public Sub Test_TableOfContents_Generation()
             foundSheet2 = True
             ' Verify visibility is Hidden
             Lib_Tests.AssertEqual wsTOC.Cells(r, 4).Value, "Hidden", "Test_TOC_Sheet2 visibility should be Hidden"
+        ElseIf sheetName = "Test_Temp_TOC_Filter" Then
+            foundFilter1 = True
+        ElseIf sheetName = "_BeaverTOC_Filter" Then
+            foundFilter2 = True
         End If
     Next r
 
     Lib_Tests.AssertEqual foundSheet1, True, "Test_TOC_Sheet1 should be listed in TOC"
     Lib_Tests.AssertEqual foundSheet2, True, "Test_TOC_Sheet2 should be listed in TOC"
+    Lib_Tests.AssertEqual foundFilter1, False, "Test_Temp_TOC_Filter should be excluded from TOC"
+    Lib_Tests.AssertEqual foundFilter2, False, "_BeaverTOC_Filter should be excluded from TOC"
 
     ' Cleanup
     wb.Close SaveChanges:=False

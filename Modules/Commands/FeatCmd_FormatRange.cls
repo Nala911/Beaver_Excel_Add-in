@@ -36,7 +36,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim overlappingTableCount As Long
     Dim hasMergedCells As Boolean
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
 
     ' --- Step 1: Ensure user selected a range ---
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)

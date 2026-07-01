@@ -156,8 +156,10 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String, Opt
                 
                 If formulaCells.Cells.CountLarge = 1 Then
                     If InStr(1, formulaCells.Formula2, "[", vbTextCompare) > 0 Then
-                        extCells.Add formulaCells
-                        hasUndoExt = True
+                        If IsActualExternalLink(formulaCells.Formula2) Then
+                            extCells.Add formulaCells
+                            hasUndoExt = True
+                        End If
                     End If
                 Else
                     On Error Resume Next
@@ -165,11 +167,13 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String, Opt
                     If Not foundCell Is Nothing Then
                         firstAddress = foundCell.Address
                         Do
-                            extCells.Add foundCell
+                            If IsActualExternalLink(foundCell.Formula2) Then
+                                extCells.Add foundCell
+                                hasUndoExt = True
+                            End If
                             Set foundCell = formulaCells.FindNext(foundCell)
                             If foundCell Is Nothing Then Exit Do
                         Loop While foundCell.Address <> firstAddress
-                        hasUndoExt = True
                     End If
                     On Error GoTo 0
                 End If
@@ -409,4 +413,26 @@ Private Function GetUndoMetadataValue(ByVal NameText As String) As String
     If Not IsError(evaluatedValue) Then
         GetUndoMetadataValue = CStr(evaluatedValue)
     End If
+End Function
+
+Private Function IsActualExternalLink(ByVal formulaText As String) As Boolean
+    Dim openPos As Long
+    Dim closePos As Long
+    Dim innerText As String
+    
+    openPos = InStr(1, formulaText, "[", vbTextCompare)
+    Do While openPos > 0
+        closePos = InStr(openPos + 1, formulaText, "]", vbTextCompare)
+        If closePos > openPos Then
+            innerText = Mid$(formulaText, openPos + 1, closePos - openPos - 1)
+            ' Check if it looks like a workbook filename (contains file extension .xls...)
+            ' or is followed by ! (which indicates an external sheet reference like [Book1]Sheet1!)
+            If InStr(1, innerText, ".xl", vbTextCompare) > 0 Or InStr(closePos + 1, formulaText, "!", vbTextCompare) = closePos + 1 Then
+                IsActualExternalLink = True
+                Exit Function
+            End If
+        End If
+        openPos = InStr(openPos + 1, formulaText, "[", vbTextCompare)
+    Loop
+    IsActualExternalLink = False
 End Function

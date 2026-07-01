@@ -19,7 +19,7 @@ Implements ICellTransformer
 ' @Category: Feature
 ' @Description: Advanced data cleaning tools (Trim, Clean).
 
-Private m_CurrentRequest As Infra_CleanDataRequest
+Private m_CurrentRequest As CleanDataRequest
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -56,8 +56,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("CleanData.Execute")
     On Error GoTo ErrHandler
     
-    Dim ctx As Infra_ActionContext
-    Dim request As Infra_CleanDataRequest
+    Dim ctx As ActionContext
+    Dim request As CleanDataRequest
     Dim stateInfo As Collection
 
     Set stateInfo = Infra_Error.NewStateInfo()
@@ -72,7 +72,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         Infra_Error.AddState stateInfo, "Selection", ctx.SelectionRange.Address(False, False)
     End If
 
-    Set request = Infra_UIFactory.ShowCleanDataDialog(ctx)
+    Set request = UI_Factory.ShowCleanDataDialog(ctx)
     If request Is Nothing Then GoTo CleanExit
     
     ExecuteCleanData request
@@ -85,7 +85,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ExecuteCleanData(ByVal request As Infra_CleanDataRequest)
+Private Sub ExecuteCleanData(ByVal request As CleanDataRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteCleanData")
     On Error GoTo ErrHandler
     
@@ -246,7 +246,7 @@ Private Function ICellTransformer_TransformCell(ByVal rawValue As Variant, ByVal
     End If
 End Function
 
-Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request As Infra_CleanDataRequest) As Long
+Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request As CleanDataRequest) As Long
     ' Note: No tracker here for performance; this is a core processing loop.
     If targetRange Is Nothing Then Exit Function
 
@@ -258,7 +258,7 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     If targetRange Is Nothing Then Exit Function
 
     ' Temporarily set current request to support direct/test calls
-    Dim prevRequest As Infra_CleanDataRequest
+    Dim prevRequest As CleanDataRequest
     Set prevRequest = m_CurrentRequest
     Set m_CurrentRequest = request
 
@@ -359,7 +359,7 @@ Private Function ProcessRangeForClean(ByRef targetRange As Range, ByVal request 
     ProcessRangeForClean = changeCount
 End Function
 
-Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Infra_CleanDataRequest) As Variant
+Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As CleanDataRequest) As Variant
     ' Note: No tracker here. This is called in tight loops.
     If IsError(rawValue) Then
         CleanTextValue = rawValue
@@ -573,7 +573,7 @@ Public Function CleanRangeDirect(ByVal targetRange As Range) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("CleanRangeDirect")
     On Error GoTo ErrHandler
     
-    Dim request As New Infra_CleanDataRequest
+    Dim request As New CleanDataRequest
     CleanRangeDirect = ProcessRangeForClean(targetRange, request)
 
 CleanExit:
@@ -584,7 +584,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function CleanRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As Infra_CleanDataRequest) As Long
+Public Function CleanRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As CleanDataRequest) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("CleanRangeWithOptionsDirect")
     On Error GoTo ErrHandler
     
@@ -598,7 +598,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function CleanWorksheetWithOptionsDirect(ByVal ws As Worksheet, ByVal request As Infra_CleanDataRequest) As Long
+Public Function CleanWorksheetWithOptionsDirect(ByVal ws As Worksheet, ByVal request As CleanDataRequest) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("CleanWorksheetWithOptionsDirect")
     On Error GoTo ErrHandler
     

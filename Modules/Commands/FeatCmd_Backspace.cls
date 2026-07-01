@@ -27,7 +27,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Backspace.Execute")
     On Error GoTo ErrHandler
     
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If Not Infra_AppState.CanModifyContext(ctx) Then GoTo CleanExit

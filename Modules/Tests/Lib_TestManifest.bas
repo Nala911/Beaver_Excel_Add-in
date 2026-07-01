@@ -20,6 +20,8 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesRibbonEntries", filterPattern) Then Lib_Tests_CommandInfrastructure.Test_CommandRegistryResolvesRibbonEntries
     If MatchesFilter("Lib_Tests_CommandInfrastructure.Test_DiagnosticsEscapeJson", filterPattern) Then Lib_Tests_CommandInfrastructure.Test_DiagnosticsEscapeJson
     If MatchesFilter("Lib_Tests_CommandInfrastructure.Test_DiagnosticsLogsJSON", filterPattern) Then Lib_Tests_CommandInfrastructure.Test_DiagnosticsLogsJSON
+    If MatchesFilter("Lib_Tests_Feat_BreakLinks.Test_BreakExternalLinks_Execution", filterPattern) Then Lib_Tests_Feat_BreakLinks.Test_BreakExternalLinks_Execution
+    If MatchesFilter("Lib_Tests_Feat_BreakLinks.Test_BreakExternalLinks_SpillHandling", filterPattern) Then Lib_Tests_Feat_BreakLinks.Test_BreakExternalLinks_SpillHandling
     If MatchesFilter("Lib_Tests_Feat_CleanData.Test_CleanData_CheckboxOptions", filterPattern) Then Lib_Tests_Feat_CleanData.Test_CleanData_CheckboxOptions
     If MatchesFilter("Lib_Tests_Feat_CleanData.Test_CleanData_HygieneOptions", filterPattern) Then Lib_Tests_Feat_CleanData.Test_CleanData_HygieneOptions
     If MatchesFilter("Lib_Tests_Feat_CleanData.Test_CleanData_LargeSelectionSafety", filterPattern) Then Lib_Tests_Feat_CleanData.Test_CleanData_LargeSelectionSafety
@@ -36,25 +38,18 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Feat_Editing.Test_FilterByCell_Execution", filterPattern) Then Lib_Tests_Feat_Editing.Test_FilterByCell_Execution
     If MatchesFilter("Lib_Tests_Feat_Editing.Test_MakePermanent_LegacyArray_And_Undo", filterPattern) Then Lib_Tests_Feat_Editing.Test_MakePermanent_LegacyArray_And_Undo
     If MatchesFilter("Lib_Tests_Feat_Editing.Test_MakePermanent_SpillHandling_And_Undo", filterPattern) Then Lib_Tests_Feat_Editing.Test_MakePermanent_SpillHandling_And_Undo
-    If MatchesFilter("Lib_Tests_Feat_General.Test_ApplyCustomNumberFormat_Execution", filterPattern) Then Lib_Tests_Feat_General.Test_ApplyCustomNumberFormat_Execution
-    If MatchesFilter("Lib_Tests_Feat_General.Test_BreakExternalLinks_Execution", filterPattern) Then Lib_Tests_Feat_General.Test_BreakExternalLinks_Execution
-    If MatchesFilter("Lib_Tests_Feat_General.Test_BreakExternalLinks_SpillHandling", filterPattern) Then Lib_Tests_Feat_General.Test_BreakExternalLinks_SpillHandling
-    If MatchesFilter("Lib_Tests_Feat_General.Test_CommandResolution_NewMenus", filterPattern) Then Lib_Tests_Feat_General.Test_CommandResolution_NewMenus
-    If MatchesFilter("Lib_Tests_Feat_General.Test_FormatRange_ErrorSafety", filterPattern) Then Lib_Tests_Feat_General.Test_FormatRange_ErrorSafety
-    If MatchesFilter("Lib_Tests_Feat_General.Test_FormatRange_Execution", filterPattern) Then Lib_Tests_Feat_General.Test_FormatRange_Execution
-    If MatchesFilter("Lib_Tests_Feat_General.Test_FormatRange_WholeSheetSafety", filterPattern) Then Lib_Tests_Feat_General.Test_FormatRange_WholeSheetSafety
+    If MatchesFilter("Lib_Tests_Feat_Formatting.Test_ApplyCustomNumberFormat_Execution", filterPattern) Then Lib_Tests_Feat_Formatting.Test_ApplyCustomNumberFormat_Execution
+    If MatchesFilter("Lib_Tests_Feat_Formatting.Test_FormatRange_ErrorSafety", filterPattern) Then Lib_Tests_Feat_Formatting.Test_FormatRange_ErrorSafety
+    If MatchesFilter("Lib_Tests_Feat_Formatting.Test_FormatRange_Execution", filterPattern) Then Lib_Tests_Feat_Formatting.Test_FormatRange_Execution
+    If MatchesFilter("Lib_Tests_Feat_Formatting.Test_FormatRange_WholeSheetSafety", filterPattern) Then Lib_Tests_Feat_Formatting.Test_FormatRange_WholeSheetSafety
+    If MatchesFilter("Lib_Tests_Feat_Formatting.Test_PasteFormat_Execution", filterPattern) Then Lib_Tests_Feat_Formatting.Test_PasteFormat_Execution
     If MatchesFilter("Lib_Tests_Feat_General.Test_GetChunkedRanges_And_SpillExpansion", filterPattern) Then Lib_Tests_Feat_General.Test_GetChunkedRanges_And_SpillExpansion
     If MatchesFilter("Lib_Tests_Feat_General.Test_HelloWorld_Execution_And_Undo", filterPattern) Then Lib_Tests_Feat_General.Test_HelloWorld_Execution_And_Undo
     If MatchesFilter("Lib_Tests_Feat_General.Test_MultiArea_Undo_Robustness", filterPattern) Then Lib_Tests_Feat_General.Test_MultiArea_Undo_Robustness
-    If MatchesFilter("Lib_Tests_Feat_General.Test_PasteFormat_Execution", filterPattern) Then Lib_Tests_Feat_General.Test_PasteFormat_Execution
     If MatchesFilter("Lib_Tests_Feat_General.Test_ProtectedSheet_CanModifyContext", filterPattern) Then Lib_Tests_Feat_General.Test_ProtectedSheet_CanModifyContext
     If MatchesFilter("Lib_Tests_Feat_General.Test_ProtectedSheet_CommandValidators", filterPattern) Then Lib_Tests_Feat_General.Test_ProtectedSheet_CommandValidators
     If MatchesFilter("Lib_Tests_Feat_General.Test_SingleCell_Bugs_Regression", filterPattern) Then Lib_Tests_Feat_General.Test_SingleCell_Bugs_Regression
-    If MatchesFilter("Lib_Tests_Feat_General.Test_UdfRegistry_And_HelpCenter", filterPattern) Then Lib_Tests_Feat_General.Test_UdfRegistry_And_HelpCenter
-    If MatchesFilter("Lib_Tests_Feat_General.Test_UI_OptionPicker_DynamicLayout", filterPattern) Then Lib_Tests_Feat_General.Test_UI_OptionPicker_DynamicLayout
-    If MatchesFilter("Lib_Tests_Feat_General.Test_UI_OptionPicker_KeyboardNavigation", filterPattern) Then Lib_Tests_Feat_General.Test_UI_OptionPicker_KeyboardNavigation
     If MatchesFilter("Lib_Tests_Feat_General.Test_ValueConversion_ResolveSpillExpandedRange", filterPattern) Then Lib_Tests_Feat_General.Test_ValueConversion_ResolveSpillExpandedRange
-    If MatchesFilter("Lib_Tests_Feat_General.Test_Wrap_CellAndPatternModes", filterPattern) Then Lib_Tests_Feat_General.Test_Wrap_CellAndPatternModes
     If MatchesFilter("Lib_Tests_Feat_General.Test_XFilter_Features", filterPattern) Then Lib_Tests_Feat_General.Test_XFilter_Features
     If MatchesFilter("Lib_Tests_Feat_General.Test_XUnpivot_Features", filterPattern) Then Lib_Tests_Feat_General.Test_XUnpivot_Features
     If MatchesFilter("Lib_Tests_Feat_HighlightData.Test_HighlightData_ClearHighlights", filterPattern) Then Lib_Tests_Feat_HighlightData.Test_HighlightData_ClearHighlights
@@ -64,6 +59,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Feat_HighlightData.Test_HighlightData_FormulaLimitSafety", filterPattern) Then Lib_Tests_Feat_HighlightData.Test_HighlightData_FormulaLimitSafety
     If MatchesFilter("Lib_Tests_Feat_HighlightData.Test_HighlightData_HardcodedValues", filterPattern) Then Lib_Tests_Feat_HighlightData.Test_HighlightData_HardcodedValues
     If MatchesFilter("Lib_Tests_Feat_HighlightData.Test_HighlightData_InconsistentFormulasAndDuplicates", filterPattern) Then Lib_Tests_Feat_HighlightData.Test_HighlightData_InconsistentFormulasAndDuplicates
+    If MatchesFilter("Lib_Tests_Feat_ModifyData.Test_ModifyData_BulkFormattingOverride", filterPattern) Then Lib_Tests_Feat_ModifyData.Test_ModifyData_BulkFormattingOverride
     If MatchesFilter("Lib_Tests_Feat_ModifyData.Test_ModifyData_Casing", filterPattern) Then Lib_Tests_Feat_ModifyData.Test_ModifyData_Casing
     If MatchesFilter("Lib_Tests_Feat_ModifyData.Test_ModifyData_DateStandardization", filterPattern) Then Lib_Tests_Feat_ModifyData.Test_ModifyData_DateStandardization
     If MatchesFilter("Lib_Tests_Feat_ModifyData.Test_ModifyData_MixedFormats", filterPattern) Then Lib_Tests_Feat_ModifyData.Test_ModifyData_MixedFormats
@@ -74,6 +70,11 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Lib_Tests_Feat_Workbook.Test_Export_Pdf_Backup_And_MultiRange", filterPattern) Then Lib_Tests_Feat_Workbook.Test_Export_Pdf_Backup_And_MultiRange
     If MatchesFilter("Lib_Tests_Feat_Workbook.Test_StaticSheetWorkbook_Execution", filterPattern) Then Lib_Tests_Feat_Workbook.Test_StaticSheetWorkbook_Execution
     If MatchesFilter("Lib_Tests_Feat_Workbook.Test_TableOfContents_Generation", filterPattern) Then Lib_Tests_Feat_Workbook.Test_TableOfContents_Generation
+    If MatchesFilter("Lib_Tests_Feat_Wrap.Test_Wrap_CellAndPatternModes", filterPattern) Then Lib_Tests_Feat_Wrap.Test_Wrap_CellAndPatternModes
+    If MatchesFilter("Lib_Tests_UI.Test_CommandResolution_NewMenus", filterPattern) Then Lib_Tests_UI.Test_CommandResolution_NewMenus
+    If MatchesFilter("Lib_Tests_UI.Test_UdfRegistry_And_HelpCenter", filterPattern) Then Lib_Tests_UI.Test_UdfRegistry_And_HelpCenter
+    If MatchesFilter("Lib_Tests_UI.Test_UI_OptionPicker_DynamicLayout", filterPattern) Then Lib_Tests_UI.Test_UI_OptionPicker_DynamicLayout
+    If MatchesFilter("Lib_Tests_UI.Test_UI_OptionPicker_KeyboardNavigation", filterPattern) Then Lib_Tests_UI.Test_UI_OptionPicker_KeyboardNavigation
 
 CleanExit:
     Exit Sub

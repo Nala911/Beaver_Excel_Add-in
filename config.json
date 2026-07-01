@@ -1,113 +1,113 @@
 {
-    "UIConstants":  {
-                        "DefaultFontName":  "Calibri",
-                        "DefaultFontSize":  10,
-                        "HeaderFontSize":  11,
-                        "DefaultNumberFormat":  "#,##0",
-                        "DisplayDateFormat":  "dd/mm/yyyy",
-                        "ColumnWidthThreshold":  40,
-                        "MaxColumnWidth":  25,
-                        "HeaderColor":  "#AEAAAA",
-                        "HighlightColor":  "#FFC7CE",
-                        "DefaultExportScale":  3,
-                        "MaxExportScale":  10
-                    },
-    "SafetyConstants":  {
-                            "MaxUndoCells":  1000000,
-                            "MaxWrapCells":  50000,
-                            "MaxFormulaCheckCells":  5000,
-                            "MaxFillProximityColumns":  10,
-                            "MaxFillDownAreas":  5000
-                        },
-    "AddinIdentity":  {
-                          "Name":  "Beaver Add-in",
-                          "Version":  "2.0.68"
-                      },
-    "FeatureFlags":  {
-                         "ManifestFile":  "features.json",
-                         "GeneratedFeatureCount":  25
-                     },
-    "Hotkeys":  [
-                    {
-                        "Key":  "^+4",
-                        "Macro":  "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat",
-                        "CommandName":  "ApplyCustomNumberFormat",
-                        "Description":  "Apply custom number format"
-                    },
-                    {
-                        "Key":  "^+p",
-                        "Macro":  "UI_Hotkeys.Hotkey_MakePermanent",
-                        "CommandName":  "MakePermanent",
-                        "Description":  "Make selection permanent (values)"
-                    },
-                    {
-                        "Key":  "+{F11}",
-                        "Macro":  "UI_Hotkeys.Hotkey_CreateNamedSheet",
-                        "CommandName":  "CreateSheet",
-                        "Description":  "Create named sheet"
-                    },
-                    {
-                        "Key":  "^%{DOWN}",
-                        "Macro":  "UI_Hotkeys.Hotkey_FillDown",
-                        "CommandName":  "FillDown",
-                        "Description":  "Fill formula/format down"
-                    },
-                    {
-                        "Key":  "^+f",
-                        "Macro":  "UI_Hotkeys.Hotkey_FilterBySelectedCell",
-                        "CommandName":  "FilterByCell",
-                        "Description":  "Filter by selected cell"
-                    },
-                    {
-                        "Key":  "^+m",
-                        "Macro":  "UI_Hotkeys.Hotkey_PasteFormat",
-                        "CommandName":  "PasteFormat",
-                        "Description":  "Paste formats only"
-                    },
-                    {
-                        "Key":  "^+q",
-                        "Macro":  "UI_Hotkeys.Hotkey_FormatSelectedRange",
-                        "CommandName":  "FormatRange",
-                        "Description":  "Format selected range"
-                    },
-                    {
-                        "Key":  "{BACKSPACE}",
-                        "Macro":  "UI_Hotkeys.Hotkey_Backspace",
-                        "CommandName":  "Backspace",
-                        "Description":  "Clear cell contents"
-                    },
-                    {
-                        "Key":  "{DELETE}",
-                        "Macro":  "UI_Hotkeys.Hotkey_Delete",
-                        "CommandName":  "Delete",
-                        "Description":  "Clear or delete selection"
-                    }
-                ],
-    "Icons":  {
-                  "BtnWrap":  "FunctionWizard",
-                  "BtnStaticSheetWorkbook":  "CalculateNow",
-                  "BtnCleanData":  "Clear",
-                  "BtnModifyData":  "ChangeCase",
-                  "BtnDateFixer":  "CalculateNow",
-                  "BtnCaseFixer":  "ChangeCase",
-                  "BtnHighlightData":  "ConditionalFormattingMenu",
-                  "BtnHighlightInconsistentFormulas":  "CalculateNow",
-                  "BtnHighlightDuplicates":  "ConditionalFormattingMenu",
-                  "BtnHighlightErrors":  "ErrorChecking",
-                  "BtnHighlightHardcodedValues":  "FunctionWizard",
-                  "BtnHighlightDataValidations":  "TableProperties",
-                  "BtnHighlightConditionalFormatting":  "ConditionalFormattingMenu",
-                  "BtnClearHighlights":  "Clear",
-                  "BtnBreakLinks":  "WorkbookLinks",
-                  "BtnDuplicate":  "FileSaveAs",
-                  "BtnExport":  "Export",
-                  "BtnExportPng":  "FileSaveAs",
-                  "BtnExportPdf":  "Export",
-                  "BtnHelpCenter":  "Help",
-                  "BtnHelloWorld":  "HappyFace",
-                  "BtnReportGenerator":  "TableProperties",
-                  "BtnTableOfContents":  "TableOfContentsDialog",
-                  "BtnUnmergeFill":  "TableProperties",
-                  "BtnForceNumber":  "CalculateNow"
-              }
+  "UIConstants": {
+    "DefaultFontName": "Calibri",
+    "DefaultFontSize": 10,
+    "HeaderFontSize": 11,
+    "DefaultNumberFormat": "#,##0",
+    "DisplayDateFormat": "dd/mm/yyyy",
+    "ColumnWidthThreshold": 40,
+    "MaxColumnWidth": 25,
+    "HeaderColor": "#AEAAAA",
+    "HighlightColor": "#FFC7CE",
+    "DefaultExportScale": 3,
+    "MaxExportScale": 10
+  },
+  "SafetyConstants": {
+    "MaxUndoCells": 1000000,
+    "MaxWrapCells": 50000,
+    "MaxFormulaCheckCells": 5000,
+    "MaxFillProximityColumns": 10,
+    "MaxFillDownAreas": 5000
+  },
+  "AddinIdentity": {
+    "Name": "Beaver Add-in",
+    "Version": "2.0.68"
+  },
+  "FeatureFlags": {
+    "ManifestFile": "features.json",
+    "GeneratedFeatureCount": 25
+  },
+  "Hotkeys": [
+    {
+      "Key": "^+4",
+      "Macro": "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat",
+      "CommandName": "ApplyCustomNumberFormat",
+      "Description": "Apply custom number format"
+    },
+    {
+      "Key": "^+p",
+      "Macro": "UI_Hotkeys.Hotkey_MakePermanent",
+      "CommandName": "MakePermanent",
+      "Description": "Make selection permanent (values)"
+    },
+    {
+      "Key": "+{F11}",
+      "Macro": "UI_Hotkeys.Hotkey_CreateNamedSheet",
+      "CommandName": "CreateSheet",
+      "Description": "Create named sheet"
+    },
+    {
+      "Key": "^%{DOWN}",
+      "Macro": "UI_Hotkeys.Hotkey_FillDown",
+      "CommandName": "FillDown",
+      "Description": "Fill formula/format down"
+    },
+    {
+      "Key": "^+f",
+      "Macro": "UI_Hotkeys.Hotkey_FilterBySelectedCell",
+      "CommandName": "FilterByCell",
+      "Description": "Filter by selected cell"
+    },
+    {
+      "Key": "^+m",
+      "Macro": "UI_Hotkeys.Hotkey_PasteFormat",
+      "CommandName": "PasteFormat",
+      "Description": "Paste formats only"
+    },
+    {
+      "Key": "^+q",
+      "Macro": "UI_Hotkeys.Hotkey_FormatSelectedRange",
+      "CommandName": "FormatRange",
+      "Description": "Format selected range"
+    },
+    {
+      "Key": "{BACKSPACE}",
+      "Macro": "UI_Hotkeys.Hotkey_Backspace",
+      "CommandName": "Backspace",
+      "Description": "Clear cell contents"
+    },
+    {
+      "Key": "{DELETE}",
+      "Macro": "UI_Hotkeys.Hotkey_Delete",
+      "CommandName": "Delete",
+      "Description": "Clear or delete selection"
+    }
+  ],
+  "Icons": {
+    "BtnWrap": "FunctionWizard",
+    "BtnStaticSheetWorkbook": "CalculateNow",
+    "BtnCleanData": "Clear",
+    "BtnModifyData": "ChangeCase",
+    "BtnDateFixer": "CalculateNow",
+    "BtnCaseFixer": "ChangeCase",
+    "BtnHighlightData": "ConditionalFormattingMenu",
+    "BtnHighlightInconsistentFormulas": "CalculateNow",
+    "BtnHighlightDuplicates": "ConditionalFormattingMenu",
+    "BtnHighlightErrors": "ErrorChecking",
+    "BtnHighlightHardcodedValues": "FunctionWizard",
+    "BtnHighlightDataValidations": "TableProperties",
+    "BtnHighlightConditionalFormatting": "ConditionalFormattingMenu",
+    "BtnClearHighlights": "Clear",
+    "BtnBreakLinks": "WorkbookLinks",
+    "BtnDuplicate": "FileSaveAs",
+    "BtnExport": "Export",
+    "BtnExportPng": "FileSaveAs",
+    "BtnExportPdf": "Export",
+    "BtnHelpCenter": "Help",
+    "BtnHelloWorld": "HappyFace",
+    "BtnReportGenerator": "TableProperties",
+    "BtnTableOfContents": "TableOfContentsDialog",
+    "BtnUnmergeFill": "TableProperties",
+    "BtnForceNumber": "CalculateNow"
+  }
 }

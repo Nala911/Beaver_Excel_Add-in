@@ -17,7 +17,7 @@ Implements ICellTransformer
 ' @Category: Feature
 ' @Description: Forces text-formatted numbers in the selection to become actual numeric values.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: ICommand, IBatchProcessor, ICellTransformer, Infra_ActionContext, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction, Infra_Config
+' @Dependencies: ICommand, IBatchProcessor, ICellTransformer, ActionContext, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction, Infra_Config
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyBulkWrite()
@@ -31,7 +31,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ForceNumber.Execute")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WorksheetRef Is Nothing Or ctx.WorkbookRef Is Nothing Then GoTo CleanExit

@@ -28,6 +28,7 @@ Private mSelectedValue As String
 Private mIgnoreClick As Boolean
 Private mIsMultiSelectCheckList As Boolean
 Private mPrefNamespace As String
+Private mExclusivePrefixes As Variant
 
 Public Property Get IsIgnoringClick() As Boolean
     IsIgnoringClick = mIgnoreClick
@@ -51,6 +52,7 @@ Private Sub UserForm_Initialize()
     mIgnoreClick = False
     mIsMultiSelectCheckList = False
     mPrefNamespace = vbNullString
+    mExclusivePrefixes = Empty
     
     ' Hide controls so they do not show in the option picker window by default
     On Error Resume Next
@@ -102,7 +104,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Public Sub ConfigureMultiOptionPicker(ByVal dialogTitle As String, ByVal promptText As String, ByVal options As Variant, ByVal defaultChecked As Variant, Optional ByVal prefNamespace As String = vbNullString)
+Public Sub ConfigureMultiOptionPicker(ByVal dialogTitle As String, ByVal promptText As String, ByVal options As Variant, ByVal defaultChecked As Variant, Optional ByVal prefNamespace As String = vbNullString, Optional ByVal exclusivePrefixes As Variant)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ConfigureMultiOptionPicker")
     On Error GoTo ErrHandler
 
@@ -111,6 +113,12 @@ Public Sub ConfigureMultiOptionPicker(ByVal dialogTitle As String, ByVal promptT
     mIgnoreClick = False
     mIsMultiSelectCheckList = True
     mPrefNamespace = prefNamespace
+
+    If IsMissing(exclusivePrefixes) Then
+        mExclusivePrefixes = Array("Line breaks:")
+    Else
+        mExclusivePrefixes = exclusivePrefixes
+    End If
 
     Me.Caption = dialogTitle
     
@@ -617,22 +625,35 @@ End Sub
 Private Sub EnforceMutualExclusivity(ByVal currentIdx As Long, ByVal cleanText As String)
     Dim trimmedText As String
     trimmedText = Trim$(cleanText)
-    If Left$(trimmedText, 12) = "Line breaks:" Then
-        Dim i As Long
-        Dim otherText As String
-        For i = 0 To lstHotkeys.ListCount - 1
-            If i <> currentIdx Then
-                otherText = lstHotkeys.List(i)
-                If Not IsHeader(otherText) Then
-                    Dim otherClean As String
-                    otherClean = Trim$(Mid$(otherText, PrefixLen + 1))
-                    If Left$(otherClean, 12) = "Line breaks:" Then
-                        lstHotkeys.List(i) = UncheckedPrefix & Mid$(otherText, PrefixLen + 1)
+    
+    If IsEmpty(mExclusivePrefixes) Or IsNull(mExclusivePrefixes) Then Exit Sub
+    If Not IsArray(mExclusivePrefixes) Then Exit Sub
+    
+    Dim prefix As Variant
+    For Each prefix In mExclusivePrefixes
+        Dim pfxStr As String
+        pfxStr = CStr(prefix)
+        Dim pfxLen As Long
+        pfxLen = Len(pfxStr)
+        
+        If Left$(trimmedText, pfxLen) = pfxStr Then
+            Dim i As Long
+            Dim otherText As String
+            For i = 0 To lstHotkeys.ListCount - 1
+                If i <> currentIdx Then
+                    otherText = lstHotkeys.List(i)
+                    If Not IsHeader(otherText) Then
+                        Dim otherClean As String
+                        otherClean = Trim$(Mid$(otherText, PrefixLen + 1))
+                        If Left$(otherClean, pfxLen) = pfxStr Then
+                            lstHotkeys.List(i) = UncheckedPrefix & Mid$(otherText, PrefixLen + 1)
+                        End If
                     End If
                 End If
-            End If
-        Next i
-    End If
+            Next i
+            Exit For
+        End If
+    Next prefix
 End Sub
 
 Private Sub MoveSelectionUp(ByRef KeyCode As MSForms.ReturnInteger)
@@ -673,4 +694,18 @@ Private Sub MoveSelectionDown(ByRef KeyCode As MSForms.ReturnInteger)
     Loop
     
     KeyCode = 0
+End Sub
+
+Public Sub TestToggleItem(ByVal idx As Long)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("TestToggleItem")
+    On Error GoTo ErrHandler
+
+    lstHotkeys.ListIndex = idx
+    ToggleCurrentItem
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "TestToggleItem", Err
+    Resume CleanExit
 End Sub

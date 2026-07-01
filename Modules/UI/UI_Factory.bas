@@ -1,20 +1,20 @@
-Attribute VB_Name = "Infra_UIFactory"
+Attribute VB_Name = "UI_Factory"
 Option Explicit
 
-' @Module: Infra_UIFactory
-' @Category: Infrastructure
+' @Module: UI_Factory
+' @Category: UI
 ' @Description: Centralized factory for creating and displaying standardized user prompts.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Error, Infra_Config, Infra_ExportRequest, Infra_ScopedRequest, Infra_ActionContext, Infra_HighlightDataRequest, Infra_ModifyDataRequest
+' @Dependencies: Infra_Error, Infra_Config, ExportRequest, ScopedRequest, ActionContext, HighlightDataRequest, ModifyDataRequest
 
 ' Shows the Clean Data options via UserForm picker and returns a populated Request object.
-Public Function ShowCleanDataDialog(ByVal ctx As Infra_ActionContext) As Infra_CleanDataRequest
+Public Function ShowCleanDataDialog(ByVal ctx As ActionContext) As CleanDataRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowCleanDataDialog")
     On Error GoTo ErrHandler
     
     Dim promptMsg As String
     Dim normalizedChoice As String
-    Dim request As Infra_CleanDataRequest
+    Dim request As CleanDataRequest
     Dim options As Variant
     Dim defaultChoice As String
     Dim hasSelection As Boolean
@@ -149,11 +149,11 @@ ErrHandler:
 End Function
 
 ' Shows the Modify Data options via UserForm picker and returns a populated Request object.
-Public Function ShowModifyDataDialog(ByVal ctx As Infra_ActionContext, Optional ByVal commandName As String = vbNullString) As Infra_ModifyDataRequest
+Public Function ShowModifyDataDialog(ByVal ctx As ActionContext, Optional ByVal commandName As String = vbNullString) As ModifyDataRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowModifyDataDialog")
     On Error GoTo ErrHandler
 
-    Dim request As Infra_ModifyDataRequest
+    Dim request As ModifyDataRequest
     Dim hasSelection As Boolean
 
     hasSelection = HasUsableSelection(ctx)
@@ -236,7 +236,7 @@ Public Function ShowModifyDataDialog(ByVal ctx As Infra_ActionContext, Optional 
         End Select
     End If
 
-    Set request = New Infra_ModifyDataRequest
+    Set request = New ModifyDataRequest
     Set request.Context = ctx
     request.Operation = selectedOp
     request.DatePattern = datePattern
@@ -251,13 +251,13 @@ ErrHandler:
 End Function
 
 ' Shows the Highlight Data options via UserForm picker and returns a populated Request object.
-Public Function ShowHighlightDataDialog(ByVal ctx As Infra_ActionContext, Optional ByVal commandName As String = vbNullString) As Infra_HighlightDataRequest
+Public Function ShowHighlightDataDialog(ByVal ctx As ActionContext, Optional ByVal commandName As String = vbNullString) As HighlightDataRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowHighlightDataDialog")
     On Error GoTo ErrHandler
     
     Dim promptMsg As String
     Dim normalizedChoice As String
-    Dim request As Infra_HighlightDataRequest
+    Dim request As HighlightDataRequest
     Dim options As Variant
     Dim defaultChoice As String
     Dim hasSelection As Boolean
@@ -364,15 +364,15 @@ ErrHandler:
 End Function
 
 ' Shows the Export options via UserForm picker and returns a populated Request object.
-Public Function ShowExportDialog(ByVal ctx As Infra_ActionContext, Optional ByVal commandName As String = vbNullString) As Infra_ExportRequest
+Public Function ShowExportDialog(ByVal ctx As ActionContext, Optional ByVal commandName As String = vbNullString) As ExportRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowExportDialog")
     On Error GoTo ErrHandler
     
-    Dim request As Infra_ExportRequest
+    Dim request As ExportRequest
     Dim exportChoice As String
     Dim normalizedChoice As String
     
-    Set request = New Infra_ExportRequest
+    Set request = New ExportRequest
     Set request.Context = ctx
     Set request.SourceRange = ResolveExportRange(ctx)
     request.ScaleFactor = Infra_Config.DEFAULT_EXPORT_SCALE
@@ -441,11 +441,11 @@ ErrHandler:
 End Function
 
 ' Shows the conversion scope dialog for formula-to-value actions using a UserForm picker.
-Public Function ShowStaticConversionDialog(ByVal ctx As Infra_ActionContext) As Infra_ScopedRequest
+Public Function ShowStaticConversionDialog(ByVal ctx As ActionContext) As ScopedRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowStaticConversionDialog")
     On Error GoTo ErrHandler
 
-    Dim request As Infra_ScopedRequest
+    Dim request As ScopedRequest
     Dim promptMsg As String
     Dim confirmMsg As String
     Dim normalizedChoice As String
@@ -464,7 +464,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal linkInfo As String) As Infra_ScopedRequest
+Public Function ShowBreakLinksDialog(ByVal ctx As ActionContext, ByVal linkInfo As String) As ScopedRequest
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowBreakLinksDialog")
     On Error GoTo ErrHandler
 
@@ -472,7 +472,7 @@ Public Function ShowBreakLinksDialog(ByVal ctx As Infra_ActionContext, ByVal lin
     Dim options As Variant
     Dim defaultChoice As String
     Dim allowSheetScope As Boolean
-    Dim request As Infra_ScopedRequest
+    Dim request As ScopedRequest
     Dim promptMsg As String
     Dim confirmMsg As String
 
@@ -510,7 +510,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function PromptForSheetInsertPosition(ByVal ctx As Infra_ActionContext, ByVal sheetName As String) As SheetInsertPosition
+Public Function PromptForSheetInsertPosition(ByVal ctx As ActionContext, ByVal sheetName As String) As SheetInsertPosition
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForSheetInsertPosition")
     On Error GoTo ErrHandler
 
@@ -552,7 +552,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function PromptForWrapFormulaPattern(ByVal ctx As Infra_ActionContext, ByVal placeholder As String) As String
+Public Function PromptForWrapFormulaPattern(ByVal ctx As ActionContext, ByVal placeholder As String) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForWrapFormulaPattern")
     On Error GoTo ErrHandler
 
@@ -581,7 +581,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Private Function ResolveExportRange(ByVal ctx As Infra_ActionContext) As Range
+Private Function ResolveExportRange(ByVal ctx As ActionContext) As Range
     If ctx Is Nothing Then Exit Function
     If ctx.WorksheetRef Is Nothing Then Exit Function
     
@@ -684,7 +684,7 @@ Private Function BuildRangeFileLabel(ByVal sourceRange As Range) As String
     End If
 End Function
 
-Private Function PromptForOutputPath(ByVal ctx As Infra_ActionContext, ByVal taskName As String, ByVal suggestedBaseName As String, ByVal extensionWithoutDot As String, ByVal fileFilter As String) As String
+Private Function PromptForOutputPath(ByVal ctx As ActionContext, ByVal taskName As String, ByVal suggestedBaseName As String, ByVal extensionWithoutDot As String, ByVal fileFilter As String) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForOutputPath")
     On Error GoTo ErrHandler
 
@@ -741,7 +741,7 @@ Private Function ShowOptionPicker(ByVal promptMsg As String, ByVal title As Stri
     ShowOptionPicker = Infra_Interaction.PromptOption(promptMsg, title, defaultChoice, options, outResult, prefNamespace)
 End Function
 
-Public Function PromptForWrapMode(ByVal ctx As Infra_ActionContext) As Long
+Public Function PromptForWrapMode(ByVal ctx As ActionContext) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForWrapMode")
     On Error GoTo ErrHandler
 
@@ -779,7 +779,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function PromptForSheetName(ByVal ctx As Infra_ActionContext) As String
+Public Function PromptForSheetName(ByVal ctx As ActionContext) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForSheetName")
     On Error GoTo ErrHandler
 
@@ -837,19 +837,19 @@ Private Function LooksLikeFrontLoadedSheet(ByVal sheetName As String) As Boolean
     LooksLikeFrontLoadedSheet = (Left$(nameLower, 7) = "summary" Or Left$(nameLower, 5) = "recon")
 End Function
 
-Private Function SafeWorkbookName(ByVal ctx As Infra_ActionContext) As String
+Private Function SafeWorkbookName(ByVal ctx As ActionContext) As String
     If ctx Is Nothing Then Exit Function
     If ctx.WorkbookRef Is Nothing Then Exit Function
     SafeWorkbookName = ctx.WorkbookRef.Name
 End Function
 
-Private Function SafeWorksheetName(ByVal ctx As Infra_ActionContext) As String
+Private Function SafeWorksheetName(ByVal ctx As ActionContext) As String
     If ctx Is Nothing Then Exit Function
     If ctx.WorksheetRef Is Nothing Then Exit Function
     SafeWorksheetName = ctx.WorksheetRef.Name
 End Function
 
-Private Function SafeSelectionAddress(ByVal ctx As Infra_ActionContext) As String
+Private Function SafeSelectionAddress(ByVal ctx As ActionContext) As String
     If ctx Is Nothing Then Exit Function
     If ctx.SelectionRange Is Nothing Then
         SafeSelectionAddress = "(none)"
@@ -858,12 +858,12 @@ Private Function SafeSelectionAddress(ByVal ctx As Infra_ActionContext) As Strin
     End If
 End Function
 
-Private Function HasUsableSelection(ByVal ctx As Infra_ActionContext) As Boolean
+Private Function HasUsableSelection(ByVal ctx As ActionContext) As Boolean
     If ctx Is Nothing Then Exit Function
     HasUsableSelection = ctx.HasRangeSelection And Not ctx.SelectionRange Is Nothing
 End Function
 
-Private Function ActiveSheetHasBreakableItems(ByVal ctx As Infra_ActionContext) As Boolean
+Private Function ActiveSheetHasBreakableItems(ByVal ctx As ActionContext) As Boolean
     Dim ws As Worksheet
     Dim formulaCount As Long
     Dim pivotCount As Long
@@ -907,7 +907,7 @@ Private Function BuildScopeConfirmMsg(ByVal taskName As String, ByVal workbookNa
 End Function
 
 Private Function PromptForScopeSelection( _
-    ByVal ctx As Infra_ActionContext, _
+    ByVal ctx As ActionContext, _
     ByVal dialogName As String, _
     ByVal promptMsg As String, _
     ByVal defaultChoice As String, _
@@ -966,40 +966,40 @@ Private Function ResolveScopeFromText(ByVal choiceText As String, ByRef outScope
     End Select
 End Function
 
-Private Function CreateScopedRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_ScopedRequest
+Private Function CreateScopedRequest(ByVal ctx As ActionContext, ByVal choiceText As String) As ScopedRequest
     Dim scopeVal As TargetScope
-    If Not ResolveScopeFromText(choiceText, scopeVal) Then
+    if Not ResolveScopeFromText(choiceText, scopeVal) Then
         Set CreateScopedRequest = Nothing
         Exit Function
     End If
 
-    Dim request As New Infra_ScopedRequest
+    Dim request As New ScopedRequest
     Set request.Context = ctx
     request.Scope = scopeVal
     Set CreateScopedRequest = request
 End Function
 
-Private Function CreateCleanDataRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_CleanDataRequest
+Private Function CreateCleanDataRequest(ByVal ctx As ActionContext, ByVal choiceText As String) As CleanDataRequest
     Dim scopeVal As TargetScope
-    If Not ResolveScopeFromText(choiceText, scopeVal) Then
+    if Not ResolveScopeFromText(choiceText, scopeVal) Then
         Set CreateCleanDataRequest = Nothing
         Exit Function
     End If
 
-    Dim request As New Infra_CleanDataRequest
+    Dim request As New CleanDataRequest
     Set request.Context = ctx
     request.Scope = scopeVal
     Set CreateCleanDataRequest = request
 End Function
 
-Private Function CreateHighlightDataRequest(ByVal ctx As Infra_ActionContext, ByVal choiceText As String) As Infra_HighlightDataRequest
+Private Function CreateHighlightDataRequest(ByVal ctx As ActionContext, ByVal choiceText As String) As HighlightDataRequest
     Dim scopeVal As TargetScope
-    If Not ResolveScopeFromText(choiceText, scopeVal) Then
+    if Not ResolveScopeFromText(choiceText, scopeVal) Then
         Set CreateHighlightDataRequest = Nothing
         Exit Function
     End If
 
-    Dim request As New Infra_HighlightDataRequest
+    Dim request As New HighlightDataRequest
     Set request.Context = ctx
     request.Scope = scopeVal
     Set CreateHighlightDataRequest = request

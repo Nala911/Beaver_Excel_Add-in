@@ -25,5 +25,5 @@ End Property
 Public Property Get EntryMacro() As String
 End Property
 
-Public Property Get ActionContext() As Infra_ActionContext
+Public Property Get ActionContext() As ActionContext
 End Property

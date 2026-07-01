@@ -13,9 +13,9 @@ Option Explicit
 ' @Category: Core
 ' @Description: Interface for all typed request objects in the command pipeline.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_ActionContext, TargetScope
+' @Dependencies: ActionContext, TargetScope
 
-Public Property Get Context() As Infra_ActionContext
+Public Property Get Context() As ActionContext
 End Property
 
 Public Property Get Scope() As TargetScope

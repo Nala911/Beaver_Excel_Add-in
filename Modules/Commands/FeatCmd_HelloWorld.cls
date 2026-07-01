@@ -30,7 +30,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("HelloWorld.Execute")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
 

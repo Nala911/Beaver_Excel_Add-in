@@ -17,9 +17,9 @@ Implements ICellTransformer
 ' @Category: Feature
 ' @Description: Modification tools for selected ranges (Casing: UPPER/lower/Proper, Date Standardization using custom patterns).
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: ICommand, Infra_ActionContext, Infra_ModifyDataRequest, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction, Infra_Config
+' @Dependencies: ICommand, ActionContext, ModifyDataRequest, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction, Infra_Config
 
-Private m_CurrentRequest As Infra_ModifyDataRequest
+Private m_CurrentRequest As ModifyDataRequest
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -56,8 +56,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ModifyData.Execute")
     On Error GoTo ErrHandler
     
-    Dim ctx As Infra_ActionContext
-    Dim request As Infra_ModifyDataRequest
+    Dim ctx As ActionContext
+    Dim request As ModifyDataRequest
     Dim stateInfo As Collection
 
     Set stateInfo = Infra_Error.NewStateInfo()
@@ -72,7 +72,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         Infra_Error.AddState stateInfo, "Selection", ctx.SelectionRange.Address(False, False)
     End If
 
-    Set request = Infra_UIFactory.ShowModifyDataDialog(ctx, context.CommandName)
+    Set request = UI_Factory.ShowModifyDataDialog(ctx, context.CommandName)
     If request Is Nothing Then GoTo CleanExit
     
     ExecuteModifyData request
@@ -85,7 +85,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ExecuteModifyData(ByVal request As Infra_ModifyDataRequest)
+Private Sub ExecuteModifyData(ByVal request As ModifyDataRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteModifyData")
     On Error GoTo ErrHandler
     
@@ -127,11 +127,11 @@ Private Function ICellTransformer_TransformCell(ByVal rawValue As Variant, ByVal
     ICellTransformer_TransformCell = ModifyTextValue(rawValue, currentFormat, m_CurrentRequest, outValue, outFormat)
 End Function
 
-Private Function ProcessRangeForModify(ByRef targetRange As Range, ByVal request As Infra_ModifyDataRequest) As Long
+Private Function ProcessRangeForModify(ByRef targetRange As Range, ByVal request As ModifyDataRequest) As Long
     If targetRange Is Nothing Then Exit Function
     
     ' Temporarily set current request to support direct/test calls
-    Dim prevRequest As Infra_ModifyDataRequest
+    Dim prevRequest As ModifyDataRequest
     Set prevRequest = m_CurrentRequest
     Set m_CurrentRequest = request
     
@@ -144,7 +144,7 @@ End Function
 Private Function ModifyTextValue( _
     ByVal rawValue As Variant, _
     ByVal currentFormat As String, _
-    ByVal request As Infra_ModifyDataRequest, _
+    ByVal request As ModifyDataRequest, _
     ByRef outValue As Variant, _
     ByRef outFormat As String) As Boolean
     
@@ -471,7 +471,7 @@ End Function
 
 ' --- Headless testing support ---
 
-Public Function ModifyRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As Infra_ModifyDataRequest) As Long
+Public Function ModifyRangeWithOptionsDirect(ByVal targetRange As Range, ByVal request As ModifyDataRequest) As Long
     Dim tracker As Object: Set tracker = Infra_Error.Track("ModifyRangeWithOptionsDirect")
     On Error GoTo ErrHandler
     

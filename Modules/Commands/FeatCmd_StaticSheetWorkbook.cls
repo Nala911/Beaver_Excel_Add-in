@@ -16,7 +16,7 @@ Implements IBatchProcessor
 ' @Category: Feature
 ' @Description: Converts formulas (including spills) to static values across active sheet or whole workbook.
 
-Private m_CurrentRequest As Infra_ScopedRequest
+Private m_CurrentRequest As ScopedRequest
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
@@ -61,14 +61,14 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("StaticSheetWorkbook.Execute")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
-    Dim request As Infra_ScopedRequest
+    Dim ctx As ActionContext
+    Dim request As ScopedRequest
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If ctx Is Nothing Then GoTo CleanExit
     If ctx.WorkbookRef Is Nothing Or ctx.WorksheetRef Is Nothing Then GoTo CleanExit
 
-    Set request = Infra_UIFactory.ShowStaticConversionDialog(ctx)
+    Set request = UI_Factory.ShowStaticConversionDialog(ctx)
     If request Is Nothing Then GoTo CleanExit
 
     ExecuteStaticConversion request
@@ -81,7 +81,7 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Sub ExecuteStaticConversion(ByVal request As Infra_ScopedRequest)
+Private Sub ExecuteStaticConversion(ByVal request As ScopedRequest)
     Dim tracker As Object: Set tracker = Infra_Error.Track("ExecuteStaticConversion")
     On Error GoTo ErrHandler
 

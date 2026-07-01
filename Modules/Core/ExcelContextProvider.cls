@@ -13,7 +13,7 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Captures and evaluates the current Excel workbook, sheet, window, and selection context.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_ActionContext
+' @Dependencies: ActionContext
 
 Public Property Get IsRangeSelected() As Boolean
     IsRangeSelected = (TypeName(Selection) = "Range")
@@ -23,11 +23,11 @@ Public Property Get CanModifyActiveCell() As Boolean
     CanModifyActiveCell = CanModifyContext(CaptureActionContext())
 End Property
 
-Public Function CaptureActionContext() As Infra_ActionContext
+Public Function CaptureActionContext() As ActionContext
     Dim tracker As Object: Set tracker = Infra_Error.Track("CaptureActionContext")
     On Error GoTo ErrHandler
 
-    Dim ctx As New Infra_ActionContext
+    Dim ctx As New ActionContext
 
     If Not ActiveWorkbook Is Nothing Then Set ctx.WorkbookRef = ActiveWorkbook
     If TypeName(ActiveSheet) = "Worksheet" Then Set ctx.WorksheetRef = ActiveSheet
@@ -57,7 +57,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function CanModifyContext(ByVal ctx As Infra_ActionContext) As Boolean
+Public Function CanModifyContext(ByVal ctx As ActionContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("CanModifyContext")
     On Error GoTo ErrHandler
 

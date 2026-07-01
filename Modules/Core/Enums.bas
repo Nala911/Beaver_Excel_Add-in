@@ -1,8 +1,8 @@
-Attribute VB_Name = "Infra_Enums"
+Attribute VB_Name = "Enums"
 Option Explicit
 
-' @Module: Infra_Enums
-' @Category: Infrastructure
+' @Module: Enums
+' @Category: Core
 ' @Description: Centralized shared enumerations for scopes, modes, and command options.
 ' @ManagedBy: BeaverAddin Agent
 
@@ -31,4 +31,3 @@ Public Enum UndoCaptureMode
     UndoCaptureFormulaOnly = 1
     UndoCaptureFormatOnly = 2
 End Enum
-

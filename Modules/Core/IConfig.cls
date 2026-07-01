@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: IConfig
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Interface for accessing application configuration.
 
 Public Property Get Model() As Object

@@ -10,9 +10,9 @@ End Enum
 ' @Category: Infrastructure
 ' @Description: Shared helpers for command validation, execution policy, and typed command context access.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_AppState, Infra_Error, ICommandContext, Infra_ActionContext, CommandExecutionPolicy, CommandValidationResult, Infra_Interaction
+' @Dependencies: Infra_AppState, Infra_Error, ICommandContext, ActionContext, CommandExecutionPolicy, CommandValidationResult, Infra_Interaction
 
-Public Function ActionContextFromCommandContext(ByVal context As ICommandContext) As Infra_ActionContext
+Public Function ActionContextFromCommandContext(ByVal context As ICommandContext) As ActionContext
     Dim tracker As Object: Set tracker = Infra_Error.Track("ActionContextFromCommandContext")
     On Error GoTo ErrHandler
 
@@ -32,7 +32,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function HasRangeSelectionInContext(ByVal ctx As Infra_ActionContext) As Boolean
+Public Function HasRangeSelectionInContext(ByVal ctx As ActionContext) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("HasRangeSelectionInContext")
     On Error GoTo ErrHandler
 
@@ -155,7 +155,7 @@ Public Function ValidateHasRangeSelection(ByVal context As ICommandContext, Opti
     Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateHasRangeSelection")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = ActionContextFromCommandContext(context)
 
     If HasRangeSelectionInContext(ctx) Then
@@ -177,7 +177,7 @@ Public Function ValidateHasWorkbook(ByVal context As ICommandContext, Optional B
     Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateHasWorkbook")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = ActionContextFromCommandContext(context)
 
     If Not ctx Is Nothing Then
@@ -202,7 +202,7 @@ Public Function ValidateHasWorksheet(ByVal context As ICommandContext, Optional 
     Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateHasWorksheet")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = ActionContextFromCommandContext(context)
 
     If Not ctx Is Nothing Then
@@ -227,7 +227,7 @@ Public Function ValidateHasWindow(ByVal context As ICommandContext, Optional ByV
     Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateHasWindow")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = ActionContextFromCommandContext(context)
 
     If Not ctx Is Nothing Then
@@ -252,7 +252,7 @@ Public Function ValidateCanModifySelection(ByVal context As ICommandContext, Opt
     Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateCanModifySelection")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = ActionContextFromCommandContext(context)
 
     If Not HasRangeSelectionInContext(ctx) Then
@@ -276,7 +276,7 @@ Public Function ValidateActiveWorkbookNotAddin(ByVal context As ICommandContext,
     Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateActiveWorkbookNotAddin")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = ActionContextFromCommandContext(context)
 
     If Not ctx Is Nothing Then
@@ -303,7 +303,7 @@ Public Function ValidateWorkbookNotProtected(ByVal context As ICommandContext) A
     Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateWorkbookNotProtected")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = ActionContextFromCommandContext(context)
 
     If Not ctx Is Nothing Then
@@ -330,7 +330,7 @@ Public Function ValidateWorksheetNotProtected(ByVal context As ICommandContext, 
     Dim tracker As Object: Set tracker = Infra_Error.Track("ValidateWorksheetNotProtected")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = ActionContextFromCommandContext(context)
 
     If Not ctx Is Nothing Then
@@ -353,7 +353,7 @@ ErrHandler:
 End Function
 
 
-Public Function ResolveWorksheetsToProcess(ByVal context As Infra_ActionContext, ByVal scope As TargetScope) As Collection
+Public Function ResolveWorksheetsToProcess(ByVal context As ActionContext, ByVal scope As TargetScope) As Collection
     Dim tracker As Object: Set tracker = Infra_Error.Track("ResolveWorksheetsToProcess")
     On Error GoTo ErrHandler
 
@@ -797,12 +797,31 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
     colMax = UBound(vals, 2)
     
     Dim formatChangeCount As Long
-    Dim unionRange As Range
-    Dim addrList As String
-    Dim commonFormat As String
+    Dim dictRanges As Object
+    Dim dictAddrLists As Object
+    Set dictRanges = CreateObject("Scripting.Dictionary")
+    Set dictAddrLists = CreateObject("Scripting.Dictionary")
     
     Dim isModifyData As Boolean
     isModifyData = (TypeName(transformer) = "FeatCmd_ModifyData")
+    
+    ' Pre-fetch column formats if the area has mixed formats to avoid cell-by-cell COM queries
+    Dim colFormats() As String
+    If isFmtsNull Then
+        ReDim colFormats(colMin To colMax)
+        Dim colIdx As Long
+        For colIdx = colMin To colMax
+            Dim colFmt As Variant
+            On Error Resume Next
+            colFmt = area.Columns(colIdx).NumberFormat
+            On Error GoTo 0
+            If IsNull(colFmt) Then
+                colFormats(colIdx) = "__MIXED__"
+            Else
+                colFormats(colIdx) = CStr(colFmt)
+            End If
+        Next colIdx
+    End If
     
     For r = rowMin To rowMax
         For c = colMin To colMax
@@ -813,16 +832,23 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
             If isFmtsArray Then
                 oldFormat = CStr(fmts(r, c))
             ElseIf isFmtsNull Then
-                Dim needsFormat As Boolean
-                needsFormat = False
-                If isModifyData Then
-                    If VarType(oldVal) = vbDate Then needsFormat = True
-                End If
+                Dim colFmtCached As String
+                colFmtCached = colFormats(c)
                 
-                If needsFormat Then
-                    oldFormat = CStr(area.Cells(r, c).NumberFormat)
+                If colFmtCached <> "__MIXED__" Then
+                    oldFormat = colFmtCached
                 Else
-                    oldFormat = "__MIXED__"
+                    Dim needsFormat As Boolean
+                    needsFormat = False
+                    If isModifyData Then
+                        If VarType(oldVal) = vbDate Then needsFormat = True
+                    End If
+                    
+                    If needsFormat Then
+                        oldFormat = CStr(area.Cells(r, c).NumberFormat)
+                    Else
+                        oldFormat = "__MIXED__"
+                    End If
                 End If
             Else
                 oldFormat = CStr(fmts)
@@ -839,7 +865,16 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
                 ' Resolve lazy/deferred format check if needed
                 If newFormat = "__FORCE_GENERAL_IF_TEXT__" Then
                     Dim actualFmt As String
-                    actualFmt = CStr(area.Cells(r, c).NumberFormat)
+                    If isFmtsArray Then
+                        actualFmt = CStr(fmts(r, c))
+                    ElseIf isFmtsNull And colFormats(c) <> "__MIXED__" Then
+                        actualFmt = colFormats(c)
+                    ElseIf Not isFmtsArray And Not isFmtsNull Then
+                        actualFmt = CStr(fmts)
+                    Else
+                        actualFmt = CStr(area.Cells(r, c).NumberFormat)
+                    End If
+                    
                     If InStr(1, actualFmt, "@") > 0 Or LCase$(actualFmt) = "text" Then
                         newFormat = "General"
                     Else
@@ -849,22 +884,42 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
                 
                 If newFormat <> vbNullString And newFormat <> "__MIXED__" And (oldFormat = "__MIXED__" Or newFormat <> oldFormat) Then
                     formatChangeCount = formatChangeCount + 1
-                    commonFormat = newFormat
                     Dim cellAddr As String
                     cellAddr = GetA1Address(area.Row + r - 1, area.Column + c - 1)
-                    Set unionRange = AccumulateUnion(unionRange, area.Parent, addrList, cellAddr)
+                    
+                    Dim curUnion As Range
+                    Dim curAddrList As String
+                    If dictRanges.Exists(newFormat) Then
+                        Set curUnion = dictRanges(newFormat)
+                        curAddrList = dictAddrLists(newFormat)
+                    Else
+                        Set curUnion = Nothing
+                        curAddrList = vbNullString
+                    End If
+                    
+                    Set curUnion = AccumulateUnion(curUnion, area.Parent, curAddrList, cellAddr)
+                    Set dictRanges(newFormat) = curUnion
+                    dictAddrLists(newFormat) = curAddrList
                 End If
             End If
         Next c
     Next r
     
     If hasChanged Then
-        ' Apply format changes efficiently in batches
+        ' Apply format changes efficiently in batches grouped by format
         If formatChangeCount > 0 Then
-            Set unionRange = AccumulateUnion(unionRange, area.Parent, addrList, "", True)
-            If Not unionRange Is Nothing Then
-                unionRange.NumberFormat = commonFormat
-            End If
+            Dim keyFormat As Variant
+            For Each keyFormat In dictRanges.Keys
+                Dim unionRange As Range
+                Dim addrList As String
+                Set unionRange = dictRanges(keyFormat)
+                addrList = dictAddrLists(keyFormat)
+                
+                Set unionRange = AccumulateUnion(unionRange, area.Parent, addrList, "", True)
+                If Not unionRange Is Nothing Then
+                    unionRange.NumberFormat = keyFormat
+                End If
+            Next keyFormat
         End If
         
         area.Value = vals

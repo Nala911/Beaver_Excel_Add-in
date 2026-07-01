@@ -29,7 +29,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Export.Execute")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Dim stateInfo As Collection
     Set stateInfo = Infra_Error.NewStateInfo()
     
@@ -125,8 +125,8 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         End If
     Else
         ' PNG / dialog flow
-        Dim request As Infra_ExportRequest
-        Set request = Infra_UIFactory.ShowExportDialog(ctx, context.CommandName)
+        Dim request As ExportRequest
+        Set request = UI_Factory.ShowExportDialog(ctx, context.CommandName)
         If request Is Nothing Then GoTo CleanExit
         
         If request.SourceRange Is Nothing Then GoTo CleanExit
@@ -177,9 +177,8 @@ Private Function ExportAsPngImpl(ByVal selRng As Range, ByVal scaleFactor As Lon
     End If
     On Error GoTo ErrHandler
 
-    ' Temp sheet on the user's workbook
-    Set userWB = selRng.Worksheet.Parent
-    Set tmpWS = userWB.Worksheets.Add(After:=userWB.Worksheets(userWB.Worksheets.Count))
+    ' Temp sheet on the add-in workbook (ThisWorkbook) to preserve user's Undo stack
+    Set tmpWS = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
     tmpWS.Name = "tmpExport_" & Format(Now, "hhmmss")
 
     ' Temp chart

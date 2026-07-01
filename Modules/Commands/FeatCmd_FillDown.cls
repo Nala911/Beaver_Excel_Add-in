@@ -34,7 +34,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim colIdx As Long
     Dim maxSearchCol As Long
     
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
     Set selectionRng = ctx.SelectionRange

@@ -1,26 +1,78 @@
-# Beaver Add-in - Workspace Rules for AI Agents
+# Agent Instructions: Beaver Excel Add-in
 
-These rules apply specifically to all AI agents executing tasks in this workspace. They complement the global rules and establish strict limits on how documentation is updated.
+This project is a VBA-based Microsoft Excel Add-in called **Beaver Add-in** that provides advanced formatting, cleanup, highlights, and reporting tools.
 
 ---
 
-## Guidelines for Modifying GEMINI.md
+## 📂 Project Structure
 
-To prevent context window bloat and maintain agent performance, the file [GEMINI.md](file:///c:/Users/fazil_uxry2im/Documents/Beaver/Excel%20Add-in/GEMINI.md) must remain a high-level operational guardrail playbook. Do not allow it to expand into a verbose reference manual.
+- `Modules/Commands/`: Implementations of `ICommand` (e.g., `FeatCmd_*.cls`).
+- `Modules/Core/`: Base classes/interfaces (e.g., `AppContainer.cls`, `ICommand.cls`, `IConfig.cls`).
+- `Modules/Infrastructure/`: Cross-cutting concerns (e.g., `Infra_Error.cls`, `Infra_Undo.bas`, `Infra_Config.cls`).
+- `Modules/Libraries/`: Helper code (e.g., `Lib_JsonConverter.bas`, custom UDFs).
+- `Modules/Tests/`: Unit tests (e.g., `Lib_Tests_Feat_*.bas`, `Lib_Tests.bas`).
+- `Modules/UI/`: Forms and Ribbon bindings (e.g., `UI_Ribbon.bas`).
+- `config.json`: Constant and Hotkey declarations.
+- `features.json`: Declarative registry of ribbon controls, hotkeys, and features.
+- `Update.ps1`: Main developer script. Run `pwsh -File .\Update.ps1` to lint, compile, and run tests.
 
-### 1. Document Size Constraint
-* **Strict Limit**: [GEMINI.md](file:///c:/Users/fazil_uxry2im/Documents/Beaver/Excel%20Add-in/GEMINI.md) must not exceed **120 lines**. If it grows past this limit, you must prune or consolidate sections.
+---
 
-### 2. What to NEVER Add to GEMINI.md
-* **No command lists or control catalogs**: Do not list command names (`FeatCmd_*`), ribbon control IDs (`Btn*`), or hotkey macros. Pointers to `features.json` and directory paths are sufficient.
-* **No configuration snapshots**: Do not copy parts of `config.json` or its schema. Direct agents to read the file.
-* **No long code boilerplates**: Do not include large VBA code blocks or error-handling examples. Pointers to reference modules (e.g. `FeatCmd_HelloWorld`) are sufficient.
-* **No feature-specific internal explanations**: Implementation details and internal mechanics of specific features must be documented via comments inside the code modules, not in the playbook.
+## 🛠️ Workflow & Build Pipeline
 
-### 3. What is ALLOWED to be updated in GEMINI.md
-* Changes to the unified build/sync commands (e.g. `Update.ps1` params).
-* Major changes to the core system architecture (e.g. if the core execution pipeline transitions from command-based to event-driven).
-* Core UI design patterns (e.g. adding new shared UserForm rules).
+1. **Source Control**: Only `.bas`, `.cls`, `.frm` source files are tracked. The binary workbook `Beaver Add-in.xlsm` is compiled on demand.
+2. **Rebuilding**: After making edits to any source files, run:
+   ```powershell
+   pwsh -File .\Update.ps1
+   ```
+   This will import all changed files, compile the VBA project, and run unit tests.
 
-### 4. Review Process
-* Any modification to [GEMINI.md](file:///c:/Users/fazil_uxry2im/Documents/Beaver/Excel%20Add-in/GEMINI.md) must be proposed in the **Implementation Plan** and explicitly approved by the user.
+---
+
+## 📏 Development Rules & Linter Constraints
+
+Every code file is automatically verified by `.build/Linter.ps1`. Adhere to the following strictly:
+
+### 1. Mandatory File Headers
+- Every file must start with `Option Explicit`.
+- Every file must have a metadata header comment matching:
+  ```vba
+  ' @Module: ModuleName
+  ' @Category: Infrastructure | Feature | Library | UI
+  ' @Description: Description of the module.
+  ```
+
+### 2. Context Tracking & Error Handling
+- Every public procedure and command execution must track context and handle errors using the project's standard patterns:
+  ```vba
+  Public Sub ProcedureName()
+      Dim tracker As Object: Set tracker = Infra_Error.Track("ProcedureName")
+      On Error GoTo ErrHandler
+
+      ' Implementation here
+
+  CleanExit:
+      Exit Sub
+  ErrHandler:
+      Infra_Error.HandleError "ProcedureName", Err
+      Resume CleanExit
+  End Sub
+  ```
+
+### 3. Spill-Safe Range Formulas
+- Always use `Range.Formula2` instead of `Range.Formula` to prevent dynamic array spill errors.
+
+### 4. Direct Conversion Safe Guards
+- Do not call conversion functions (e.g., `CStr`, `CLng`) directly on range properties (`NumberFormat`, `Font.Name`, `Font.Size`) without first checking for `IsNull`. Mixed ranges return `Null`, causing Run-time Error 94.
+
+### 5. Loop Deletion / Collection Mutation
+- When modifying or deleting items in a collection/array inside a loop, always iterate backwards:
+  ```vba
+  For i = count To 1 Step -1
+  ```
+
+### 6. Explicit References
+- Always qualify references to Excel globals like `Range`, `Cells`, `Rows`, and `Columns` with a sheet variable (e.g., `ws.Range`) to prevent `ActiveSheet` selection bugs.
+
+### 7. Sheet Localization
+- Do not hardcode localized sheet names (e.g., `"Sheet1"`), which fail in non-English Excel environments. Use constants or dynamic discovery.

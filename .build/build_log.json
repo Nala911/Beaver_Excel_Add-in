@@ -1,67 +1,289 @@
 ﻿{
-    "timestamp":  "2026-06-27T15:43:17+05:30",
-    "status":  "success",
-    "commandLine":  ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
-    "buildMode":  "incremental",
-    "system":  {
-                   "os":  "Microsoft Windows NT 10.0.26200.0",
-                   "powershellVersion":  "5.1.26100.8737",
-                   "excelProcess":  {
-                                        "pid":  0,
-                                        "wasAlreadyOpen":  false,
-                                        "reusedSession":  false,
-                                        "lockRecovered":  false
-                                    }
-               },
-    "changes":  {
-                    "hasChanges":  false,
-                    "changedFiles":  [
-
-                                     ],
-                    "deletedFiles":  [
-
-                                     ],
-                    "manifestChanged":  false,
-                    "manifestStructureChanged":  false
-                },
-    "stages":  [
-
-               ],
-    "lintResults":  {
-                        "checkedFiles":  [
-
-                                         ],
-                        "errors":  [
-
-                                   ]
-                    },
-    "compileResults":  {
-                           "status":  "success",
-                           "errorDetails":  null
-                       },
-    "testResults":  {
-                        "runTests":  false,
-                        "filter":  null,
-                        "ribbonValidation":  {
-                                                 "status":  "success",
-                                                 "error":  null
-                                             },
-                        "unitTests":  {
-                                          "total":  0,
-                                          "passed":  0,
-                                          "failed":  0,
-                                          "durationMs":  0,
-                                          "failures":  [
-
-                                                       ]
-                                      },
-                        "headlessCallbacks":  {
-                                                  "status":  "success",
-                                                  "passedCount":  0,
-                                                  "failures":  [
-
-                                                               ]
-                                              }
-                    },
-    "totalDurationMs":  1512.46
+  "timestamp": "2026-07-02T00:34:44+05:30",
+  "status": "success",
+  "commandLine": ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
+  "buildMode": "full",
+  "system": {
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "powershellVersion": "7.6.0",
+    "excelProcess": {
+      "pid": 9928,
+      "wasAlreadyOpen": false,
+      "reusedSession": true,
+      "lockRecovered": false
+    }
+  },
+  "changes": {
+    "hasChanges": true,
+    "changedFiles": [
+      "Modules/Infrastructure/Infra_TestResult.cls",
+      "Modules/Tests/Lib_Tests_Feat_Wrap.bas",
+      "Modules/UI/UI_Hotkeys.bas",
+      "ThisWorkbook.cls",
+      "Modules/Commands/FeatCmd_MakePermanent.cls",
+      "Modules/Infrastructure/Infra_BatchProcessor.cls",
+      "Modules/Infrastructure/Infra_Progress.bas",
+      "Modules/Tests/Lib_Tests_Feat_ModifyData.bas",
+      "Modules/Commands/FeatCmd_FormatRange.cls",
+      "Modules/Tests/Lib_Tests_Feat_CleanData.bas",
+      "Modules/Core/IBatchProcessor.cls",
+      "Modules/Commands/FeatCmd_StaticSheetWorkbook.cls",
+      "Modules/Tests/Lib_Tests_UI.bas",
+      "Modules/Infrastructure/Infra_CommandRegistry.bas",
+      "Modules/Commands/FeatCmd_ShowHelpCenter.cls",
+      "Modules/Commands/FeatCmd_ApplyCustomNumberFormat.cls",
+      "Modules/Libraries/Lib_JsonConverter.bas",
+      "Modules/Tests/Lib_Tests_Feat_Formatting.bas",
+      "Modules/UI/UI_HelpCenter.frm",
+      "Modules/Core/ExcelContextProvider.cls",
+      "Modules/Libraries/Lib_XUnpivotFunction.bas",
+      "Modules/Core/IRequest.cls",
+      "Modules/Commands/FeatCmd_Backspace.cls",
+      "Modules/Tests/Lib_Tests_Feat_Editing.bas",
+      "Modules/Infrastructure/Infra_HotkeyDefinition.cls",
+      "Modules/Infrastructure/Infra_AppState.bas",
+      "Modules/Core/BasicCommandContext.cls",
+      "Modules/Commands/FeatCmd_CleanData.cls",
+      "Modules/Infrastructure/Infra_Error.cls",
+      "Modules/Commands/FeatCmd_ExportImageOrPdf.cls",
+      "Modules/Commands/FeatCmd_PasteFormat.cls",
+      "Modules/Core/ScopedRequest.cls",
+      "Modules/Core/CommandInvoker.cls",
+      "Modules/Tests/Lib_Tests_Feat_General.bas",
+      "Modules/UI/UI_OptionPicker.frm",
+      "Modules/Core/ModifyDataRequest.cls",
+      "Modules/Core/CommandValidationResult.cls",
+      "Modules/Infrastructure/Infra_Config.cls",
+      "Modules/Tests/Lib_Tests.bas",
+      "Modules/Core/ExportRequest.cls",
+      "Modules/Commands/FeatCmd_ForceNumber.cls",
+      "Modules/Libraries/Lib_UdfRegistry.bas",
+      "Modules/Commands/FeatCmd_CreateSheet.cls",
+      "Modules/UI/UI_Ribbon.bas",
+      "Modules/Commands/FeatCmd_HelloWorld.cls",
+      "Modules/Infrastructure/Infra_AppStateGuard.cls",
+      "Modules/Commands/FeatCmd_FillDown.cls",
+      "Modules/UI/UI_Factory.bas",
+      "Modules/Infrastructure/Infra_ErrorContext.cls",
+      "Modules/Core/ICommandContext.cls",
+      "Modules/Commands/FeatCmd_TableOfContents.cls",
+      "Modules/Libraries/Lib_XFilterFunction.bas",
+      "Modules/Tests/Lib_Tests_Feat_HighlightData.bas",
+      "Modules/UI/UI_OptionPicker.frx",
+      "Modules/Commands/FeatCmd_Delete.cls",
+      "Modules/Infrastructure/Infra_Undo.bas",
+      "Modules/Tests/Lib_TestManifest.bas",
+      "Modules/Commands/FeatCmd_Duplicate.cls",
+      "Modules/Commands/FeatCmd_UnmergeFill.cls",
+      "Modules/Commands/FeatCmd_FilterByCell.cls",
+      "Modules/Commands/FeatCmd_BreakExternalLinks.cls",
+      "Modules/Core/ICommand.cls",
+      "Modules/UI/UI_HelpCenter.frx",
+      "Modules/Infrastructure/Infra_Cache.cls",
+      "Modules/Commands/FeatCmd_Wrap.cls",
+      "Modules/Core/HighlightDataRequest.cls",
+      "Modules/Core/CleanDataRequest.cls",
+      "Modules/Infrastructure/Infra_CommandSupport.bas",
+      "Modules/Commands/FeatCmd_ModifyData.cls",
+      "Modules/Core/AppContainer.cls",
+      "Modules/Tests/Lib_Tests_Feat_Workbook.bas",
+      "Modules/Infrastructure/Infra_OperationContext.cls",
+      "Modules/Commands/FeatCmd_HighlightData.cls",
+      "Modules/Tests/Lib_Tests_Feat_BreakLinks.bas",
+      "Modules/Core/Enums.bas",
+      "Modules/Infrastructure/Infra_Diagnostics.bas",
+      "Modules/Infrastructure/Infra_Bootstrap.bas",
+      "Modules/Infrastructure/Infra_ValueConversion.bas",
+      "Modules/Core/ActionContext.cls",
+      "Modules/Core/ICellTransformer.cls",
+      "Modules/Infrastructure/Infra_ProgressState.cls",
+      "Modules/Libraries/Lib_HelpManifest.bas",
+      "Modules/Infrastructure/Infra_Interaction.bas",
+      "Modules/Core/CommandExecutionPolicy.cls",
+      "Modules/Core/IConfig.cls",
+      "Modules/Tests/Lib_Tests_CommandInfrastructure.bas",
+      "Modules/Infrastructure/Infra_ContextTracker.cls",
+      "Modules/Infrastructure/Infra_PageSetupBackup.cls",
+      "Modules/Infrastructure/Infra_Hotkeys.bas",
+      "features.json",
+      "Modules/Infrastructure/Infra_ConfigModel.cls"
+    ],
+    "deletedFiles": [],
+    "manifestChanged": true,
+    "manifestStructureChanged": true
+  },
+  "stages": [
+    {
+      "name": "manifest_sync",
+      "status": "success",
+      "durationMs": 284.21,
+      "details": "features synced from features.json"
+    },
+    {
+      "name": "command_registry_generation",
+      "status": "success",
+      "durationMs": 154.92,
+      "details": "command registry, help manifest, UDF registry refreshed"
+    },
+    {
+      "name": "ui_entry_generation",
+      "status": "success",
+      "durationMs": 81.02,
+      "details": "UI entry modules refreshed"
+    },
+    {
+      "name": "test_manifest_generation",
+      "status": "success",
+      "durationMs": 241.89,
+      "details": "test manifest refreshed"
+    },
+    {
+      "name": "validation",
+      "status": "success",
+      "durationMs": 4540.75,
+      "details": "ribbon, syntax, lint, and form checks passed"
+    },
+    {
+      "name": "environment_checks",
+      "status": "success",
+      "durationMs": 83.22,
+      "details": "workbook available"
+    },
+    {
+      "name": "workbook_update",
+      "status": "success",
+      "durationMs": 17172.92,
+      "details": "modules imported and workbook saved"
+    },
+    {
+      "name": "ribbon_injection",
+      "status": "success",
+      "durationMs": 102.13,
+      "details": "customUI14.xml refreshed"
+    },
+    {
+      "name": "runtime_tests",
+      "status": "success",
+      "durationMs": 17708.02,
+      "details": ""
+    }
+  ],
+  "lintResults": {
+    "checkedFiles": [
+      "Modules/Commands/FeatCmd_ApplyCustomNumberFormat.cls",
+      "Modules/Commands/FeatCmd_Backspace.cls",
+      "Modules/Commands/FeatCmd_BreakExternalLinks.cls",
+      "Modules/Commands/FeatCmd_CleanData.cls",
+      "Modules/Commands/FeatCmd_CreateSheet.cls",
+      "Modules/Commands/FeatCmd_Delete.cls",
+      "Modules/Commands/FeatCmd_Duplicate.cls",
+      "Modules/Commands/FeatCmd_ExportImageOrPdf.cls",
+      "Modules/Commands/FeatCmd_FillDown.cls",
+      "Modules/Commands/FeatCmd_FilterByCell.cls",
+      "Modules/Commands/FeatCmd_ForceNumber.cls",
+      "Modules/Commands/FeatCmd_FormatRange.cls",
+      "Modules/Commands/FeatCmd_HelloWorld.cls",
+      "Modules/Commands/FeatCmd_HighlightData.cls",
+      "Modules/Commands/FeatCmd_MakePermanent.cls",
+      "Modules/Commands/FeatCmd_ModifyData.cls",
+      "Modules/Commands/FeatCmd_PasteFormat.cls",
+      "Modules/Commands/FeatCmd_ShowHelpCenter.cls",
+      "Modules/Commands/FeatCmd_StaticSheetWorkbook.cls",
+      "Modules/Commands/FeatCmd_TableOfContents.cls",
+      "Modules/Commands/FeatCmd_UnmergeFill.cls",
+      "Modules/Commands/FeatCmd_Wrap.cls",
+      "Modules/Core/ActionContext.cls",
+      "Modules/Core/AppContainer.cls",
+      "Modules/Core/BasicCommandContext.cls",
+      "Modules/Core/CleanDataRequest.cls",
+      "Modules/Core/CommandExecutionPolicy.cls",
+      "Modules/Core/CommandInvoker.cls",
+      "Modules/Core/CommandValidationResult.cls",
+      "Modules/Core/Enums.bas",
+      "Modules/Core/ExcelContextProvider.cls",
+      "Modules/Core/ExportRequest.cls",
+      "Modules/Core/HighlightDataRequest.cls",
+      "Modules/Core/IBatchProcessor.cls",
+      "Modules/Core/ICellTransformer.cls",
+      "Modules/Core/ICommand.cls",
+      "Modules/Core/ICommandContext.cls",
+      "Modules/Core/IConfig.cls",
+      "Modules/Core/IRequest.cls",
+      "Modules/Core/ModifyDataRequest.cls",
+      "Modules/Core/ScopedRequest.cls",
+      "Modules/Infrastructure/Infra_AppState.bas",
+      "Modules/Infrastructure/Infra_AppStateGuard.cls",
+      "Modules/Infrastructure/Infra_BatchProcessor.cls",
+      "Modules/Infrastructure/Infra_Bootstrap.bas",
+      "Modules/Infrastructure/Infra_Cache.cls",
+      "Modules/Infrastructure/Infra_CommandRegistry.bas",
+      "Modules/Infrastructure/Infra_CommandSupport.bas",
+      "Modules/Infrastructure/Infra_Config.cls",
+      "Modules/Infrastructure/Infra_ConfigModel.cls",
+      "Modules/Infrastructure/Infra_ContextTracker.cls",
+      "Modules/Infrastructure/Infra_Diagnostics.bas",
+      "Modules/Infrastructure/Infra_Error.cls",
+      "Modules/Infrastructure/Infra_ErrorContext.cls",
+      "Modules/Infrastructure/Infra_HotkeyDefinition.cls",
+      "Modules/Infrastructure/Infra_Hotkeys.bas",
+      "Modules/Infrastructure/Infra_Interaction.bas",
+      "Modules/Infrastructure/Infra_OperationContext.cls",
+      "Modules/Infrastructure/Infra_PageSetupBackup.cls",
+      "Modules/Infrastructure/Infra_Progress.bas",
+      "Modules/Infrastructure/Infra_ProgressState.cls",
+      "Modules/Infrastructure/Infra_TestResult.cls",
+      "Modules/Infrastructure/Infra_Undo.bas",
+      "Modules/Infrastructure/Infra_ValueConversion.bas",
+      "Modules/Libraries/Lib_HelpManifest.bas",
+      "Modules/Libraries/Lib_JsonConverter.bas",
+      "Modules/Libraries/Lib_UdfRegistry.bas",
+      "Modules/Libraries/Lib_XFilterFunction.bas",
+      "Modules/Libraries/Lib_XUnpivotFunction.bas",
+      "Modules/Tests/Lib_TestManifest.bas",
+      "Modules/Tests/Lib_Tests_CommandInfrastructure.bas",
+      "Modules/Tests/Lib_Tests_Feat_BreakLinks.bas",
+      "Modules/Tests/Lib_Tests_Feat_CleanData.bas",
+      "Modules/Tests/Lib_Tests_Feat_Editing.bas",
+      "Modules/Tests/Lib_Tests_Feat_Formatting.bas",
+      "Modules/Tests/Lib_Tests_Feat_General.bas",
+      "Modules/Tests/Lib_Tests_Feat_HighlightData.bas",
+      "Modules/Tests/Lib_Tests_Feat_ModifyData.bas",
+      "Modules/Tests/Lib_Tests_Feat_Workbook.bas",
+      "Modules/Tests/Lib_Tests_Feat_Wrap.bas",
+      "Modules/Tests/Lib_Tests_UI.bas",
+      "Modules/Tests/Lib_Tests.bas",
+      "Modules/UI/UI_Factory.bas",
+      "Modules/UI/UI_HelpCenter.frm",
+      "Modules/UI/UI_Hotkeys.bas",
+      "Modules/UI/UI_OptionPicker.frm",
+      "Modules/UI/UI_Ribbon.bas",
+      "ThisWorkbook.cls"
+    ],
+    "errors": []
+  },
+  "compileResults": {
+    "status": "success",
+    "errorDetails": null
+  },
+  "testResults": {
+    "runTests": true,
+    "filter": "",
+    "ribbonValidation": {
+      "status": "success",
+      "error": null
+    },
+    "unitTests": {
+      "total": 518,
+      "passed": 518,
+      "failed": 0,
+      "durationMs": 16224,
+      "failures": []
+    },
+    "headlessCallbacks": {
+      "status": "success",
+      "passedCount": 0,
+      "failures": []
+    }
+  },
+  "totalDurationMs": 49604.21
 }

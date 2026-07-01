@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Library
 ' @Description: Integration tests for data clean features.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, Lib_ValueConversion, FeatCmd_CleanData, Infra_CleanDataRequest
+' @Dependencies: Lib_Tests, AppContainer, Infra_Error, Infra_Undo, Lib_ValueConversion, FeatCmd_CleanData, CleanDataRequest
 
 Public Sub Test_CleanData_TrimmingAndNumericalFixing()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CleanData_TrimmingAndNumericalFixing")
@@ -65,7 +65,7 @@ Public Sub Test_CleanData_CheckboxOptions()
     ws.Range("A1").Value2 = "  hello   world  "
     ws.Range("A2").Value2 = "hello" & ChrW$(7) & "world"
 
-    Dim request As New Infra_CleanDataRequest
+    Dim request As New CleanDataRequest
     request.CleanTrimSpaces = False
     request.CleanNonPrintables = True
 
@@ -109,7 +109,7 @@ Public Sub Test_CleanData_NewEnhancements()
     ws.Range("A3").Value2 = "thin" & ChrW$(8201) & "space"
     ws.Range("A4").Value2 = "narrow" & ChrW$(8239) & "space"
 
-    Dim req As New Infra_CleanDataRequest
+    Dim req As New CleanDataRequest
     req.CleanInvisibleChars = True
     req.CleanTrimSpaces = False
     req.CleanNonPrintables = False
@@ -195,7 +195,7 @@ Public Sub Test_CleanData_UserRequestedEnhancements()
     ws.Range("A4").Value2 = "Brand" & ChrW$(174)
     ws.Range("A5").Value2 = "Copyright" & ChrW$(169) & "2026"
 
-    Dim req As New Infra_CleanDataRequest
+    Dim req As New CleanDataRequest
     req.CleanTrimSpaces = False
     req.CleanNonPrintables = False
     req.CleanInvisibleChars = False
@@ -271,7 +271,7 @@ Public Sub Test_CleanData_HygieneOptions()
     ws.Name = "Test_Temp_CleanHygiene"
     
     Dim cmd As New FeatCmd_CleanData
-    Dim req As New Infra_CleanDataRequest
+    Dim req As New CleanDataRequest
     
     ' Disable text cleaning defaults to isolate hygiene tests
     req.CleanTrimSpaces = False
@@ -402,7 +402,7 @@ Public Sub Test_CleanData_LargeSelectionSafety()
     ws.Range("C3").Value2 = "  dirty text  "
 
     Dim cmd As New FeatCmd_CleanData
-    Dim request As New Infra_CleanDataRequest
+    Dim request As New CleanDataRequest
     Set request.Context = AppContainer.CreateCommandContext("CleanData").ActionContext
     Set request.Context.WorksheetRef = ws
     Set request.Context.WorkbookRef = ThisWorkbook
@@ -579,7 +579,7 @@ Public Sub Test_UnifiedHelpers_And_CleanDataDisjoint()
     
     Lib_Tests.AssertEqual unionRange.Areas.Count, 120, "Should have 120 disjoint areas"
 
-    Dim request As New Infra_CleanDataRequest
+    Dim request As New CleanDataRequest
     request.CleanTrimSpaces = True
     
     ' Execute cleaning via headless entry point

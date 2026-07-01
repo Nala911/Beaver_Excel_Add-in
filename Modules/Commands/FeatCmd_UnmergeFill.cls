@@ -15,7 +15,7 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Unmerges cells and fills the top-left value across the unmerged area.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: ICommand, Infra_ActionContext, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction, Infra_Config
+' @Dependencies: ICommand, ActionContext, Infra_Error, Infra_Undo, Infra_Progress, Infra_Interaction, Infra_Config
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyBulkWrite()
@@ -29,7 +29,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim tracker As Object: Set tracker = Infra_Error.Track("UnmergeFill.Execute")
     On Error GoTo ErrHandler
 
-    Dim ctx As Infra_ActionContext
+    Dim ctx As ActionContext
     Dim selRange As Range
     Dim ws As Worksheet
     Dim cell As Range
