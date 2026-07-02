@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: AppContainer
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Central Dependency Injection container / Service Locator. Uses PredeclaredId = True for global singleton access.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: IConfig, Infra_Error, ExcelContextProvider, BasicCommandContext, Infra_CommandRegistry, Infra_Bootstrap

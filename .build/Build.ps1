@@ -203,7 +203,7 @@ try {
             
             # Explicitly append regenerated manifest to changed files for import
             if (-not $forceFullBuild) {
-                $relPath = "Modules/Tests/Lib_TestManifest.bas"
+                $relPath = "Modules/Tests/Test_Manifest.bas"
                 if ($changedFiles -notcontains $relPath) {
                     if (Test-BuildStateFileChanged -RelativePath $relPath -BuildState $buildState) {
                         $script:changedFiles += $relPath

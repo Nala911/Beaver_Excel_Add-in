@@ -1,5 +1,5 @@
 ﻿{
-  "timestamp": "2026-07-02T01:15:49+05:30",
+  "timestamp": "2026-07-03T00:32:33+05:30",
   "status": "success",
   "commandLine": ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
   "buildMode": "full",
@@ -7,21 +7,15 @@
     "os": "Microsoft Windows NT 10.0.26200.0",
     "powershellVersion": "7.6.0",
     "excelProcess": {
-      "pid": 17836,
+      "pid": 8976,
       "wasAlreadyOpen": false,
       "reusedSession": true,
       "lockRecovered": false
     }
   },
   "changes": {
-    "hasChanges": true,
-    "changedFiles": [
-      "Modules/Infrastructure/Infra_CommandSupport.bas",
-      "Modules/Infrastructure/Infra_Diagnostics.bas",
-      "Modules/Infrastructure/Infra_ValueConversion.bas",
-      "Modules/Commands/FeatCmd_CleanData.cls",
-      "Modules/Infrastructure/Infra_BatchProcessor.cls"
-    ],
+    "hasChanges": false,
+    "changedFiles": [],
     "deletedFiles": [],
     "manifestChanged": false,
     "manifestStructureChanged": false
@@ -30,55 +24,55 @@
     {
       "name": "manifest_sync",
       "status": "success",
-      "durationMs": 188.84,
+      "durationMs": 193.79,
       "details": "features synced from features.json"
     },
     {
       "name": "command_registry_generation",
       "status": "success",
-      "durationMs": 118.62,
+      "durationMs": 115.76,
       "details": "command registry, help manifest, UDF registry refreshed"
     },
     {
       "name": "ui_entry_generation",
       "status": "success",
-      "durationMs": 65.18,
+      "durationMs": 49.8,
       "details": "UI entry modules refreshed"
     },
     {
       "name": "test_manifest_generation",
       "status": "success",
-      "durationMs": 80.8,
+      "durationMs": 79.28,
       "details": "test manifest refreshed"
     },
     {
       "name": "validation",
       "status": "success",
-      "durationMs": 1309.05,
+      "durationMs": 582.09,
       "details": "ribbon, syntax, lint, and form checks passed"
     },
     {
       "name": "environment_checks",
       "status": "success",
-      "durationMs": 38.91,
+      "durationMs": 39.81,
       "details": "workbook available"
     },
     {
       "name": "workbook_update",
       "status": "success",
-      "durationMs": 12010.48,
+      "durationMs": 10516.3,
       "details": "modules imported and workbook saved"
     },
     {
       "name": "ribbon_injection",
       "status": "success",
-      "durationMs": 94.79,
+      "durationMs": 80.83,
       "details": "customUI14.xml refreshed"
     },
     {
       "name": "runtime_tests",
       "status": "success",
-      "durationMs": 17456.87,
+      "durationMs": 14494.39,
       "details": ""
     }
   ],
@@ -153,7 +147,6 @@
       "Modules/Libraries/Lib_UdfRegistry.bas",
       "Modules/Libraries/Udf_XFilter.bas",
       "Modules/Libraries/Udf_XUnpivot.bas",
-      "Modules/Tests/Lib_TestManifest.bas",
       "Modules/Tests/Test_CommandInfrastructure.bas",
       "Modules/Tests/Test_Feat_BreakLinks.bas",
       "Modules/Tests/Test_Feat_CleanData.bas",
@@ -164,6 +157,7 @@
       "Modules/Tests/Test_Feat_ModifyData.bas",
       "Modules/Tests/Test_Feat_Workbook.bas",
       "Modules/Tests/Test_Feat_Wrap.bas",
+      "Modules/Tests/Test_Manifest.bas",
       "Modules/Tests/Test_Runner.bas",
       "Modules/Tests/Test_UI.bas",
       "Modules/UI/UI_DialogCleanData.bas",
@@ -197,7 +191,7 @@
       "total": 518,
       "passed": 518,
       "failed": 0,
-      "durationMs": 15669,
+      "durationMs": 12972,
       "failures": []
     },
     "headlessCallbacks": {
@@ -206,5 +200,5 @@
       "failures": []
     }
   },
-  "totalDurationMs": 35012.35
+  "totalDurationMs": 30610.34
 }

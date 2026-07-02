@@ -69,7 +69,7 @@ function Invoke-VbaLint {
         # Check Option Explicit and @Module header on raw content
         $contentStr = $rawLines -join "`r`n"
         $missingOptionExplicit = ($contentStr -notmatch "(?m)^Option Explicit")
-        $missingModuleHeader = ($fileName -ne "Lib_TestManifest.bas" -and $contentStr -notmatch "' @Module:")
+        $missingModuleHeader = ($fileName -ne "Test_Manifest.bas" -and $contentStr -notmatch "' @Module:")
 
         if ($missingOptionExplicit -or $missingModuleHeader) {
             if ($AutoFix) {
@@ -128,6 +128,18 @@ function Invoke-VbaLint {
             Add-LintError -File $fileName -Type "enhanced" -Message "Missing '@Module' metadata header." -Line 1
             $allPassed = $false
             $global:BeaverLintStatusCache[$relPath] = $false
+        }
+
+        $generatedFiles = @(
+            "Test_Manifest.bas",
+            "UI_Ribbon.bas",
+            "UI_Hotkeys.bas",
+            "Lib_HelpManifest.bas",
+            "Lib_UdfRegistry.bas",
+            "Infra_CommandRegistry.bas"
+        )
+        if ($generatedFiles -contains $fileName) {
+            Write-Host "  [$fileName] Warning: This file is auto-generated and managed by BeaverAddin Agent. Manual changes will be overwritten on build." -ForegroundColor Yellow
         }
 
         # Normalize line continuations
@@ -506,7 +518,7 @@ function Invoke-TestCoverageAudit {
     
     $testContent = ""
     foreach ($testFile in $testFiles) {
-        if ($testFile.Name -eq "Lib_TestManifest.bas") { continue }
+        if ($testFile.Name -eq "Test_Manifest.bas") { continue }
         $testContent += [System.IO.File]::ReadAllText($testFile.FullName) + "`r`n"
     }
     

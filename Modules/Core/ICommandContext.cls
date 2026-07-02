@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: ICommandContext
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Provides runtime context to commands (e.g., Ribbon state, arguments).
 
 Public Property Get SourceName() As String

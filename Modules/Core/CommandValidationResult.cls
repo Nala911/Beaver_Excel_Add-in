@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: CommandValidationResult
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Captures whether a command can execute, and the user-facing feedback to show when it cannot.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: None

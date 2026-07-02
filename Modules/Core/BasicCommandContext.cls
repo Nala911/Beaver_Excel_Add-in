@@ -12,7 +12,7 @@ Option Explicit
 Implements ICommandContext
 
 ' @Module: BasicCommandContext
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Simple implementation of ICommandContext for standard commands.
 
 Private mSourceName As String

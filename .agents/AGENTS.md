@@ -38,7 +38,7 @@ Every code file is automatically verified by `.build/Linter.ps1`. Adhere to the 
 - Every file must have a metadata header comment matching:
   ```vba
   ' @Module: ModuleName
-  ' @Category: Infrastructure | Feature | Library | UI
+  ' @Category: Core | Infrastructure | Feature | Library | UI
   ' @Description: Description of the module.
   ```
 

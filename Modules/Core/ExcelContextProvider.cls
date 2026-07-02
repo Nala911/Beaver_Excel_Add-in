@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: ExcelContextProvider
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Captures and evaluates the current Excel workbook, sheet, window, and selection context.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: ActionContext

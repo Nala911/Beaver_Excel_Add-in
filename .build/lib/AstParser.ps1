@@ -215,7 +215,7 @@ function Get-AllTestProcedures {
     
     $moduleFiles = @(Get-ChildItem -Path $SourceDir -Filter *.bas -Recurse)
     foreach ($file in $moduleFiles) {
-        if ($file.Name -eq "Lib_TestManifest.bas") { continue }
+        if ($file.Name -eq "Test_Manifest.bas") { continue }
         $moduleName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
         $relPath = $file.FullName.Substring($resolvedProjectRoot.Length + 1).Replace("\", "/")
         

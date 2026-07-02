@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: CommandExecutionPolicy
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Describes how the command invoker should configure Excel application state for a command.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: None

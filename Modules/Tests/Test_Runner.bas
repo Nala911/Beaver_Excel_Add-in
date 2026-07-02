@@ -1,11 +1,11 @@
-﻿Attribute VB_Name = "Test_Runner"
+Attribute VB_Name = "Test_Runner"
 Option Explicit
 
 ' @Module: Test_Runner
 ' @Category: Infrastructure
 ' @Description: Lightweight unit testing framework with structured result export for automated verification.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Error, Infra_Config, Infra_Hotkeys, Lib_TestManifest
+' @Dependencies: Infra_Error, Infra_Config, Infra_Hotkeys, Test_Manifest
 
 Private pResults As Collection
 Private pSuiteStartTime As Double
@@ -31,7 +31,7 @@ Public Sub RunAllTests()
     
     Infra_Bootstrap.EnsureStarted
 
-    Lib_TestManifest.RunGeneratedTests ""
+    Test_Manifest.RunGeneratedTests ""
     
     ReportResults
 
@@ -57,7 +57,7 @@ Public Sub RunTestsFilter(ByVal filterPattern As String)
     
     Infra_Bootstrap.EnsureStarted
 
-    Lib_TestManifest.RunGeneratedTests filterPattern
+    Test_Manifest.RunGeneratedTests filterPattern
     
     ReportResults
 

@@ -1,7 +1,7 @@
-Attribute VB_Name = "Lib_TestManifest"
+Attribute VB_Name = "Test_Manifest"
 Option Explicit
 
-' @Module: Lib_TestManifest
+' @Module: Test_Manifest
 ' @Category: Infrastructure
 ' @Description: Generated test manifest that orchestrates all Test_* procedures.
 ' @ManagedBy: BeaverAddin Agent

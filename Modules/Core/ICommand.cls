@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: ICommand
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Standard command pattern interface for all features.
  
 Public Property Get ExecutionPolicy() As CommandExecutionPolicy

@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: CommandInvoker
-' @Category: Infrastructure
+' @Category: Core
 ' @Description: Centralized pipeline for executing commands. Handles guards and errors.
 
 Public Sub ExecuteCommand(ByVal cmd As ICommand, ByVal context As ICommandContext)
