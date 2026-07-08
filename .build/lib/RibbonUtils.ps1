@@ -54,7 +54,7 @@ function Test-RibbonValidity {
         $isValid = $false
     }
 
-    $callbacks = $xml.SelectNodes("//@onAction") | ForEach-Object { $_.Value } | Select-Object -Unique
+    $callbacks = @($xml.SelectNodes("//@onAction") | ForEach-Object { $_.Value } | Select-Object -Unique)
     if ($callbacks) {
         Write-Host "  Checking $($callbacks.Count) callbacks across all modules..."
         $vbaFiles = Get-ChildItem -Path $ModulesDir -Include *.bas, *.cls -Recurse

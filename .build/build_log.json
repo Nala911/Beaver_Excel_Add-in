@@ -1,5 +1,5 @@
 ﻿{
-  "timestamp": "2026-07-03T00:32:33+05:30",
+  "timestamp": "2026-07-08T21:00:33+05:30",
   "status": "success",
   "commandLine": ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
   "buildMode": "full",
@@ -7,15 +7,18 @@
     "os": "Microsoft Windows NT 10.0.26200.0",
     "powershellVersion": "7.6.0",
     "excelProcess": {
-      "pid": 8976,
+      "pid": 17404,
       "wasAlreadyOpen": false,
       "reusedSession": true,
       "lockRecovered": false
     }
   },
   "changes": {
-    "hasChanges": false,
-    "changedFiles": [],
+    "hasChanges": true,
+    "changedFiles": [
+      "Modules/Infrastructure/Infra_CommandRegistry.bas",
+      "Modules/UI/UI_Ribbon.bas"
+    ],
     "deletedFiles": [],
     "manifestChanged": false,
     "manifestStructureChanged": false
@@ -24,55 +27,55 @@
     {
       "name": "manifest_sync",
       "status": "success",
-      "durationMs": 193.79,
+      "durationMs": 69.8,
       "details": "features synced from features.json"
     },
     {
       "name": "command_registry_generation",
       "status": "success",
-      "durationMs": 115.76,
+      "durationMs": 48.32,
       "details": "command registry, help manifest, UDF registry refreshed"
     },
     {
       "name": "ui_entry_generation",
       "status": "success",
-      "durationMs": 49.8,
+      "durationMs": 18.32,
       "details": "UI entry modules refreshed"
     },
     {
       "name": "test_manifest_generation",
       "status": "success",
-      "durationMs": 79.28,
+      "durationMs": 39.63,
       "details": "test manifest refreshed"
     },
     {
       "name": "validation",
       "status": "success",
-      "durationMs": 582.09,
+      "durationMs": 320.3,
       "details": "ribbon, syntax, lint, and form checks passed"
     },
     {
       "name": "environment_checks",
       "status": "success",
-      "durationMs": 39.81,
+      "durationMs": 18.54,
       "details": "workbook available"
     },
     {
       "name": "workbook_update",
       "status": "success",
-      "durationMs": 10516.3,
+      "durationMs": 5972.34,
       "details": "modules imported and workbook saved"
     },
     {
       "name": "ribbon_injection",
       "status": "success",
-      "durationMs": 80.83,
+      "durationMs": 61.49,
       "details": "customUI14.xml refreshed"
     },
     {
       "name": "runtime_tests",
       "status": "success",
-      "durationMs": 14494.39,
+      "durationMs": 6591.41,
       "details": ""
     }
   ],
@@ -191,7 +194,7 @@
       "total": 518,
       "passed": 518,
       "failed": 0,
-      "durationMs": 12972,
+      "durationMs": 5753,
       "failures": []
     },
     "headlessCallbacks": {
@@ -200,5 +203,5 @@
       "failures": []
     }
   },
-  "totalDurationMs": 30610.34
+  "totalDurationMs": 15531.97
 }

@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "Test_Feat_General"
+Attribute VB_Name = "Test_Feat_General"
 Option Explicit
 
 ' @Module: Test_Feat_General

@@ -10,47 +10,47 @@
     <tabs>
       <tab id="BeaverTab" label="Beaver" keytip="B">
         <group id="GrpFormatting" label="Formatting">
-          <button id="BtnWrap" label="Wrap" imageMso="FunctionWizard" size="large" onAction="Ribbon_OnWrap" keytip="W" screentip="Wrap Selection" supertip="Choose whether to wrap the selection by reusing a wrapper formula from another cell or by typing a formula pattern with [value]." />
-          <button id="BtnStaticSheetWorkbook" label="Static Sheet/WB" imageMso="CalculateNow" size="large" onAction="Ribbon_OnStaticSheetWorkbook" keytip="SW" screentip="Convert Formulas to Static Values" supertip="Permanently replaces all formulas with their current values across the active sheet or the entire workbook. Handles spill ranges correctly." />
+          <button id="BtnWrap" label="Wrap" imageMso="FunctionWizard" size="large" onAction="Ribbon_OnAction" keytip="W" screentip="Wrap Selection" supertip="Choose whether to wrap the selection by reusing a wrapper formula from another cell or by typing a formula pattern with [value]." />
+          <button id="BtnStaticSheetWorkbook" label="Static Sheet/WB" imageMso="CalculateNow" size="large" onAction="Ribbon_OnAction" keytip="SW" screentip="Convert Formulas to Static Values" supertip="Permanently replaces all formulas with their current values across the active sheet or the entire workbook. Handles spill ranges correctly." />
         </group>
         <group id="GrpCleanup" label="Data Tools">
-          <button id="BtnCleanData" label="Clean Data" imageMso="Clear" size="large" onAction="Ribbon_OnCleanData" keytip="CD" screentip="Clean Data" supertip="Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook)." />
+          <button id="BtnCleanData" label="Clean Data" imageMso="Clear" size="large" onAction="Ribbon_OnAction" keytip="CD" screentip="Clean Data" supertip="Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook)." />
           <menu id="BtnModifyData" label="Modify Data" imageMso="ChangeCase" size="large" keytip="MD" screentip="Modify Data" supertip="Modifies text and dates in the selection (casing or date standardization).">
-            <button id="BtnDateFixer" label="Date Fixer" imageMso="CalculateNow" onAction="Ribbon_OnDateFixer" keytip="DF" screentip="Date Fixer" supertip="Standardizes dates in the selection." />
-            <button id="BtnCaseFixer" label="Case Fixer" imageMso="ChangeCase" onAction="Ribbon_OnCaseFixer" keytip="CF" screentip="Case Fixer" supertip="Standardizes casing of text in the selection." />
-            <button id="BtnUnmergeFill" label="Unmerge FillDown" imageMso="TableProperties" onAction="Ribbon_OnUnmergeFill" keytip="UF" screentip="Unmerge FillDown" supertip="Unmerges the selected cells and fills the parent value to all unmerged cells." />
-            <button id="BtnForceNumber" label="Convert Text to Number" imageMso="CalculateNow" onAction="Ribbon_OnForceNumber" keytip="FN" screentip="Convert Text to Number" supertip="Forces text-formatted numbers in the selection to become actual numeric values." />
+            <button id="BtnDateFixer" label="Date Fixer" imageMso="CalculateNow" onAction="Ribbon_OnAction" keytip="DF" screentip="Date Fixer" supertip="Standardizes dates in the selection." />
+            <button id="BtnCaseFixer" label="Case Fixer" imageMso="ChangeCase" onAction="Ribbon_OnAction" keytip="CF" screentip="Case Fixer" supertip="Standardizes casing of text in the selection." />
+            <button id="BtnUnmergeFill" label="Unmerge FillDown" imageMso="TableProperties" onAction="Ribbon_OnAction" keytip="UF" screentip="Unmerge FillDown" supertip="Unmerges the selected cells and fills the parent value to all unmerged cells." />
+            <button id="BtnForceNumber" label="Convert Text to Number" imageMso="CalculateNow" onAction="Ribbon_OnAction" keytip="FN" screentip="Convert Text to Number" supertip="Forces text-formatted numbers in the selection to become actual numeric values." />
           </menu>
           <menu id="BtnHighlightData" label="Highlight Data" imageMso="ConditionalFormattingMenu" size="large" keytip="HD" screentip="Highlight Data" supertip="Highlights key data patterns and duplicates.">
-            <button id="BtnHighlightInconsistentFormulas" label="Inconsistent Formulas" imageMso="CalculateNow" onAction="Ribbon_OnHighlightInconsistentFormulas" keytip="HI" screentip="Inconsistent Formulas" supertip="Highlights inconsistent formulas in yellow." />
-            <button id="BtnHighlightDuplicates" label="Duplicates" imageMso="ConditionalFormattingMenu" onAction="Ribbon_OnHighlightDuplicates" keytip="HD" screentip="Duplicates" supertip="Highlights duplicate values in soft red." />
-            <button id="BtnHighlightErrors" label="Errors" imageMso="ErrorChecking" onAction="Ribbon_OnHighlightErrors" keytip="HE" screentip="Errors" supertip="Highlights cells with errors in orange." />
-            <button id="BtnHighlightHardcodedValues" label="Hardcoded Values" imageMso="FunctionWizard" onAction="Ribbon_OnHighlightHardcodedValues" keytip="HH" screentip="Hardcoded Values" supertip="Highlights formulas containing hardcoded values in lavender." />
-            <button id="BtnHighlightDataValidations" label="Data Validations" imageMso="TableProperties" onAction="Ribbon_OnHighlightDataValidations" keytip="HV" screentip="Data Validations" supertip="Highlights cells with data validation rules in soft green." />
-            <button id="BtnHighlightConditionalFormatting" label="Conditional Formatting" imageMso="ConditionalFormattingMenu" onAction="Ribbon_OnHighlightConditionalFormatting" keytip="HC" screentip="Conditional Formatting" supertip="Highlights cells with conditional formatting in soft blue." />
-            <button id="BtnClearHighlights" label="Clear Highlights" imageMso="Clear" onAction="Ribbon_OnClearHighlights" keytip="CH" screentip="Clear Highlights" supertip="Clears all cells in the workbook matching the highlight color." />
+            <button id="BtnHighlightInconsistentFormulas" label="Inconsistent Formulas" imageMso="CalculateNow" onAction="Ribbon_OnAction" keytip="HI" screentip="Inconsistent Formulas" supertip="Highlights inconsistent formulas in yellow." />
+            <button id="BtnHighlightDuplicates" label="Duplicates" imageMso="ConditionalFormattingMenu" onAction="Ribbon_OnAction" keytip="HD" screentip="Duplicates" supertip="Highlights duplicate values in soft red." />
+            <button id="BtnHighlightErrors" label="Errors" imageMso="ErrorChecking" onAction="Ribbon_OnAction" keytip="HE" screentip="Errors" supertip="Highlights cells with errors in orange." />
+            <button id="BtnHighlightHardcodedValues" label="Hardcoded Values" imageMso="FunctionWizard" onAction="Ribbon_OnAction" keytip="HH" screentip="Hardcoded Values" supertip="Highlights formulas containing hardcoded values in lavender." />
+            <button id="BtnHighlightDataValidations" label="Data Validations" imageMso="TableProperties" onAction="Ribbon_OnAction" keytip="HV" screentip="Data Validations" supertip="Highlights cells with data validation rules in soft green." />
+            <button id="BtnHighlightConditionalFormatting" label="Conditional Formatting" imageMso="ConditionalFormattingMenu" onAction="Ribbon_OnAction" keytip="HC" screentip="Conditional Formatting" supertip="Highlights cells with conditional formatting in soft blue." />
+            <button id="BtnClearHighlights" label="Clear Highlights" imageMso="Clear" onAction="Ribbon_OnAction" keytip="CH" screentip="Clear Highlights" supertip="Clears all cells in the workbook matching the highlight color." />
           </menu>
-          <button id="BtnBreakLinks" label="Break Links" imageMso="WorkbookLinks" size="large" onAction="Ribbon_OnBreakExternalLinks" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />
+          <button id="BtnBreakLinks" label="Break Links" imageMso="WorkbookLinks" size="large" onAction="Ribbon_OnAction" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />
         </group>
         <group id="GrpExport" label="File Actions">
-          <button id="BtnDuplicate" label="Duplicate Workbook" imageMso="FileSaveAs" size="large" onAction="Ribbon_OnDuplicate" keytip="DP" screentip="Duplicate Active Workbook" supertip="Duplicates the active workbook to your Desktop, opens it, and closes the original so you can work safely on the copy." />
+          <button id="BtnDuplicate" label="Duplicate Workbook" imageMso="FileSaveAs" size="large" onAction="Ribbon_OnAction" keytip="DP" screentip="Duplicate Active Workbook" supertip="Duplicates the active workbook to your Desktop, opens it, and closes the original so you can work safely on the copy." />
           <menu id="BtnExport" label="Export" imageMso="Export" size="large" keytip="EX" screentip="Export" supertip="Exports the selected range as a PNG image or a PDF document.">
-            <button id="BtnExportPng" label="Export as PNG" imageMso="FileSaveAs" onAction="Ribbon_OnExportPng" keytip="EP" screentip="Export as PNG" supertip="Exports the selected range as a PNG image." />
-            <button id="BtnExportPdf" label="Export as PDF" imageMso="Export" onAction="Ribbon_OnExportPdf" keytip="ED" screentip="Export as PDF" supertip="Exports the selected range as a PDF document." />
+            <button id="BtnExportPng" label="Export as PNG" imageMso="FileSaveAs" onAction="Ribbon_OnAction" keytip="EP" screentip="Export as PNG" supertip="Exports the selected range as a PNG image." />
+            <button id="BtnExportPdf" label="Export as PDF" imageMso="Export" onAction="Ribbon_OnAction" keytip="ED" screentip="Export as PDF" supertip="Exports the selected range as a PDF document." />
           </menu>
         </group>
         <group id="GrpReports" label="Reports">
           <menu id="BtnReportGenerator" label="Report Generator" imageMso="TableProperties" size="large" keytip="RG" screentip="Report Generator" supertip="Generate structured Table of Contents.">
-            <button id="BtnTableOfContents" label="Table of Contents" imageMso="TableOfContentsDialog" onAction="Ribbon_OnTableOfContents" keytip="TC" screentip="Table of Contents" supertip="Creates a hyperlinked index sheet at the beginning of the workbook." />
+            <button id="BtnTableOfContents" label="Table of Contents" imageMso="TableOfContentsDialog" onAction="Ribbon_OnAction" keytip="TC" screentip="Table of Contents" supertip="Creates a hyperlinked index sheet at the beginning of the workbook." />
           </menu>
         </group>
         <group id="BeaverHelpGroup" label="Support">
-          <button id="BtnHelpCenter" label="Help Center" imageMso="Help" size="large" onAction="Ribbon_OnShowHelpCenter" keytip="H" screentip="Show Help Center" supertip="Opens the Beaver Help Center, listing all registered hotkeys, user-defined functions, and their descriptions." />
+          <button id="BtnHelpCenter" label="Help Center" imageMso="Help" size="large" onAction="Ribbon_OnAction" keytip="H" screentip="Show Help Center" supertip="Opens the Beaver Help Center, listing all registered hotkeys, user-defined functions, and their descriptions." />
         </group>
       </tab>
       <tab id="OfficeToolsTab" label="Office Tools" keytip="O">
         <group id="GrpHelloWorld" label="Hello World Group">
-          <button id="BtnHelloWorld" label="Hello World" imageMso="HappyFace" size="large" onAction="Ribbon_OnHelloWorld" keytip="HW" screentip="Say Hello World" supertip="Puts &apos;Hello world&apos; into the active cell (metadata test)." />
+          <button id="BtnHelloWorld" label="Hello World" imageMso="HappyFace" size="large" onAction="Ribbon_OnAction" keytip="HW" screentip="Say Hello World" supertip="Puts &apos;Hello world&apos; into the active cell (metadata test)." />
         </group>
       </tab>
     </tabs>

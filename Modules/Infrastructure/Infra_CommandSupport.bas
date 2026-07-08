@@ -747,6 +747,23 @@ Public Function ProcessRangeUnified( _
 
     If targetCells Is Nothing Then GoTo CleanExit
 
+    ' Pre-fetch and cache column formats for all columns in safeRange to avoid redundant queries in chunks
+    Dim colFormatCache As Object
+    Set colFormatCache = CreateObject("Scripting.Dictionary")
+    
+    Dim colIdx As Long
+    For colIdx = safeRange.Column To safeRange.Column + safeRange.Columns.Count - 1
+        Dim colFmt As Variant
+        On Error Resume Next
+        colFmt = safeRange.Worksheet.Columns(colIdx).NumberFormat
+        On Error GoTo 0
+        If IsNull(colFmt) Then
+            colFormatCache(colIdx) = "__MIXED__"
+        Else
+            colFormatCache(colIdx) = CStr(colFmt)
+        End If
+    Next colIdx
+
     Dim changeCount As Long
     
     ' Split into contiguous ranges and process in chunks
@@ -769,7 +786,7 @@ Public Function ProcessRangeUnified( _
                 changeCount = changeCount + 1
             End If
         Else
-            changeCount = changeCount + ProcessChunkArea(chunkRange, transformer)
+            changeCount = changeCount + ProcessChunkArea(chunkRange, transformer, colFormatCache)
         End If
         
         DoEvents
@@ -786,7 +803,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICellTransformer) As Long
+Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICellTransformer, ByVal colFormatCache As Object) As Long
     Dim vals As Variant
     Dim fmts As Variant
     vals = area.Value
@@ -816,20 +833,18 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
     Dim isModifyData As Boolean
     isModifyData = (TypeName(transformer) = "FeatCmd_ModifyData")
     
-    ' Pre-fetch column formats if the area has mixed formats to avoid cell-by-cell COM queries
+    ' Resolve column formats using the cached column formats passed from the parent range
     Dim colFormats() As String
     If isFmtsNull Then
         ReDim colFormats(colMin To colMax)
         Dim colIdx As Long
         For colIdx = colMin To colMax
-            Dim colFmt As Variant
-            On Error Resume Next
-            colFmt = area.Columns(colIdx).NumberFormat
-            On Error GoTo 0
-            If IsNull(colFmt) Then
-                colFormats(colIdx) = "__MIXED__"
+            Dim absCol As Long
+            absCol = area.Column + colIdx - colMin
+            If colFormatCache.Exists(absCol) Then
+                colFormats(colIdx) = colFormatCache(absCol)
             Else
-                colFormats(colIdx) = CStr(colFmt)
+                colFormats(colIdx) = "__MIXED__"
             End If
         Next colIdx
     End If

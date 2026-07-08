@@ -14,6 +14,10 @@ Private Const UNDO_META_ADDRESS_NAME As String = "BeaverUndoAddress"
 Private Const UNDO_META_ACTION_NAME As String = "BeaverUndoAction"
 Private Const UNDO_META_CAPTURE_MODE As String = "BeaverUndoCaptureMode"
 Private m_PendingUndoAction As String
+Private m_UseMemoryUndo As Boolean
+Private m_MemoryValues As Collection
+Private m_MemoryFormulas As Collection
+Private m_MemoryFormats As Collection
 
 ' Captures the state of a range and registers an Undo action.
 ' Call this BEFORE modifying the range.
@@ -81,6 +85,25 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String, Opt
     
     Dim targetWb As Workbook
     Set targetWb = Target.Worksheet.Parent
+    
+    m_UseMemoryUndo = False
+    If (actualCaptureMode = UndoCaptureFormulaOnly Or actualCaptureMode = UndoCaptureFormatOnly) And captureRange.Cells.CountLarge <= 20000 Then
+        m_UseMemoryUndo = True
+        Set m_MemoryValues = New Collection
+        Set m_MemoryFormulas = New Collection
+        Set m_MemoryFormats = New Collection
+        
+        For Each area In captureRange.Areas
+            m_MemoryValues.Add area.Value
+            m_MemoryFormulas.Add area.Formula2
+            m_MemoryFormats.Add area.NumberFormat
+        Next area
+        
+        StoreUndoMetadata Target.Worksheet.Parent.Name, Target.Worksheet.Name, captureRange.Address, ActionName, actualCaptureMode
+        m_PendingUndoAction = ActionName
+        SaveState = True
+        GoTo CleanExit
+    End If
     
     Dim undoSh As Worksheet
     Set undoSh = GetUndoSheet()
@@ -264,6 +287,10 @@ Public Sub ClearPendingUndo()
     On Error GoTo ErrHandler
     
     m_PendingUndoAction = ""
+    m_UseMemoryUndo = False
+    Set m_MemoryValues = Nothing
+    Set m_MemoryFormulas = Nothing
+    Set m_MemoryFormats = Nothing
 
 CleanExit:
     Exit Sub
@@ -305,6 +332,35 @@ Public Sub PerformUndo()
     
     Dim targetRange As Range
     Set targetRange = targetWs.Range(addr)
+    
+    If m_UseMemoryUndo And Not m_MemoryValues Is Nothing Then
+        Dim areaObj As Range
+        Dim areaIdx As Long
+        areaIdx = 1
+        For Each areaObj In targetRange.Areas
+            If capMode = UndoCaptureFormulaOnly Then
+                areaObj.Formula2 = m_MemoryFormulas(areaIdx)
+            ElseIf capMode = UndoCaptureFormatOnly Then
+                areaObj.NumberFormat = m_MemoryFormats(areaIdx)
+            Else
+                areaObj.Value = m_MemoryValues(areaIdx)
+                areaObj.NumberFormat = m_MemoryFormats(areaIdx)
+            End If
+            areaIdx = areaIdx + 1
+        Next areaObj
+        
+        Set m_MemoryValues = Nothing
+        Set m_MemoryFormulas = Nothing
+        Set m_MemoryFormats = Nothing
+        m_UseMemoryUndo = False
+        ClearUndoMetadata
+        Application.CutCopyMode = False
+        
+        On Error Resume Next
+        targetRange.Select
+        On Error GoTo ErrHandler
+        GoTo CleanExit
+    End If
     
     ' Restore data
     Dim area As Range

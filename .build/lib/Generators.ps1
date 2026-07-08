@@ -61,7 +61,7 @@ function Sync-FeatureManifest {
                     foreach ($subId in $feature.MenuItems) {
                         $subFeature = $enabledFeatures | Where-Object { $_.ControlId -eq $subId }
                         if ($null -ne $subFeature) {
-                            $menuItemsXml.Add(('            <button id="{0}" label="{1}" imageMso="{2}" onAction="{3}" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
+                            $menuItemsXml.Add(('            <button id="{0}" label="{1}" imageMso="{2}" onAction="Ribbon_OnAction" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
                                 $subFeature.ControlId,
                                 [System.Security.SecurityElement]::Escape($subFeature.Label),
                                 [System.Security.SecurityElement]::Escape($subFeature.Icon),
@@ -80,7 +80,7 @@ function Sync-FeatureManifest {
                         [System.Security.SecurityElement]::Escape($feature.Supertip),
                         ($menuItemsXml -join "`r`n")
                 } else {
-                    '          <button id="{0}" label="{1}" imageMso="{2}" size="large" onAction="{3}" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
+                    '          <button id="{0}" label="{1}" imageMso="{2}" size="large" onAction="Ribbon_OnAction" keytip="{4}" screentip="{5}" supertip="{6}" />' -f `
                         $feature.ControlId,
                         [System.Security.SecurityElement]::Escape($feature.Label),
                         [System.Security.SecurityElement]::Escape($feature.Icon),
@@ -223,6 +223,9 @@ function Sync-CommandRegistry {
         $hasCommandName = $feature.PSObject.Properties.Name -contains "CommandName"
         if ($hasMacro -and $hasCommandName -and -not [string]::IsNullOrWhiteSpace($feature.Macro) -and -not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
             $entryMap[$feature.Macro.Trim().ToUpperInvariant()] = $feature.CommandName.Trim()
+        }
+        if ($null -ne $feature.ControlId -and $hasCommandName -and -not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
+            $entryMap[$feature.ControlId.Trim().ToUpperInvariant()] = $feature.CommandName.Trim()
         }
         if ($hasCommandName -and -not [string]::IsNullOrWhiteSpace($feature.CommandName)) {
             $commandName = $feature.CommandName.Trim()
@@ -419,30 +422,19 @@ function Sync-UiRibbonModule {
         'End Sub'
     )
 
-    foreach ($feature in @($manifest.Features)) {
-        $hasOnAction = $feature.PSObject.Properties.Name -contains "OnAction"
-        $hasMacro = $feature.PSObject.Properties.Name -contains "Macro"
-        if (-not $hasOnAction -or -not $hasMacro -or [string]::IsNullOrWhiteSpace($feature.OnAction) -or [string]::IsNullOrWhiteSpace($feature.Macro)) {
-            continue
-        }
-
-        $procedureName = $feature.OnAction.Trim()
-        $entryMacro = $feature.Macro.Trim()
-
-        $lines += ''
-        $lines += ('Public Sub {0}(ByVal control As Object)' -f $procedureName)
-        $lines += ('    Dim tracker As Object: Set tracker = Infra_Error.Track("{0}")' -f $procedureName)
-        $lines += '    On Error GoTo ErrHandler'
-        $lines += ''
-        $lines += ('    AppContainer.ExecuteEntryPoint "{0}", "{1}", "Ribbon"' -f $entryMacro.Replace('"', '""'), $procedureName.Replace('"', '""'))
-        $lines += ''
-        $lines += 'CleanExit:'
-        $lines += '    Exit Sub'
-        $lines += 'ErrHandler:'
-        $lines += ('    Infra_Error.HandleError "{0}", Err' -f $procedureName)
-        $lines += '    Resume CleanExit'
-        $lines += 'End Sub'
-    }
+    $lines += ''
+    $lines += 'Public Sub Ribbon_OnAction(ByVal control As Object)'
+    $lines += '    Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnAction")'
+    $lines += '    On Error GoTo ErrHandler'
+    $lines += ''
+    $lines += '    AppContainer.ExecuteEntryPoint control.Id, control.Id, "Ribbon"'
+    $lines += ''
+    $lines += 'CleanExit:'
+    $lines += '    Exit Sub'
+    $lines += 'ErrHandler:'
+    $lines += '    Infra_Error.HandleError "Ribbon_OnAction", Err'
+    $lines += '    Resume CleanExit'
+    $lines += 'End Sub'
 
     $null = Write-FileIfChanged -Path $OutputPath -Content ($lines -join "`r`n")
     Write-Host "  Ribbon entry module generated." -ForegroundColor Green

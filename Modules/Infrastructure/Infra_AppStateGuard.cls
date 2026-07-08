@@ -17,6 +17,8 @@ Private m_OriginalScreenUpdating As Boolean
 Private m_OriginalEnableEvents As Boolean
 Private m_OriginalDisplayAlerts As Boolean
 Private m_OriginalCalculation As XlCalculation
+Private m_OriginalDisplayPageBreaks As Boolean
+Private m_ActiveSheetRef As Worksheet
 
 Private m_ScreenUpdating As Boolean
 Private m_EnableEvents As Boolean
@@ -34,6 +36,17 @@ Private Sub Class_Initialize()
         m_OriginalDisplayAlerts = .DisplayAlerts
         m_OriginalCalculation = .Calculation
     End With
+    
+    ' Capture DisplayPageBreaks on ActiveSheet if valid
+    On Error Resume Next
+    If Not ActiveSheet Is Nothing Then
+        If TypeName(ActiveSheet) = "Worksheet" Then
+            Set m_ActiveSheetRef = ActiveSheet
+            m_OriginalDisplayPageBreaks = m_ActiveSheetRef.DisplayPageBreaks
+            m_ActiveSheetRef.DisplayPageBreaks = False
+        End If
+    End If
+    On Error GoTo ErrHandler
     
     ' Default to "Silent Mode" (Everything disabled/manual)
     m_ScreenUpdating = False
@@ -63,6 +76,11 @@ End Sub
 
 Private Sub Class_Terminate()
     On Error Resume Next
+    
+    ' Restore ActiveSheet DisplayPageBreaks
+    If Not m_ActiveSheetRef Is Nothing Then
+        m_ActiveSheetRef.DisplayPageBreaks = m_OriginalDisplayPageBreaks
+    End If
     
     ' Clear active guard registration
     Infra_AppState.GuardNestingLevel = Infra_AppState.GuardNestingLevel - 1
