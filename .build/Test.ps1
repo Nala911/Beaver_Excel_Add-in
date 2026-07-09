@@ -485,7 +485,7 @@ try {
                         Get-Content $vbaLogPath | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
                         Write-Host "  ----------------------------------`n" -ForegroundColor Yellow
                     }
-                    throw "Unit tests failed: $($_.Exception.Message)"
+                    throw "Unit tests failed: $_"
                 } finally {
                     $unitTestStopwatch.Stop()
                 }

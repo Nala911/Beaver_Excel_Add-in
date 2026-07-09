@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "Test_UI"
+Attribute VB_Name = "Test_UI"
 Option Explicit
 
 ' @Module: Test_UI
@@ -185,6 +185,10 @@ Public Sub Test_CommandResolution_NewMenus()
     Set cmdHighlight = AppContainer.ResolveCommand("HighlightHardcodedValues")
     Test_Runner.AssertEqual Not cmdHighlight Is Nothing, True, "HighlightHardcodedValues should resolve"
     Test_Runner.AssertEqual TypeName(cmdHighlight), "FeatCmd_HighlightData", "HighlightHardcodedValues should resolve to FeatCmd_HighlightData"
+
+    Set cmdHighlight = AppContainer.ResolveCommand("HighlightFinancialModelling")
+    Test_Runner.AssertEqual Not cmdHighlight Is Nothing, True, "HighlightFinancialModelling should resolve"
+    Test_Runner.AssertEqual TypeName(cmdHighlight), "FeatCmd_FinancialModelling", "HighlightFinancialModelling should resolve to FeatCmd_FinancialModelling"
 
     ' 3. Test Export sub-commands
     Dim cmdExport As ICommand

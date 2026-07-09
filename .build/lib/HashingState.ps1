@@ -519,3 +519,75 @@ function Get-FeatureManifest {
     $global:BeaverFeatureManifestCache = Get-Content $ManifestPath -Raw | ConvertFrom-Json
     return $global:BeaverFeatureManifestCache
 }
+
+function Get-ProjectChanges {
+    param(
+        [switch]$Force
+    )
+
+    $projectRootVar = Get-Variable -Name "projectRoot" -ErrorAction SilentlyContinue
+    $resolvedProjectRoot = if ($null -ne $projectRootVar) { $projectRootVar.Value } else { Split-Path (Split-Path $PSScriptRoot -Parent) -Parent }
+
+    $featureManifestPathVar = Get-Variable -Name "featureManifestPath" -ErrorAction SilentlyContinue
+    $resolvedFeatureManifestPath = if ($null -ne $featureManifestPathVar) { $featureManifestPathVar.Value } else { Join-Path $resolvedProjectRoot "features.json" }
+
+    $currentHashes = Get-SourceFileHashes -Force:$Force
+    $buildState = Get-BuildState
+    
+    $manifestChanged = $true
+    $manifestStructureChanged = $true
+    $changedFiles = @()
+    $deletedFiles = @()
+    
+    if ($null -ne $buildState -and $null -ne $buildState.Files) {
+        $featProp = $buildState.Files.PSObject.Properties["features.json"]
+        $manifestChanged = ($null -eq $featProp -or $featProp.Value -ne $currentHashes["features.json"])
+        
+        foreach ($key in $currentHashes.Keys) {
+            $prop = $buildState.Files.PSObject.Properties[$key]
+            if ($null -eq $prop -or $prop.Value -ne $currentHashes[$key]) {
+                $changedFiles += $key
+            }
+        }
+        foreach ($prop in $buildState.Files.PSObject.Properties) {
+            $key = $prop.Name
+            if (-not $currentHashes.ContainsKey($key)) {
+                $deletedFiles += $key
+            }
+        }
+        
+        # Merge previously failed files to force their rebuild/re-import
+        if ($buildState.PSObject.Properties.Name -contains "FailedFiles" -and $null -ne $buildState.FailedFiles) {
+            foreach ($file in $buildState.FailedFiles) {
+                if ($changedFiles -notcontains $file) {
+                    $changedFiles += $file
+                }
+            }
+        }
+        
+        $manifestStructureChanged = $false
+        if ($manifestChanged) {
+            $newStructuralHash = Get-ManifestStructuralHash -Path $resolvedFeatureManifestPath
+            $oldStructuralHash = $null
+            if ($buildState.PSObject.Properties.Name.Contains("ManifestStructuralHash")) {
+                $oldStructuralHash = $buildState.ManifestStructuralHash
+            }
+            if ($newStructuralHash -ne $oldStructuralHash) {
+                $manifestStructureChanged = $true
+            }
+        }
+    } else {
+        $changedFiles = @($currentHashes.Keys)
+    }
+    
+    $hasAnyChanges = ($changedFiles.Count -gt 0 -or $deletedFiles.Count -gt 0)
+    
+    return [pscustomobject]@{
+        ChangedFiles = $changedFiles
+        DeletedFiles = $deletedFiles
+        ManifestChanged = $manifestChanged
+        ManifestStructureChanged = $manifestStructureChanged
+        HasAnyChanges = $hasAnyChanges
+    }
+}
+

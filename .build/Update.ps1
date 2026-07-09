@@ -56,63 +56,21 @@ try {
         exit $LASTEXITCODE
     }
 
-    # Check if manifest changed to decide if we validate the Ribbon
-    $currentHashes = Get-SourceFileHashes
+    # Check project changes using centralized helper
+    $projectChanges = Get-ProjectChanges -Force:$Force
+    $changedFiles = $projectChanges.ChangedFiles
+    $deletedFiles = $projectChanges.DeletedFiles
+    $manifestChanged = $projectChanges.ManifestChanged
+    $manifestStructureChanged = $projectChanges.ManifestStructureChanged
+    $hasAnyChanges = $projectChanges.HasAnyChanges
+
     $buildState = Get-BuildState
-    $manifestChanged = $true
-    $manifestStructureChanged = $true
     $skipUnitTests = $false
     $testsPassed = $false
     $autoFilter = $null
-    $changedFiles = @()
-    $deletedFiles = @()
 
-    if ($null -ne $buildState -and $null -ne $buildState.Files) {
-        $featProp = $buildState.Files.PSObject.Properties["features.json"]
-        $manifestChanged = ($null -eq $featProp -or $featProp.Value -ne $currentHashes["features.json"])
-        
-        # Calculate changes early
-        foreach ($key in $currentHashes.Keys) {
-            $prop = $buildState.Files.PSObject.Properties[$key]
-            if ($null -eq $prop -or $prop.Value -ne $currentHashes[$key]) {
-                $changedFiles += $key
-            }
-        }
-        foreach ($prop in $buildState.Files.PSObject.Properties) {
-            $key = $prop.Name
-            if (-not $currentHashes.ContainsKey($key)) {
-                $deletedFiles += $key
-            }
-        }
-        
-        # Merge previously failed files to force their rebuild/re-import
-        if ($buildState.PSObject.Properties.Name -contains "FailedFiles" -and $null -ne $buildState.FailedFiles) {
-            foreach ($file in $buildState.FailedFiles) {
-                if ($changedFiles -notcontains $file) {
-                    $changedFiles += $file
-                }
-            }
-        }
-
-        # Check if we can skip the entire build/test pipeline
-        $hasAnyChanges = (@($changedFiles).Count -gt 0 -or @($deletedFiles).Count -gt 0)
-        $testsPassed = $false
-        if ($buildState.PSObject.Properties.Name.Contains("TestsPassed") -and $buildState.TestsPassed -eq $true) {
-            $testsPassed = $true
-        }
-
-        # Calculate structural manifest changes
-        $manifestStructureChanged = $false
-        if ($manifestChanged) {
-            $newStructuralHash = Get-ManifestStructuralHash -Path $featureManifestPath
-            $oldStructuralHash = $null
-            if ($buildState.PSObject.Properties.Name.Contains("ManifestStructuralHash")) {
-                $oldStructuralHash = $buildState.ManifestStructuralHash
-            }
-            if ($newStructuralHash -ne $oldStructuralHash) {
-                $manifestStructureChanged = $true
-            }
-        }
+    if ($null -ne $buildState) {
+        $testsPassed = ($buildState.PSObject.Properties.Name.Contains("TestsPassed") -and $buildState.TestsPassed -eq $true)
 
         # Calculate if there are any VBA code changes on disk
         $hasVbaChanges = $false
@@ -158,8 +116,6 @@ try {
                 }
             }
         }
-    } else {
-        $changedFiles = @($currentHashes.Keys)
     }
 
     Record-BuildChanges -ManifestChanged $manifestChanged -ManifestStructureChanged $manifestStructureChanged -ChangedFiles $changedFiles -DeletedFiles $deletedFiles -Force $Force

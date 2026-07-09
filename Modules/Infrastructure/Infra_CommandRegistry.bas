@@ -60,6 +60,10 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "HighlightConditionalFormatting"
         Case "BTNHIGHLIGHTCONDITIONALFORMATTING"
             ResolveCommandName = "HighlightConditionalFormatting"
+        Case "UI_RIBBON.RIBBON_ONHIGHLIGHTFINANCIALMODELLING"
+            ResolveCommandName = "HighlightFinancialModelling"
+        Case "BTNHIGHLIGHTFINANCIALMODELLING"
+            ResolveCommandName = "HighlightFinancialModelling"
         Case "UI_RIBBON.RIBBON_ONCLEARHIGHLIGHTS"
             ResolveCommandName = "ClearHighlights"
         Case "BTNCLEARHIGHLIGHTS"
@@ -161,6 +165,8 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
             Set CreateCommand = New FeatCmd_HighlightData
         Case "HIGHLIGHTCONDITIONALFORMATTING"
             Set CreateCommand = New FeatCmd_HighlightData
+        Case "HIGHLIGHTFINANCIALMODELLING"
+            Set CreateCommand = New FeatCmd_FinancialModelling
         Case "CLEARHIGHLIGHTS"
             Set CreateCommand = New FeatCmd_HighlightData
         Case "BREAKEXTERNALLINKS"

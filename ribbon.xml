@@ -28,6 +28,7 @@
             <button id="BtnHighlightHardcodedValues" label="Hardcoded Values" imageMso="FunctionWizard" onAction="Ribbon_OnAction" keytip="HH" screentip="Hardcoded Values" supertip="Highlights formulas containing hardcoded values in lavender." />
             <button id="BtnHighlightDataValidations" label="Data Validations" imageMso="TableProperties" onAction="Ribbon_OnAction" keytip="HV" screentip="Data Validations" supertip="Highlights cells with data validation rules in soft green." />
             <button id="BtnHighlightConditionalFormatting" label="Conditional Formatting" imageMso="ConditionalFormattingMenu" onAction="Ribbon_OnAction" keytip="HC" screentip="Conditional Formatting" supertip="Highlights cells with conditional formatting in soft blue." />
+            <button id="BtnHighlightFinancialModelling" label="Financial Modelling" imageMso="FontColorCycle" onAction="Ribbon_OnAction" keytip="HF" screentip="Financial Modelling" supertip="Formats cells using the standard financial model coloring scheme." />
             <button id="BtnClearHighlights" label="Clear Highlights" imageMso="Clear" onAction="Ribbon_OnAction" keytip="CH" screentip="Clear Highlights" supertip="Clears all cells in the workbook matching the highlight color." />
           </menu>
           <button id="BtnBreakLinks" label="Break Links" imageMso="WorkbookLinks" size="large" onAction="Ribbon_OnAction" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />

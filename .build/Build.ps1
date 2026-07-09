@@ -41,45 +41,12 @@ $excelWasAlreadyOpen = $false
 
 try {
     # --- Change Detection ---
-    $currentHashes = Get-SourceFileHashes
-    $buildState = Get-BuildState
-    $manifestChanged = $true
-    $changedFiles = @()
-    $deletedFiles = @()
-
-    if ($null -ne $buildState -and $null -ne $buildState.Files) {
-        $featProp = $buildState.Files.PSObject.Properties["features.json"]
-        $manifestChanged = ($null -eq $featProp -or $featProp.Value -ne $currentHashes["features.json"])
-        
-        foreach ($key in $currentHashes.Keys) {
-            $prop = $buildState.Files.PSObject.Properties[$key]
-            if ($null -eq $prop -or $prop.Value -ne $currentHashes[$key]) {
-                $changedFiles += $key
-            }
-        }
-        
-        foreach ($prop in $buildState.Files.PSObject.Properties) {
-            $key = $prop.Name
-            if (-not $currentHashes.ContainsKey($key)) {
-                $deletedFiles += $key
-            }
-        }
-        
-        # Merge previously failed files to force their rebuild/re-import
-        if ($buildState.PSObject.Properties.Name -contains "FailedFiles" -and $null -ne $buildState.FailedFiles) {
-            foreach ($file in $buildState.FailedFiles) {
-                if ($changedFiles -notcontains $file) {
-                    $changedFiles += $file
-                }
-            }
-        }
-    } else {
-        foreach ($key in $currentHashes.Keys) {
-            $changedFiles += $key
-        }
-    }
-
-    $hasAnyChanges = ($changedFiles.Count -gt 0 -or $deletedFiles.Count -gt 0)
+    $projectChanges = Get-ProjectChanges -Force:$Force
+    $changedFiles = $projectChanges.ChangedFiles
+    $deletedFiles = $projectChanges.DeletedFiles
+    $manifestChanged = $projectChanges.ManifestChanged
+    $manifestStructureChanged = $projectChanges.ManifestStructureChanged
+    $hasAnyChanges = $projectChanges.HasAnyChanges
 
     if (-not $hasAnyChanges -and (Test-Path $excelPath) -and -not $Force) {
         Write-Host "No changes detected. Build skipped." -ForegroundColor Green
@@ -90,18 +57,8 @@ try {
         exit 0
     }
 
-    $manifestStructureChanged = $false
-    if ($manifestChanged) {
-        $newStructuralHash = Get-ManifestStructuralHash -Path $featureManifestPath
-        $oldStructuralHash = $null
-        if ($null -ne $buildState -and $buildState.PSObject.Properties.Name.Contains("ManifestStructuralHash")) {
-            $oldStructuralHash = $buildState.ManifestStructuralHash
-        }
-        if ($newStructuralHash -ne $oldStructuralHash) {
-            $manifestStructureChanged = $true
-        } else {
-            Write-Host "  Manifest changed but structure is identical (metadata-only update)." -ForegroundColor Yellow
-        }
+    if ($manifestChanged -and -not $manifestStructureChanged) {
+        Write-Host "  Manifest changed but structure is identical (metadata-only update)." -ForegroundColor Yellow
     }
 
     Record-BuildChanges -ManifestChanged $manifestChanged -ManifestStructureChanged $manifestStructureChanged -ChangedFiles $changedFiles -DeletedFiles $deletedFiles -Force $Force
@@ -248,96 +205,98 @@ try {
             throw "Excel file not found: $excelPath"
         }
 
-        if ($forceFullBuild -or $manifestChanged) {
-            # 1. Check if the file is actually locked
-            if (-not (Test-FileLocked -Path $excelPath)) {
-                # If not locked but a lock file exists, it's orphaned. We can safely remove it.
-                $lockFile = Join-Path $projectRoot ("~$" + (Split-Path $excelPath -Leaf))
-                if (Test-Path $lockFile) {
-                    Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
-                }
-                return "workbook available"
+        # 1. Check if the file is actually locked (Fast check, no COM overhead)
+        if (-not (Test-FileLocked -Path $excelPath)) {
+            # If not locked but a lock file exists, it's orphaned. We can safely remove it.
+            $lockFile = Join-Path $projectRoot ("~$" + (Split-Path $excelPath -Leaf))
+            if (Test-Path $lockFile) {
+                Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
             }
+            return "workbook available"
+        }
 
-            Write-Host "Excel workbook is locked. Attempting to close it..." -ForegroundColor Yellow
-            $closedGracefully = $false
-            
-            try {
-                $activeWbInfo = Get-ActiveExcelWorkbook -WorkbookPath $excelPath
-                if ($null -ne $activeWbInfo) {
-                    $activeExcel = $activeWbInfo.Excel
-                    $wbFound = $activeWbInfo.Workbook
-                    
-                    $activeExcel.DisplayAlerts = $false
-                    
-                    $otherVisibleWorkbooks = 0
-                    foreach ($otherWb in $activeExcel.Workbooks) {
-                        if ($otherWb.FullName -ne $excelPath) {
-                            $hasVisibleWindow = $false
-                            try {
-                                foreach ($win in $otherWb.Windows) {
-                                    if ($win.Visible) {
-                                        $hasVisibleWindow = $true
-                                        break
-                                    }
+        Write-Host "Excel workbook is locked. Attempting to close it..." -ForegroundColor Yellow
+        $closedGracefully = $false
+        
+        try {
+            $activeWbInfo = Get-ActiveExcelWorkbook -WorkbookPath $excelPath
+            if ($null -ne $activeWbInfo) {
+                $activeExcel = $activeWbInfo.Excel
+                $wbFound = $activeWbInfo.Workbook
+                
+                $activeExcel.DisplayAlerts = $false
+                
+                $otherVisibleWorkbooks = 0
+                foreach ($otherWb in $activeExcel.Workbooks) {
+                    if ($otherWb.FullName -ne $excelPath) {
+                        $hasVisibleWindow = $false
+                        try {
+                            foreach ($win in $otherWb.Windows) {
+                                if ($win.Visible) {
+                                    $hasVisibleWindow = $true
+                                    break
                                 }
-                            } catch {
-                                $hasVisibleWindow = $true
                             }
-                            if ($hasVisibleWindow) {
-                                $otherVisibleWorkbooks++
-                            }
+                        } catch {
+                            $hasVisibleWindow = $true
+                        }
+                        if ($hasVisibleWindow) {
+                            $otherVisibleWorkbooks++
                         }
                     }
-
-                    $wbFound.Close($true)
-                    Write-Host "  Closed $($wbFound.Name) successfully." -ForegroundColor Green
-                    $closedGracefully = $true
-
-                    if ($otherVisibleWorkbooks -eq 0) {
-                        Write-Host "  No other visible workbooks open. Closing Excel application..." -ForegroundColor Green
-                        $activeExcel.Quit()
-                    }
-                    
-                    Release-ComObjectSafely $wbFound
-                    Release-ComObjectSafely $activeExcel
-                }
-            } catch {
-                Write-Warning "Graceful close via COM failed: $($_.Exception.Message)"
-            }
-
-            # 3. If still locked, handle termination safety
-            if (Test-FileLocked -Path $excelPath) {
-                # Check for visible Excel windows
-                $excelProcesses = @(Get-Process -Name "EXCEL" -ErrorAction SilentlyContinue)
-                $visibleExcel = @(
-                    $excelProcesses | Where-Object {
-                        $_.MainWindowHandle -ne 0 -or -not [string]::IsNullOrWhiteSpace($_.MainWindowTitle)
-                    }
-                )
-
-                if ($visibleExcel.Count -gt 0) {
-                    throw "The workbook '$excelPath' is open and locked in a visible Excel window. Please save your work, close Excel, and rerun the script."
                 }
 
-                if ($excelProcesses.Count -gt 0) {
-                    Write-Host "  Found background Excel process(es) holding the lock. Cleaning up..." -ForegroundColor Yellow
-                    foreach ($process in $excelProcesses) {
-                        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-                    }
-                    Start-Sleep -Seconds 2
+                $wbFound.Close($true)
+                Write-Host "  Closed $($wbFound.Name) successfully." -ForegroundColor Green
+                $closedGracefully = $true
+
+                if ($otherVisibleWorkbooks -eq 0) {
+                    Write-Host "  No other visible workbooks open. Closing Excel application..." -ForegroundColor Green
+                    $activeExcel.Quit()
                 }
+                
+                Release-ComObjectSafely $wbFound
+                Release-ComObjectSafely $activeExcel
             }
-
-            # Final verify
-            if (Test-FileLocked -Path $excelPath) {
-                throw "Excel file is still open and locked. Please close it manually and retry."
-            }
-
-            return "lock cleared"
-        } else {
-            return "skipped (in-place reload active)"
+        } catch {
+            Write-Warning "Graceful close via COM failed: $($_.Exception.Message)"
         }
+
+        # 3. If still locked, handle termination safety
+        if (Test-FileLocked -Path $excelPath) {
+            # Check for visible Excel windows
+            $excelProcesses = @(Get-Process -Name "EXCEL" -ErrorAction SilentlyContinue)
+            $visibleExcel = @(
+                $excelProcesses | Where-Object {
+                    $_.MainWindowHandle -ne 0 -or -not [string]::IsNullOrWhiteSpace($_.MainWindowTitle)
+                }
+            )
+
+            if ($visibleExcel.Count -gt 0) {
+                Write-Host "  Visible Excel process(es) holding the lock. Force closing..." -ForegroundColor Yellow
+                foreach ($process in $visibleExcel) {
+                    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                }
+                Start-Sleep -Seconds 2
+            }
+
+            # Refresh processes list
+            $excelProcesses = @(Get-Process -Name "EXCEL" -ErrorAction SilentlyContinue)
+            if ($excelProcesses.Count -gt 0) {
+                Write-Host "  Found background Excel process(es) holding the lock. Cleaning up..." -ForegroundColor Yellow
+                foreach ($process in $excelProcesses) {
+                    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                }
+                Start-Sleep -Seconds 2
+            }
+        }
+
+        # Final verify
+        if (Test-FileLocked -Path $excelPath) {
+            throw "Excel file is still open and locked. Please close it manually and retry."
+        }
+
+        return "lock cleared"
     } | Out-Null
 
     # --- workbook_update ---
@@ -531,11 +490,20 @@ try {
                             }
 
                             # Polling loop: Wait for compilation to complete (up to 1.5 seconds)
+                            # Fast-fail if any compiler warning/error popups are detected by the window watcher
                             $waitLimit = 30
                             $waitCount = 0
                             while ($btn.Enabled -and $waitCount -lt $waitLimit) {
                                 Start-Sleep -Milliseconds 50
                                 $waitCount++
+                                
+                                if ($excelPid -gt 0) {
+                                    $scrapedText = ([WindowScraper]).GetField("_scrapedText", [System.Reflection.BindingFlags]::Static -bor [System.Reflection.BindingFlags]::NonPublic).GetValue($null)
+                                    if (-not [string]::IsNullOrEmpty($scrapedText)) {
+                                        Write-Host "  Compilation error dialog detected. Aborting compile polling loop." -ForegroundColor Red
+                                        break
+                                    }
+                                }
                             }
 
                             if ($btn.Enabled) {

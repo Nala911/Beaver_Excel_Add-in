@@ -35,15 +35,19 @@ function Invoke-VbaLint {
         if (Test-Path $thisWorkbook) { $vbaFiles += Get-Item $thisWorkbook }
     }
 
-    $allPassed = $true
-    foreach ($file in $vbaFiles) {
+    # Define the lint worker block as a string literal (to enable marshalling across runspaces)
+    $lintBlockText = @'
+        param (
+            [object]$file,
+            [string]$projectRoot,
+            [object]$buildState,
+            [bool]$autoFix
+        )
+
         $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
-        if ($null -ne $global:BeaverBuildLog) {
-            if ($global:BeaverBuildLog.lintResults.checkedFiles -notcontains $relPath) {
-                [void]$global:BeaverBuildLog.lintResults.checkedFiles.Add($relPath)
-            }
-        }
+        $fileName = $file.Name
         
+        # Check cache
         $cachedPassed = $false
         if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
             $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
@@ -54,17 +58,17 @@ function Invoke-VbaLint {
         }
         
         if ($cachedPassed) {
-            $global:BeaverLintStatusCache[$relPath] = $true
-            continue
+            return [pscustomobject]@{
+                RelPath = $relPath
+                Cached = $true
+                Passed = $true
+                Errors = @()
+                Warnings = @()
+                RawLines = $null
+            }
         }
         
-        if (-not $global:BeaverLintStatusCache.ContainsKey($relPath)) {
-            $global:BeaverLintStatusCache[$relPath] = $true
-        }
-
         $rawLines = [System.IO.File]::ReadAllLines($file.FullName)
-        $global:BeaverFileContentCache[$file.FullName] = $rawLines
-        $fileName = $file.Name
         
         # Check Option Explicit and @Module header on raw content
         $contentStr = $rawLines -join "`r`n"
@@ -72,8 +76,7 @@ function Invoke-VbaLint {
         $missingModuleHeader = ($fileName -ne "Test_Manifest.bas" -and $contentStr -notmatch "' @Module:")
 
         if ($missingOptionExplicit -or $missingModuleHeader) {
-            if ($AutoFix) {
-                Write-Host "  [$fileName] Auto-Fixing missing headers..." -ForegroundColor Yellow
+            if ($autoFix) {
                 $newLines = [System.Collections.Generic.List[string]]::new($rawLines)
                 
                 # Find last attribute line index
@@ -107,8 +110,6 @@ function Invoke-VbaLint {
                 [System.IO.File]::WriteAllLines($file.FullName, $newLines)
                 $rawLines = $newLines.ToArray()
                 $contentStr = $rawLines -join "`r`n"
-                $global:BeaverFileContentCache[$file.FullName] = $rawLines
-                Write-Host "  [$fileName] Auto-Fix complete." -ForegroundColor Green
                 
                 # Reset flags
                 $missingOptionExplicit = $false
@@ -116,18 +117,28 @@ function Invoke-VbaLint {
             }
         }
 
+        $errors = New-Object System.Collections.ArrayList
+        $warnings = New-Object System.Collections.ArrayList
+        $allPassed = $true
+
         if ($missingOptionExplicit) {
-            Write-Host "  [$fileName] Error: Missing 'Option Explicit' at the top of the file." -ForegroundColor Red
-            Add-LintError -File $fileName -Type "enhanced" -Message "Missing 'Option Explicit' at the top of the file." -Line 1
+            [void]$errors.Add([ordered]@{
+                file = $fileName
+                type = "enhanced"
+                message = "Missing 'Option Explicit' at the top of the file."
+                line = 1
+            })
             $allPassed = $false
-            $global:BeaverLintStatusCache[$relPath] = $false
         }
 
         if ($missingModuleHeader) {
-            Write-Host "  [$fileName] Error: Missing '@Module' metadata header." -ForegroundColor Red
-            Add-LintError -File $fileName -Type "enhanced" -Message "Missing '@Module' metadata header." -Line 1
+            [void]$errors.Add([ordered]@{
+                file = $fileName
+                type = "enhanced"
+                message = "Missing '@Module' metadata header."
+                line = 1
+            })
             $allPassed = $false
-            $global:BeaverLintStatusCache[$relPath] = $false
         }
 
         $generatedFiles = @(
@@ -139,7 +150,7 @@ function Invoke-VbaLint {
             "Infra_CommandRegistry.bas"
         )
         if ($generatedFiles -contains $fileName) {
-            Write-Host "  [$fileName] Warning: This file is auto-generated and managed by BeaverAddin Agent. Manual changes will be overwritten on build." -ForegroundColor Yellow
+            [void]$warnings.Add("Warning: This file is auto-generated and managed by BeaverAddin Agent. Manual changes will be overwritten on build.")
         }
 
         # Normalize line continuations
@@ -192,10 +203,13 @@ function Invoke-VbaLint {
                     if ($ifStack.Count -gt 0) {
                         $ifStack.RemoveAt($ifStack.Count - 1)
                     } else {
-                        Write-Host "  [$fileName] Syntax Error: Unexpected 'End If' at line $lineNum (No matching start found)." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected 'End If' (No matching start found)" -Line $lineNum
+                        [void]$errors.Add([ordered]@{
+                            file = $fileName
+                            type = "syntax"
+                            message = "Unexpected 'End If' (No matching start found)"
+                            line = $lineNum
+                        })
                         $allPassed = $false
-                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                 }
             }
@@ -207,10 +221,13 @@ function Invoke-VbaLint {
                     if ($subStack.Count -gt 0) {
                         $subStack.RemoveAt($subStack.Count - 1)
                     } else {
-                        Write-Host "  [$fileName] Syntax Error: Unexpected 'End Sub' at line $lineNum (No matching start found)." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected 'End Sub' (No matching start found)" -Line $lineNum
+                        [void]$errors.Add([ordered]@{
+                            file = $fileName
+                            type = "syntax"
+                            message = "Unexpected 'End Sub' (No matching start found)"
+                            line = $lineNum
+                        })
                         $allPassed = $false
-                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                 }
             }
@@ -222,10 +239,13 @@ function Invoke-VbaLint {
                     if ($funcStack.Count -gt 0) {
                         $funcStack.RemoveAt($funcStack.Count - 1)
                     } else {
-                        Write-Host "  [$fileName] Syntax Error: Unexpected 'End Function' at line $lineNum (No matching start found)." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected 'End Function' (No matching start found)" -Line $lineNum
+                        [void]$errors.Add([ordered]@{
+                            file = $fileName
+                            type = "syntax"
+                            message = "Unexpected 'End Function' (No matching start found)"
+                            line = $lineNum
+                        })
                         $allPassed = $false
-                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                 }
             }
@@ -237,10 +257,13 @@ function Invoke-VbaLint {
                     if ($propStack.Count -gt 0) {
                         $propStack.RemoveAt($propStack.Count - 1)
                     } else {
-                        Write-Host "  [$fileName] Syntax Error: Unexpected 'End Property' at line $lineNum (No matching start found)." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "syntax" -Message "Unexpected 'End Property' (No matching start found)" -Line $lineNum
+                        [void]$errors.Add([ordered]@{
+                            file = $fileName
+                            type = "syntax"
+                            message = "Unexpected 'End Property' (No matching start found)"
+                            line = $lineNum
+                        })
                         $allPassed = $false
-                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                 }
             }
@@ -248,10 +271,13 @@ function Invoke-VbaLint {
             # --- Rule A: Enforce Spill-Safe Formula Properties ---
             if ($line.IndexOf("Formula", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
                 if ($fileName -ne "Lib_JsonConverter.bas" -and $line -match '\.\bFormula\b' -and $line -notmatch '".*\.Formula.*"' -and $line -notmatch '^\s*\''' -and $line -notmatch '\.Formula2' -and $line -notmatch '\.FormulaArray') {
-                    Write-Host "  [$fileName] Error: Range.Formula usage detected at line $lineNum. Use Range.Formula2 instead to prevent spill errors." -ForegroundColor Red
-                    Add-LintError -File $fileName -Type "enhanced" -Message "Range.Formula usage detected. Use Range.Formula2 instead to prevent spill errors." -Line $lineNum
+                    [void]$errors.Add([ordered]@{
+                        file = $fileName
+                        type = "enhanced"
+                        message = "Range.Formula usage detected. Use Range.Formula2 instead to prevent spill errors."
+                        line = $lineNum
+                    })
                     $allPassed = $false
-                    $global:BeaverLintStatusCache[$relPath] = $false
                 }
             }
 
@@ -260,10 +286,13 @@ function Invoke-VbaLint {
                 $line.IndexOf("Name", [System.StringComparison]::Ordinal) -ge 0 -or 
                 $line.IndexOf("Size", [System.StringComparison]::Ordinal) -ge 0) {
                 if ($line -match '\b(CStr|CInt|CLng|CDbl|CSng|CBool|CDate|CVar)\s*\(\s*(?!(?:cell\b|\w+\.Cells\b|\w+Cells\b))[a-zA-Z0-9_\.]+\.(?:NumberFormat|Font\.(?:Name|Size))\s*\)' -and $line -notmatch '^\s*''') {
-                    Write-Host "  [$fileName] Error: Direct string/value conversion on range property without IsNull check at line $lineNum. Mixed ranges return Null, causing Error 94." -ForegroundColor Red
-                    Add-LintError -File $fileName -Type "enhanced" -Message "Direct string/value conversion on range property without IsNull check. Mixed ranges return Null, causing Error 94." -Line $lineNum
+                    [void]$errors.Add([ordered]@{
+                        file = $fileName
+                        type = "enhanced"
+                        message = "Direct string/value conversion on range property without IsNull check. Mixed ranges return Null, causing Error 94."
+                        line = $lineNum
+                    })
                     $allPassed = $false
-                    $global:BeaverLintStatusCache[$relPath] = $false
                 }
             }
 
@@ -281,10 +310,13 @@ function Invoke-VbaLint {
                         $j++
                     }
                     if ($hasDeletion) {
-                        Write-Host "  [$fileName] Error: Forward iteration loop with mutation detected at line $lineNum. Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "enhanced" -Message "Forward iteration loop with mutation detected. Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs." -Line $lineNum
+                        [void]$errors.Add([ordered]@{
+                            file = $fileName
+                            type = "enhanced"
+                            message = "Forward iteration loop with mutation detected. Use backward iteration 'For $idxVar = ... To 1 Step -1' instead to prevent skipping bugs."
+                            line = $lineNum
+                        })
                         $allPassed = $false
-                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                 }
             }
@@ -301,7 +333,7 @@ function Invoke-VbaLint {
                         $line -notmatch '^\s*(?:Public |Private |Static )?(?:Sub |Function |Property |Type |Enum )\b' -and
                         $line -notmatch '".*\b(Range|Cells|Rows|Columns)\b.*"') {
                         
-                        Write-Host "  [$fileName] Warning: Unqualified reference to '$($Matches[1])' at line $lineNum. Use explicit worksheet qualification (e.g. ws.$($Matches[1])) to prevent ActiveSheet bugs." -ForegroundColor Yellow
+                        [void]$warnings.Add("Warning: Unqualified reference to '$($Matches[1])' at line $lineNum. Use explicit worksheet qualification (e.g. ws.$($Matches[1])) to prevent ActiveSheet bugs.")
                     }
                 }
             }
@@ -309,7 +341,7 @@ function Invoke-VbaLint {
             # --- Rule E: Localized Sheet Name Warning ---
             if ($fileName -ne "Lib_JsonConverter.bas" -and $fileName -notmatch "Test_") {
                 if ($line -match '"(?:Sheet|Tabelle|Feuille|Hoja|Foglio|Planilha|Flik|Tabell)\d+"' -and $line -notmatch '^\s*''') {
-                    Write-Host "  [$fileName] Warning: Hardcoded localized sheet name $($Matches[0]) detected at line $lineNum. This will fail in non-English Excel environments." -ForegroundColor Yellow
+                    [void]$warnings.Add("Warning: Hardcoded localized sheet name $($Matches[0]) detected at line $lineNum. This will fail in non-English Excel environments.")
                 }
             }
 
@@ -363,29 +395,41 @@ function Invoke-VbaLint {
 
                     if (-not $foundPush) {
                         $msgName = if ($isICommandExecute) { "ICommand_Execute (with context ending in .Execute)" } else { "Procedure '$procName'" }
-                        Write-Host "  [$fileName] Error: $msgName at line $lineNum missing context tracking (PushContext or Track)." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "enhanced" -Message "$msgName missing context tracking (PushContext or Track)." -Line $lineNum
+                        [void]$errors.Add([ordered]@{
+                            file = $fileName
+                            type = "enhanced"
+                            message = "$msgName missing context tracking (PushContext or Track)."
+                            line = $lineNum
+                        })
                         $allPassed = $false
-                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                     if (-not $foundPop) {
-                        Write-Host "  [$fileName] Error: Procedure '$procName' at line $lineNum missing 'PopContext' (or RAII Track tracker)." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'PopContext' (or RAII Track tracker)." -Line $lineNum
+                        [void]$errors.Add([ordered]@{
+                            file = $fileName
+                            type = "enhanced"
+                            message = "Procedure '$procName' missing 'PopContext' (or RAII Track tracker)."
+                            line = $lineNum
+                        })
                         $allPassed = $false
-                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                     if (-not $foundErrorGoto) {
-                        Write-Host "  [$fileName] Error: Procedure '$procName' at line $lineNum missing 'On Error GoTo'." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing 'On Error GoTo'." -Line $lineNum
+                        [void]$errors.Add([ordered]@{
+                            file = $fileName
+                            type = "enhanced"
+                            message = "Procedure '$procName' missing 'On Error GoTo'."
+                            line = $lineNum
+                        })
                         $allPassed = $false
-                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                     if (-not $foundHandleError) {
                         $expectedLabel = if ($isICommandExecute) { "HandleError ""[CommandName].Execute""" } else { "HandleError ""$procName""" }
-                        Write-Host "  [$fileName] Error: Procedure '$procName' at line $lineNum missing '$expectedLabel'." -ForegroundColor Red
-                        Add-LintError -File $fileName -Type "enhanced" -Message "Procedure '$procName' missing '$expectedLabel'." -Line $lineNum
+                        [void]$errors.Add([ordered]@{
+                            file = $fileName
+                            type = "enhanced"
+                            message = "Procedure '$procName' missing '$expectedLabel'."
+                            line = $lineNum
+                        })
                         $allPassed = $false
-                        $global:BeaverLintStatusCache[$relPath] = $false
                     }
                 }
             }
@@ -393,30 +437,108 @@ function Invoke-VbaLint {
 
         # Check final stack sizes
         foreach ($startLine in $subStack) {
-            Write-Host "  [$fileName] Syntax Error: Mismatched 'Sub' starting at line $startLine (No matching end found)." -ForegroundColor Red
-            Add-LintError -File $fileName -Type "syntax" -Message "Mismatched 'Sub' (No matching end found)" -Line $startLine
+            [void]$errors.Add([ordered]@{
+                file = $fileName
+                type = "syntax"
+                message = "Mismatched 'Sub' (No matching end found)"
+                line = $startLine
+            })
             $allPassed = $false
-            $global:BeaverLintStatusCache[$relPath] = $false
         }
         foreach ($startLine in $funcStack) {
-            Write-Host "  [$fileName] Syntax Error: Mismatched 'Function' starting at line $startLine (No matching end found)." -ForegroundColor Red
-            Add-LintError -File $fileName -Type "syntax" -Message "Mismatched 'Function' (No matching end found)" -Line $startLine
+            [void]$errors.Add([ordered]@{
+                file = $fileName
+                type = "syntax"
+                message = "Mismatched 'Function' (No matching end found)"
+                line = $startLine
+            })
             $allPassed = $false
-            $global:BeaverLintStatusCache[$relPath] = $false
         }
         foreach ($startLine in $propStack) {
-            Write-Host "  [$fileName] Syntax Error: Mismatched 'Property' starting at line $startLine (No matching end found)." -ForegroundColor Red
-            Add-LintError -File $fileName -Type "syntax" -Message "Mismatched 'Property' (No matching end found)" -Line $startLine
+            [void]$errors.Add([ordered]@{
+                file = $fileName
+                type = "syntax"
+                message = "Mismatched 'Property' (No matching end found)"
+                line = $startLine
+            })
             $allPassed = $false
-            $global:BeaverLintStatusCache[$relPath] = $false
         }
         foreach ($startLine in $ifStack) {
-            Write-Host "  [$fileName] Syntax Error: Mismatched 'If' starting at line $startLine (No matching end found)." -ForegroundColor Red
-            Add-LintError -File $fileName -Type "syntax" -Message "Mismatched 'If' (No matching end found)" -Line $startLine
+            [void]$errors.Add([ordered]@{
+                file = $fileName
+                type = "syntax"
+                message = "Mismatched 'If' (No matching end found)"
+                line = $startLine
+            })
             $allPassed = $false
-            $global:BeaverLintStatusCache[$relPath] = $false
+        }
+
+        return [pscustomobject]@{
+            RelPath = $relPath
+            Cached = $false
+            Passed = $allPassed
+            Errors = $errors
+            Warnings = $warnings
+            RawLines = $rawLines
+        }
+'@
+
+    # Execute workers (sequentially or in parallel depending on file count)
+    $results = @()
+    if ($vbaFiles.Count -le 2) {
+        # Sequential processing (fast path for incremental builds, avoiding thread overhead)
+        $sb = [scriptblock]::Create($lintBlockText)
+        foreach ($file in $vbaFiles) {
+            $results += & $sb -file $file -projectRoot $projectRoot -buildState $buildState -autoFix $AutoFix
+        }
+    } else {
+        # Parallel processing (fast path for full/clean builds, using all CPU cores)
+        $results = $vbaFiles | ForEach-Object -Parallel {
+            $projectRoot = $using:projectRoot
+            $buildState = $using:buildState
+            $autoFix = $using:AutoFix
+            
+            $sb = [scriptblock]::Create($using:lintBlockText)
+            & $sb -file $_ -projectRoot $projectRoot -buildState $buildState -autoFix $autoFix
         }
     }
+
+    # Process and merge results on the main thread (thread-safe)
+    $allPassed = $true
+    foreach ($res in $results) {
+        $relPath = $res.RelPath
+        if ($res.Cached) {
+            $global:BeaverLintStatusCache[$relPath] = $true
+            continue
+        }
+
+        $fileName = [System.IO.Path]::GetFileName($relPath)
+
+        if ($null -ne $global:BeaverBuildLog) {
+            if ($global:BeaverBuildLog.lintResults.checkedFiles -notcontains $relPath) {
+                [void]$global:BeaverBuildLog.lintResults.checkedFiles.Add($relPath)
+            }
+        }
+
+        # Print collected warnings
+        foreach ($warn in $res.Warnings) {
+            Write-Host "  [$fileName] $warn" -ForegroundColor Yellow
+        }
+
+        $global:BeaverLintStatusCache[$relPath] = $res.Passed
+        if (-not $res.Passed) {
+            $allPassed = $false
+            foreach ($err in $res.Errors) {
+                Write-Host "  [$fileName] Error: $($err.message) at line $($err.line)" -ForegroundColor Red
+                Add-LintError -File $fileName -Type $err.type -Message $err.message -Line $err.line
+            }
+        }
+
+        if ($null -ne $res.RawLines) {
+            $global:BeaverFileContentCache[(Join-Path $projectRoot $relPath)] = $res.RawLines
+        }
+    }
+
     return $allPassed
 }
 

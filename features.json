@@ -156,6 +156,7 @@
                                            "BtnHighlightHardcodedValues",
                                            "BtnHighlightDataValidations",
                                            "BtnHighlightConditionalFormatting",
+                                           "BtnHighlightFinancialModelling",
                                            "BtnClearHighlights"
                                        ]
                      },
@@ -235,6 +236,19 @@
                          "Keytip":  "HC",
                          "Screentip":  "Conditional Formatting",
                          "Supertip":  "Highlights cells with conditional formatting in soft blue.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnHighlightFinancialModelling",
+                         "Label":  "Financial Modelling",
+                         "OnAction":  "Ribbon_OnHighlightFinancialModelling",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightFinancialModelling",
+                         "CommandName":  "HighlightFinancialModelling",
+                         "CommandClass":  "FeatCmd_FinancialModelling",
+                         "Icon":  "FontColorCycle",
+                         "Keytip":  "HF",
+                         "Screentip":  "Financial Modelling",
+                         "Supertip":  "Formats cells using the standard financial model coloring scheme.",
                          "RuntimeTestMode":  "interactive"
                      },
                      {

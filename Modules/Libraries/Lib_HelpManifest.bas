@@ -94,6 +94,12 @@ Public Function GetFeatureHelp() As Collection
     col.Add dict
 
     Set dict = CreateObject("Scripting.Dictionary")
+    dict.Add "Label", "Financial Modelling"
+    dict.Add "Screentip", "Financial Modelling"
+    dict.Add "Supertip", "Formats cells using the standard financial model coloring scheme."
+    col.Add dict
+
+    Set dict = CreateObject("Scripting.Dictionary")
     dict.Add "Label", "Clear Highlights"
     dict.Add "Screentip", "Clear Highlights"
     dict.Add "Supertip", "Clears all cells in the workbook matching the highlight color."

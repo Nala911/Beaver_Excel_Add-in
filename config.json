@@ -25,7 +25,7 @@
   },
   "FeatureFlags": {
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 25
+    "GeneratedFeatureCount": 26
   },
   "Hotkeys": [
     {
@@ -97,6 +97,7 @@
     "BtnHighlightHardcodedValues": "FunctionWizard",
     "BtnHighlightDataValidations": "TableProperties",
     "BtnHighlightConditionalFormatting": "ConditionalFormattingMenu",
+    "BtnHighlightFinancialModelling": "FontColorCycle",
     "BtnClearHighlights": "Clear",
     "BtnBreakLinks": "WorkbookLinks",
     "BtnDuplicate": "FileSaveAs",
