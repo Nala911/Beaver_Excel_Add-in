@@ -954,4 +954,268 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
     ProcessChunkArea = changeCount
 End Function
 
+' Finds the target bottom row index (1-indexed) to fill down from a source cell.
+' Returns 0 if no target boundary is found or if the boundary does not exceed the source cell's row.
+Public Function GetFillDownBoundary( _
+    ByVal sourceCell As Range, _
+    Optional ByVal maxSearchCol As Long = 0, _
+    Optional ByVal cachedListObject As ListObject = Nothing, _
+    Optional ByVal cachedCurrentRegion As Range = Nothing, _
+    Optional ByVal cachedRowValues As Variant = Nothing, _
+    Optional ByVal cachedRowStartCol As Long = 0 _
+) As Long
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetFillDownBoundary")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = sourceCell.Worksheet
+    Dim startRow As Long: startRow = sourceCell.Row
+    Dim colIdx As Long: colIdx = sourceCell.Column
+    
+    Dim localMaxSearchCol As Long
+    If maxSearchCol > 0 Then
+        localMaxSearchCol = maxSearchCol
+    Else
+        localMaxSearchCol = ws.UsedRange.Column + ws.UsedRange.Columns.Count - 1
+    End If
+    
+    Dim lastRow As Long: lastRow = 0
+    Dim foundRef As Boolean: foundRef = False
+    
+    ' 1. ListObject (Table) Search
+    Dim lo As ListObject
+    If Not cachedListObject Is Nothing Then
+        Set lo = cachedListObject
+    Else
+        On Error Resume Next
+        Set lo = sourceCell.ListObject
+        On Error GoTo ErrHandler
+    End If
+    
+    If Not lo Is Nothing Then
+        If Not Intersect(sourceCell, lo.DataBodyRange) Is Nothing Then
+            lastRow = lo.DataBodyRange.Row + lo.DataBodyRange.Rows.Count - 1
+            foundRef = True
+        End If
+    End If
+    
+    ' 2. Proximity Search (closest column neighbor)
+    If Not foundRef Then
+        Dim maxProximityDist As Long: maxProximityDist = Infra_Config.MAX_FILL_PROXIMITY_COLUMNS
+        Dim dist As Long
+        Dim leftCol As Long, rightCol As Long
+        Dim targetCol As Long
+        
+        Dim useCache As Boolean
+        useCache = IsArray(cachedRowValues) And (cachedRowStartCol > 0)
+        
+        For dist = 1 To maxProximityDist
+            leftCol = colIdx - dist
+            If leftCol >= 1 Then
+                Dim leftIsEmpty As Boolean
+                If useCache Then
+                    Dim leftCacheIdx As Long
+                    leftCacheIdx = leftCol - cachedRowStartCol + 1
+                    If leftCacheIdx >= 1 And leftCacheIdx <= UBound(cachedRowValues, 2) Then
+                        leftIsEmpty = IsEmpty(cachedRowValues(1, leftCacheIdx))
+                    Else
+                        leftIsEmpty = IsEmpty(ws.Cells(startRow, leftCol))
+                    End If
+                Else
+                    leftIsEmpty = IsEmpty(ws.Cells(startRow, leftCol))
+                End If
+                
+                If Not leftIsEmpty Then
+                    targetCol = leftCol
+                    foundRef = True
+                    Exit For
+                End If
+            End If
+            
+            rightCol = colIdx + dist
+            If rightCol <= localMaxSearchCol Then
+                Dim rightIsEmpty As Boolean
+                If useCache Then
+                    Dim rightCacheIdx As Long
+                    rightCacheIdx = rightCol - cachedRowStartCol + 1
+                    If rightCacheIdx >= 1 And rightCacheIdx <= UBound(cachedRowValues, 2) Then
+                        rightIsEmpty = IsEmpty(cachedRowValues(1, rightCacheIdx))
+                    Else
+                        rightIsEmpty = IsEmpty(ws.Cells(startRow, rightCol))
+                    End If
+                Else
+                    rightIsEmpty = IsEmpty(ws.Cells(startRow, rightCol))
+                End If
+                
+                If Not rightIsEmpty Then
+                    targetCol = rightCol
+                    foundRef = True
+                    Exit For
+                End If
+            End If
+        Next dist
+        
+        If foundRef Then
+            Dim nearRegion As Range
+            If Not cachedCurrentRegion Is Nothing Then
+                Dim inCached As Boolean
+                inCached = (targetCol >= cachedCurrentRegion.Column) And _
+                           (targetCol <= cachedCurrentRegion.Column + cachedCurrentRegion.Columns.Count - 1)
+                If inCached Then
+                    Set nearRegion = cachedCurrentRegion
+                Else
+                    Set nearRegion = ws.Cells(startRow, targetCol).CurrentRegion
+                End If
+            Else
+                Set nearRegion = ws.Cells(startRow, targetCol).CurrentRegion
+            End If
+            lastRow = nearRegion.Row + nearRegion.Rows.Count - 1
+        End If
+    End If
+    
+    If foundRef And lastRow > startRow Then
+        GetFillDownBoundary = lastRow
+    Else
+        GetFillDownBoundary = 0
+    End If
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "GetFillDownBoundary", Err
+    Resume CleanExit
+End Function
+
+' Finds the target rightmost column index (1-indexed) to fill rightward from a source cell.
+' Returns 0 if no target boundary is found or if the boundary does not exceed the source cell's column.
+Public Function GetFillRightBoundary( _
+    ByVal sourceCell As Range, _
+    Optional ByVal maxSearchRow As Long = 0, _
+    Optional ByVal cachedListObject As ListObject = Nothing, _
+    Optional ByVal cachedCurrentRegion As Range = Nothing, _
+    Optional ByVal cachedColValues As Variant = Nothing, _
+    Optional ByVal cachedColStartRow As Long = 0 _
+) As Long
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetFillRightBoundary")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = sourceCell.Worksheet
+    Dim startCol As Long: startCol = sourceCell.Column
+    Dim rowIdx As Long: rowIdx = sourceCell.Row
+    
+    Dim localMaxSearchRow As Long
+    If maxSearchRow > 0 Then
+        localMaxSearchRow = maxSearchRow
+    Else
+        localMaxSearchRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
+    End If
+    
+    Dim lastCol As Long: lastCol = 0
+    Dim foundRef As Boolean: foundRef = False
+    
+    ' 1. ListObject (Table) Search
+    Dim lo As ListObject
+    If Not cachedListObject Is Nothing Then
+        Set lo = cachedListObject
+    Else
+        On Error Resume Next
+        Set lo = sourceCell.ListObject
+        On Error GoTo ErrHandler
+    End If
+    
+    If Not lo Is Nothing Then
+        If Not Intersect(sourceCell, lo.DataBodyRange) Is Nothing Then
+            lastCol = lo.DataBodyRange.Column + lo.DataBodyRange.Columns.Count - 1
+            foundRef = True
+        End If
+    End If
+    
+    ' 2. Proximity Search (closest row neighbor)
+    If Not foundRef Then
+        Dim maxProximityDist As Long: maxProximityDist = Infra_Config.MAX_FILL_PROXIMITY_COLUMNS
+        Dim dist As Long
+        Dim upRow As Long, downRow As Long
+        Dim targetRow As Long
+        
+        Dim useCache As Boolean
+        useCache = IsArray(cachedColValues) And (cachedColStartRow > 0)
+        
+        For dist = 1 To maxProximityDist
+            upRow = rowIdx - dist
+            If upRow >= 1 Then
+                Dim upIsEmpty As Boolean
+                If useCache Then
+                    Dim upCacheIdx As Long
+                    upCacheIdx = upRow - cachedColStartRow + 1
+                    If upCacheIdx >= 1 And upCacheIdx <= UBound(cachedColValues, 1) Then
+                        upIsEmpty = IsEmpty(cachedColValues(upCacheIdx, 1))
+                    Else
+                        upIsEmpty = IsEmpty(ws.Cells(upRow, startCol))
+                    End If
+                Else
+                    upIsEmpty = IsEmpty(ws.Cells(upRow, startCol))
+                End If
+                
+                If Not upIsEmpty Then
+                    targetRow = upRow
+                    foundRef = True
+                    Exit For
+                End If
+            End If
+            
+            downRow = rowIdx + dist
+            If downRow <= localMaxSearchRow Then
+                Dim downIsEmpty As Boolean
+                If useCache Then
+                    Dim downCacheIdx As Long
+                    downCacheIdx = downRow - cachedColStartRow + 1
+                    If downCacheIdx >= 1 And downCacheIdx <= UBound(cachedColValues, 1) Then
+                        downIsEmpty = IsEmpty(cachedColValues(downCacheIdx, 1))
+                    Else
+                        downIsEmpty = IsEmpty(ws.Cells(downRow, startCol))
+                    End If
+                Else
+                    downIsEmpty = IsEmpty(ws.Cells(downRow, startCol))
+                End If
+                
+                If Not downIsEmpty Then
+                    targetRow = downRow
+                    foundRef = True
+                    Exit For
+                End If
+            End If
+        Next dist
+        
+        If foundRef Then
+            Dim nearRegion As Range
+            If Not cachedCurrentRegion Is Nothing Then
+                Dim inCached As Boolean
+                inCached = (targetRow >= cachedCurrentRegion.Row) And _
+                           (targetRow <= cachedCurrentRegion.Row + cachedCurrentRegion.Rows.Count - 1)
+                If inCached Then
+                    Set nearRegion = cachedCurrentRegion
+                Else
+                    Set nearRegion = ws.Cells(targetRow, startCol).CurrentRegion
+                End If
+            Else
+                Set nearRegion = ws.Cells(targetRow, startCol).CurrentRegion
+            End If
+            lastCol = nearRegion.Column + nearRegion.Columns.Count - 1
+        End If
+    End If
+    
+    If foundRef And lastCol > startCol Then
+        GetFillRightBoundary = lastCol
+    Else
+        GetFillRightBoundary = 0
+    End If
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "GetFillRightBoundary", Err
+    Resume CleanExit
+End Function
+
 

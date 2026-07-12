@@ -638,6 +638,14 @@ try {
             }
 
             if ($forceFullBuild -or $manifestChanged) {
+                if ($null -ne $excel) {
+                    try {
+                        if ($excel.Calculation -ne -4105) {
+                            $excel.Calculation = -4105 # xlCalculationAutomatic
+                            Write-Host "  Restoring calculation option to Automatic before saving workbook." -ForegroundColor Green
+                        }
+                    } catch {}
+                }
                 $workbook.Saved = $false
                 $workbook.Save()
                 Write-Host "  Closing workbook to release file lock for Ribbon XML injection..." -ForegroundColor Yellow

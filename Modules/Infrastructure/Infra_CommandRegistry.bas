@@ -114,6 +114,8 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "CreateSheet"
         Case "UI_HOTKEYS.HOTKEY_FILLDOWN"
             ResolveCommandName = "FillDown"
+        Case "UI_HOTKEYS.HOTKEY_FILLRIGHT"
+            ResolveCommandName = "FillRight"
         Case "UI_HOTKEYS.HOTKEY_FILTERBYSELECTEDCELL"
             ResolveCommandName = "FilterByCell"
         Case "UI_HOTKEYS.HOTKEY_PASTEFORMAT"
@@ -197,6 +199,8 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
             Set CreateCommand = New FeatCmd_CreateSheet
         Case "FILLDOWN"
             Set CreateCommand = New FeatCmd_FillDown
+        Case "FILLRIGHT"
+            Set CreateCommand = New FeatCmd_FillRight
         Case "FILTERBYCELL"
             Set CreateCommand = New FeatCmd_FilterByCell
         Case "PASTEFORMAT"

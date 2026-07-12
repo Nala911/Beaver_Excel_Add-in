@@ -59,6 +59,19 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Hotkey_FillRight()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_FillRight")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_FillRight", "Hotkey_FillRight", "Hotkey"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Hotkey_FillRight", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Hotkey_FilterBySelectedCell()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_FilterBySelectedCell")
     On Error GoTo ErrHandler

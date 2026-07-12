@@ -331,6 +331,19 @@ Public Sub Test_SingleCell_Bugs_Regression()
     Test_Runner.AssertEqual ws.Range("A2").Value, "Val", "A2 should be filled down"
     Test_Runner.AssertEqual ws.Range("B2").Value, "KeepB", "B2 must not be overwritten"
 
+    ' 2b. Test FillRight single-cell regression
+    ws.Cells.Clear
+    ws.Range("A1").Value = "Val"
+    ws.Range("A2").Value = "KeepR"
+    ws.Range("B2").Value = "KeepR"
+    
+    ' Select A1
+    ws.Range("A1").Select
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_FillRight", "Hotkey_FillRight", "Hotkey"
+
+    Test_Runner.AssertEqual ws.Range("B1").Value, "Val", "B1 should be filled right"
+    Test_Runner.AssertEqual ws.Range("B2").Value, "KeepR", "B2 must not be overwritten"
+
     ' 3. Test CleanData single-cell regression
     ws.Cells.Clear
     ws.Range("A1").Value = "  text  "

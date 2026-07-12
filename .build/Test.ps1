@@ -567,11 +567,19 @@ try {
             }
             Release-ComObjectSafely $testWorkbook
             $testWorkbook = $null
-            if ($testExcel -and $excelWasAlreadyOpen) {
+            if ($testExcel) {
                 try {
-                    $testExcel.Visible = $true
-                    $testExcel.DisplayAlerts = $true
+                    if ($testExcel.Calculation -ne -4105) {
+                        $testExcel.Calculation = -4105 # xlCalculationAutomatic
+                        Write-Host "  Restored Excel calculation option to Automatic." -ForegroundColor Green
+                    }
                 } catch { }
+                if ($excelWasAlreadyOpen) {
+                    try {
+                        $testExcel.Visible = $true
+                        $testExcel.DisplayAlerts = $true
+                    } catch { }
+                }
             }
             if (-not $global:BeaverOrchestratorActive) {
                 Release-ComObjectSafely $testExcel

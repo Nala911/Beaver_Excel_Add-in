@@ -1,11 +1,11 @@
-﻿Attribute VB_Name = "Test_Feat_Editing"
+Attribute VB_Name = "Test_Feat_Editing"
 Option Explicit
 
 ' @Module: Test_Feat_Editing
 ' @Category: Library
 ' @Description: Integration tests for basic cell editing, deleting, fill, and filter features.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Test_Runner, AppContainer, Infra_Error, Infra_Undo, FeatCmd_MakePermanent, FeatCmd_FillDown, FeatCmd_Delete, FeatCmd_FilterByCell
+' @Dependencies: Test_Runner, AppContainer, Infra_Error, Infra_Undo, FeatCmd_MakePermanent, FeatCmd_FillDown, FeatCmd_FillRight, FeatCmd_Delete, FeatCmd_FilterByCell
 
 Public Sub Test_MakePermanent_SpillHandling_And_Undo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_MakePermanent_SpillHandling_And_Undo")
@@ -184,7 +184,7 @@ Public Sub Test_FillDown_Features()
     ' --- TEST 2: Proximity Search Distance Limit ---
     ws.Cells.Clear
     ws.Range("A1").Value2 = 100
-    ws.Range("L1:L5").Value2 = "Ref" ' Column 12 (distance = 11 columns)
+    ws.Range("Q1:Q5").Value2 = "Ref" ' Column 17 (distance = 16 columns)
     
     Set ctx = AppContainer.CreateCommandContext("FillDown")
     Set ctx.ActionContext.WorksheetRef = ws
@@ -193,12 +193,12 @@ Public Sub Test_FillDown_Features()
     ctx.ActionContext.HasRangeSelection = True
     
     cmd.Execute ctx
-    Test_Runner.AssertEqual ws.Range("A5").Value2, vbEmpty, "Proximity limit: A5 should be empty when neighbor is > 10 columns away"
+    Test_Runner.AssertEqual ws.Range("A5").Value2, vbEmpty, "Proximity limit: A5 should be empty when neighbor is > 15 columns away"
 
-    ' Neighbor at column 11 (distance = 10 columns)
-    ws.Range("K1:K5").Value2 = "Ref"
+    ' Neighbor at column 16 (distance = 15 columns)
+    ws.Range("P1:P5").Value2 = "Ref"
     cmd.Execute ctx
-    Test_Runner.AssertEqual ws.Range("A5").Value2, 100#, "Proximity limit: A5 should be 100 when neighbor is exactly 10 columns away"
+    Test_Runner.AssertEqual ws.Range("A5").Value2, 100#, "Proximity limit: A5 should be 100 when neighbor is exactly 15 columns away"
 
     ' --- TEST 3: Fragmentation Safety Limit ---
     ws.Cells.Clear
@@ -230,6 +230,21 @@ Public Sub Test_FillDown_Features()
     Test_Runner.AssertEqual ws.Range("A3").Value2, vbEmpty, "Fragmentation guard: A3 should remain empty"
     Test_Runner.AssertEqual ws.Range("A10011").Value2, vbEmpty, "Fragmentation guard: A10011 should remain empty"
 
+    ' --- TEST 4: No Neighbors and Source in Data Range ---
+    ws.Cells.Clear
+    ws.Range("A1").Value2 = 100
+    ws.Range("A2:A5").Value2 = 50
+    
+    Set ctx = AppContainer.CreateCommandContext("FillDown")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1")
+    ctx.ActionContext.HasRangeSelection = True
+    
+    cmd.Execute ctx
+    Test_Runner.AssertEqual ws.Range("A2").Value2, 50#, "No neighbors: A2 should remain 50"
+    Test_Runner.AssertEqual ws.Range("A5").Value2, 50#, "No neighbors: A5 should remain 50"
+
     ' Cleanup
     ws.AutoFilterMode = False
     Application.DisplayAlerts = False
@@ -248,6 +263,88 @@ ErrHandler:
     Infra_Error.HandleError "Test_FillDown_Features", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_FillRight_Features()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FillRight_Features")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_FillRight"
+
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    ' --- TEST 1: Multi-Row Fill Right ---
+    ws.Range("A1").Value2 = 10
+    ws.Range("A2").Value2 = 20
+    ws.Range("A3:G3").Value2 = "Ref"
+    
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("FillRight")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1:A2")
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("FillRight")
+    cmd.Execute ctx
+
+    Test_Runner.AssertEqual ws.Range("G1").Value2, 10#, "Multi-row fillright: G1 should be 10"
+    Test_Runner.AssertEqual ws.Range("G2").Value2, 20#, "Multi-row fillright: G2 should be 20"
+    Test_Runner.AssertEqual ws.Range("H1").Value2, vbEmpty, "Multi-row fillright: H1 should be empty"
+
+    ' --- TEST 2: Proximity Search Distance Limit ---
+    ws.Cells.Clear
+    ws.Range("A1").Value2 = 100
+    ws.Range("A17:Q17").Value2 = "Ref" ' Row 17 (distance = 16 rows)
+    
+    Set ctx = AppContainer.CreateCommandContext("FillRight")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1")
+    ctx.ActionContext.HasRangeSelection = True
+    
+    cmd.Execute ctx
+    Test_Runner.AssertEqual ws.Range("Q1").Value2, vbEmpty, "Proximity limit: Q1 should be empty when neighbor is > 15 rows away"
+
+    ' Neighbor at row 16 (distance = 15 rows)
+    ws.Range("A16:P16").Value2 = "Ref"
+    cmd.Execute ctx
+    Test_Runner.AssertEqual ws.Range("P1").Value2, 100#, "Proximity limit: P1 should be 100 when neighbor is exactly 15 rows away"
+
+    ' --- TEST 3: No Neighbors and Source in Data Range ---
+    ws.Cells.Clear
+    ws.Range("A1").Value2 = 100
+    ws.Range("B1:E1").Value2 = 50
+    
+    Set ctx = AppContainer.CreateCommandContext("FillRight")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1")
+    ctx.ActionContext.HasRangeSelection = True
+    
+    cmd.Execute ctx
+    Test_Runner.AssertEqual ws.Range("B1").Value2, 50#, "No neighbors: B1 should remain 50"
+    Test_Runner.AssertEqual ws.Range("E1").Value2, 50#, "No neighbors: E1 should remain 50"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_FillRight_Features", Err
+    Resume CleanExit
+End Sub
+
 
 Public Sub Test_Backspace_LargeRange_Undo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_Backspace_LargeRange_Undo")

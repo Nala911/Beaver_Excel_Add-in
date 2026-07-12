@@ -16,7 +16,7 @@
     "MaxUndoCells": 1000000,
     "MaxWrapCells": 50000,
     "MaxFormulaCheckCells": 5000,
-    "MaxFillProximityColumns": 10,
+    "MaxFillProximityColumns": 15,
     "MaxFillDownAreas": 5000
   },
   "AddinIdentity": {
@@ -51,6 +51,12 @@
       "Macro": "UI_Hotkeys.Hotkey_FillDown",
       "CommandName": "FillDown",
       "Description": "Fill formula/format down"
+    },
+    {
+      "Key": "^%{RIGHT}",
+      "Macro": "UI_Hotkeys.Hotkey_FillRight",
+      "CommandName": "FillRight",
+      "Description": "Fill formula/format right"
     },
     {
       "Key": "^+f",

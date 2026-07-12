@@ -430,6 +430,12 @@
                         "Description":  "Fill formula/format down"
                     },
                     {
+                        "Key":  "^%{RIGHT}",
+                        "Macro":  "UI_Hotkeys.Hotkey_FillRight",
+                        "CommandName":  "FillRight",
+                        "Description":  "Fill formula/format right"
+                    },
+                    {
                         "Key":  "^+f",
                         "Macro":  "UI_Hotkeys.Hotkey_FilterBySelectedCell",
                         "CommandName":  "FilterByCell",

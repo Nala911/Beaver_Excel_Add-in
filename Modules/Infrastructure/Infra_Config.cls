@@ -249,7 +249,7 @@ Private Sub ApplyDefaultConfigModel(ByVal model As Infra_ConfigModel)
     model.MaxUndoCells = 1000000
     model.MaxWrapCells = 50000
     model.MaxFormulaCheckCells = 5000
-    model.MaxFillProximityColumns = 10
+    model.MaxFillProximityColumns = 15
     model.MaxFillDownAreas = 5000
     
     Set model.Icons = CreateObject("Scripting.Dictionary")

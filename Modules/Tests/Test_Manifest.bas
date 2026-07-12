@@ -32,6 +32,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Test_Feat_Editing.Test_Backspace_LargeRange_Undo", filterPattern) Then Test_Feat_Editing.Test_Backspace_LargeRange_Undo
     If MatchesFilter("Test_Feat_Editing.Test_Delete_Execution_And_Undo", filterPattern) Then Test_Feat_Editing.Test_Delete_Execution_And_Undo
     If MatchesFilter("Test_Feat_Editing.Test_FillDown_Features", filterPattern) Then Test_Feat_Editing.Test_FillDown_Features
+    If MatchesFilter("Test_Feat_Editing.Test_FillRight_Features", filterPattern) Then Test_Feat_Editing.Test_FillRight_Features
     If MatchesFilter("Test_Feat_Editing.Test_FilterByCell_Execution", filterPattern) Then Test_Feat_Editing.Test_FilterByCell_Execution
     If MatchesFilter("Test_Feat_Editing.Test_MakePermanent_LegacyArray_And_Undo", filterPattern) Then Test_Feat_Editing.Test_MakePermanent_LegacyArray_And_Undo
     If MatchesFilter("Test_Feat_Editing.Test_MakePermanent_SpillHandling_And_Undo", filterPattern) Then Test_Feat_Editing.Test_MakePermanent_SpillHandling_And_Undo

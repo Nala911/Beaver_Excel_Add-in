@@ -187,6 +187,12 @@ try {
             $wbs = $global:BeaverSharedExcel.Workbooks
             foreach ($wb in $wbs) {
                 if ($wb.Name -eq "Beaver Add-in.xlsm") {
+                    try {
+                        if ($global:BeaverSharedExcel.Calculation -ne -4105) {
+                            $global:BeaverSharedExcel.Calculation = -4105 # xlCalculationAutomatic
+                            Write-Host "  Ensuring calculation option is Automatic before final save." -ForegroundColor Green
+                        }
+                    } catch {}
                     Write-Host "Saving workbook after successful tests (Save-On-Success)..." -ForegroundColor Green
                     $wb.Save()
                     break

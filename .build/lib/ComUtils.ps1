@@ -286,6 +286,14 @@ function Close-ExcelWorkbookSession {
         return
     }
 
+    # Failsafe: Ensure Excel calculation mode is set back to Automatic if leaving Excel open
+    try {
+        if ($Excel.Calculation -ne -4105) {
+            $Excel.Calculation = -4105 # xlCalculationAutomatic
+            Write-Host "  Restored Excel calculation option to Automatic." -ForegroundColor Green
+        }
+    } catch {}
+
     $excelPid = 0
     try {
         $excelPid = Get-ExcelProcessId -ExcelApplication $Excel

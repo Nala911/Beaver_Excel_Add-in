@@ -2,18 +2,18 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "FeatCmd_FillDown"
+Attribute VB_Name = "FeatCmd_FillRight"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Implements ICommand
-
-' @Module: FeatCmd_FillDown
+' @Module: FeatCmd_FillRight
 ' @Category: Feature
-' @Description: Intelligent fill-down functionality that respects tables and filtered data.
+' @Description: Intelligent fill-right functionality that respects tables and filtered data.
+
+Implements ICommand
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyBulkWrite()
@@ -24,14 +24,14 @@ Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandV
 End Function
 
 Private Sub ICommand_Execute(ByVal context As ICommandContext)
-    Dim tracker As Object: Set tracker = Infra_Error.Track("FillDown.Execute")
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FillRight.Execute")
     On Error GoTo ErrHandler
 
     Dim selectionRng As Range
     Dim ws As Worksheet
-    Dim startRow As Long
-    Dim startCol As Long, endCol As Long
-    Dim colIdx As Long
+    Dim startCol As Long
+    Dim startRow As Long, endRow As Long
+    Dim rowIdx As Long
     
     Dim ctx As ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
@@ -39,19 +39,19 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set selectionRng = ctx.SelectionRange
     Set ws = selectionRng.Worksheet
 
-    ' Use Cells.CountLarge to prevent overflow when selecting huge ranges
+    ' If multiple cells are selected, start filling from the rightmost column of the selection
     If selectionRng.Cells.CountLarge > 1 Then
-        startRow = selectionRng.Row + selectionRng.Rows.Count - 1
+        startCol = selectionRng.Column + selectionRng.Columns.Count - 1
     Else
-        startRow = selectionRng.Row
+        startCol = selectionRng.Column
     End If
 
-    startCol = selectionRng.Column
-    endCol = selectionRng.Column + selectionRng.Columns.Count - 1
+    startRow = selectionRng.Row
+    endRow = selectionRng.Row + selectionRng.Rows.Count - 1
 
     ' 1. Cache UsedRange limit
-    Dim maxSearchCol As Long
-    maxSearchCol = ws.UsedRange.Column + ws.UsedRange.Columns.Count - 1
+    Dim maxSearchRow As Long
+    maxSearchRow = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1
 
     ' 2. Cache ListObject at the selection
     Dim cachedListObject As ListObject
@@ -65,45 +65,45 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set cachedCurrentRegion = selectionRng.CurrentRegion
     On Error GoTo ErrHandler
 
-    ' 4. Cache proximity row values in a single COM query
+    ' 4. Cache proximity column values in a single COM query
     Dim maxProximityDist As Long
     maxProximityDist = Infra_Config.MAX_FILL_PROXIMITY_COLUMNS
 
-    Dim proximityStartCol As Long
-    proximityStartCol = IIf(startCol - maxProximityDist < 1, 1, startCol - maxProximityDist)
+    Dim proximityStartRow As Long
+    proximityStartRow = IIf(startRow - maxProximityDist < 1, 1, startRow - maxProximityDist)
     
-    Dim proximityEndCol As Long
-    proximityEndCol = IIf(endCol + maxProximityDist > maxSearchCol, maxSearchCol, endCol + maxProximityDist)
+    Dim proximityEndRow As Long
+    proximityEndRow = IIf(endRow + maxProximityDist > maxSearchRow, maxSearchRow, endRow + maxProximityDist)
     
-    Dim cachedRowValues As Variant
-    If proximityEndCol >= proximityStartCol Then
-        cachedRowValues = ws.Range(ws.Cells(startRow, proximityStartCol), ws.Cells(startRow, proximityEndCol)).Value2
+    Dim cachedColValues As Variant
+    If proximityEndRow >= proximityStartRow Then
+        cachedColValues = ws.Range(ws.Cells(proximityStartRow, startCol), ws.Cells(proximityEndRow, startCol)).Value2
     End If
 
     ' Collect target fill ranges and source cells to update
-    Dim colSourceCells As New Collection
-    Dim colVisibleRanges As New Collection
+    Dim rowSourceCells As New Collection
+    Dim rowVisibleRanges As New Collection
     
     Dim undoRange As Range
 
-    For colIdx = startCol To endCol
+    For rowIdx = startRow To endRow
         Dim sourceCell As Range
-        Set sourceCell = ws.Cells(startRow, colIdx)
+        Set sourceCell = ws.Cells(rowIdx, startCol)
         
-        Dim lastRow As Long
-        lastRow = Infra_CommandSupport.GetFillDownBoundary( _
+        Dim lastCol As Long
+        lastCol = Infra_CommandSupport.GetFillRightBoundary( _
             sourceCell, _
-            maxSearchCol, _
+            maxSearchRow, _
             cachedListObject, _
             cachedCurrentRegion, _
-            cachedRowValues, _
-            proximityStartCol _
+            cachedColValues, _
+            proximityStartRow _
         )
         
-        ' If a valid reference was found and lastRow goes past startRow
-        If lastRow > startRow Then
+        ' If a valid reference was found and lastCol goes past startCol
+        If lastCol > startCol Then
             Dim fillRange As Range
-            Set fillRange = ws.Range(ws.Cells(startRow + 1, colIdx), ws.Cells(lastRow, colIdx))
+            Set fillRange = ws.Range(ws.Cells(rowIdx, startCol + 1), ws.Cells(rowIdx, lastCol))
             
             Dim visibleRange As Range
             If fillRange.CountLarge = 1 Then
@@ -117,45 +117,45 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
             End If
             
             If Not visibleRange Is Nothing Then
-                colSourceCells.Add sourceCell
-                colVisibleRanges.Add visibleRange
+                rowSourceCells.Add sourceCell
+                rowVisibleRanges.Add visibleRange
                 
                 ' Accumulate the full modified area for a single consolidated undo action
-                Dim fullColRange As Range
-                Set fullColRange = ws.Range(sourceCell, ws.Cells(lastRow, colIdx))
+                Dim fullRowRange As Range
+                Set fullRowRange = ws.Range(sourceCell, ws.Cells(rowIdx, lastCol))
                 If undoRange Is Nothing Then
-                    Set undoRange = fullColRange
+                    Set undoRange = fullRowRange
                 Else
-                    Set undoRange = Union(undoRange, fullColRange)
+                    Set undoRange = Union(undoRange, fullRowRange)
                 End If
             End If
         End If
-    Next colIdx
+    Next rowIdx
 
     ' --- EXECUTION ---
-    If colSourceCells.Count = 0 Then GoTo CleanExit
+    If rowSourceCells.Count = 0 Then GoTo CleanExit
 
-    ' Safety Check: Sum up the areas of all columns' visible ranges to prevent fragmentation crashes
+    ' Safety Check: Sum up the areas of all rows' visible ranges to prevent fragmentation crashes
     Dim totalAreas As Long
     Dim i As Long
-    For i = 1 To colVisibleRanges.Count
-        totalAreas = totalAreas + colVisibleRanges(i).Areas.Count
+    For i = 1 To rowVisibleRanges.Count
+        totalAreas = totalAreas + rowVisibleRanges(i).Areas.Count
     Next i
     
     If totalAreas > Infra_Config.MAX_FILL_DOWN_AREAS Then
-        Err.Raise vbObjectError + 1001, "FillDown.Execute", _
+        Err.Raise vbObjectError + 1001, "FillRight.Execute", _
             "The target range is too fragmented (exceeds " & Format(Infra_Config.MAX_FILL_DOWN_AREAS, "#,##0") & " non-contiguous areas). Action aborted to prevent Excel from freezing."
     End If
 
     ' Register Undo for the combined range
     If Not undoRange Is Nothing Then
-        If Not Infra_Undo.SaveStateOrConfirm(undoRange, "Fill Down") Then GoTo CleanExit
+        If Not Infra_Undo.SaveStateOrConfirm(undoRange, "Fill Right") Then GoTo CleanExit
     End If
 
-    ' Copy/Paste values for each column
-    For i = 1 To colSourceCells.Count
-        Set sourceCell = colSourceCells(i)
-        Set visibleRange = colVisibleRanges(i)
+    ' Copy/Paste values/formulas/formats for each row
+    For i = 1 To rowSourceCells.Count
+        Set sourceCell = rowSourceCells(i)
+        Set visibleRange = rowVisibleRanges(i)
         
         sourceCell.Copy
         visibleRange.PasteSpecial Paste:=xlPasteAll
@@ -168,9 +168,9 @@ CleanExit:
 
 ErrHandler:
     If Err.Number = vbObjectError + 1001 Then
-        Infra_Error.HandleErrorDetailed "FillDown.Execute", Err, Nothing, Infra_Error.CATEGORY_VALIDATION, Infra_Error.SEVERITY_WARNING
+        Infra_Error.HandleErrorDetailed "FillRight.Execute", Err, Nothing, Infra_Error.CATEGORY_VALIDATION, Infra_Error.SEVERITY_WARNING
     Else
-        Infra_Error.HandleError "FillDown.Execute", Err
+        Infra_Error.HandleError "FillRight.Execute", Err
     End If
     Resume CleanExit
 End Sub

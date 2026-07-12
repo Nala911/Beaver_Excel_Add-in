@@ -1,15 +1,15 @@
 ﻿{
-  "timestamp": "2026-07-10T01:23:50+05:30",
+  "timestamp": "2026-07-12T13:35:00+05:30",
   "status": "success",
   "commandLine": ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
-  "buildMode": "full",
+  "buildMode": "incremental",
   "system": {
     "os": "Microsoft Windows NT 10.0.26200.0",
     "powershellVersion": "7.6.0",
     "excelProcess": {
-      "pid": 8792,
+      "pid": 0,
       "wasAlreadyOpen": false,
-      "reusedSession": true,
+      "reusedSession": false,
       "lockRecovered": false
     }
   },
@@ -20,62 +20,7 @@
     "manifestChanged": false,
     "manifestStructureChanged": false
   },
-  "stages": [
-    {
-      "name": "manifest_sync",
-      "status": "success",
-      "durationMs": 74.39,
-      "details": "features synced from features.json"
-    },
-    {
-      "name": "command_registry_generation",
-      "status": "success",
-      "durationMs": 51.5,
-      "details": "command registry, help manifest, UDF registry refreshed"
-    },
-    {
-      "name": "ui_entry_generation",
-      "status": "success",
-      "durationMs": 17.68,
-      "details": "UI entry modules refreshed"
-    },
-    {
-      "name": "test_manifest_generation",
-      "status": "success",
-      "durationMs": 31.64,
-      "details": "test manifest refreshed"
-    },
-    {
-      "name": "validation",
-      "status": "success",
-      "durationMs": 135.92,
-      "details": "ribbon validated (syntax and lint skipped)"
-    },
-    {
-      "name": "environment_checks",
-      "status": "success",
-      "durationMs": 17.06,
-      "details": "workbook available"
-    },
-    {
-      "name": "workbook_update",
-      "status": "success",
-      "durationMs": 4933.51,
-      "details": "modules imported and workbook saved"
-    },
-    {
-      "name": "ribbon_injection",
-      "status": "success",
-      "durationMs": 38.09,
-      "details": "customUI14.xml refreshed"
-    },
-    {
-      "name": "runtime_tests",
-      "status": "success",
-      "durationMs": 5792.7,
-      "details": ""
-    }
-  ],
+  "stages": [],
   "lintResults": {
     "checkedFiles": [],
     "errors": []
@@ -85,17 +30,17 @@
     "errorDetails": null
   },
   "testResults": {
-    "runTests": true,
-    "filter": "",
+    "runTests": false,
+    "filter": null,
     "ribbonValidation": {
-      "status": "skipped",
+      "status": "success",
       "error": null
     },
     "unitTests": {
-      "total": 527,
-      "passed": 527,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "durationMs": 5035,
+      "durationMs": 0,
       "failures": []
     },
     "headlessCallbacks": {
@@ -104,5 +49,5 @@
       "failures": []
     }
   },
-  "totalDurationMs": 13682.78
+  "totalDurationMs": 1228.7
 }
