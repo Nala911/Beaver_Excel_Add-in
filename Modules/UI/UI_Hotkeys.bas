@@ -7,6 +7,19 @@ Option Explicit
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: AppContainer, Infra_Error
 
+Public Sub Hotkey_ApplyDefaultFormat()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_ApplyDefaultFormat")
+    On Error GoTo ErrHandler
+
+    AppContainer.ExecuteEntryPoint "UI_Hotkeys.Hotkey_ApplyDefaultFormat", "Hotkey_ApplyDefaultFormat", "Hotkey"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Hotkey_ApplyDefaultFormat", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Hotkey_ApplyCustomNumberFormat()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Hotkey_ApplyCustomNumberFormat")
     On Error GoTo ErrHandler

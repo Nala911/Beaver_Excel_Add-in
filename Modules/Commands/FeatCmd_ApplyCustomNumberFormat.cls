@@ -13,7 +13,7 @@ Implements ICommand
 
 ' @Module: FeatCmd_ApplyCustomNumberFormat
 ' @Category: Feature
-' @Description: Applies a custom number format to the selected range.
+' @Description: Prompts for a custom number format code and applies it to the selected range.
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
     Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyBulkWrite()
@@ -28,6 +28,7 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     On Error GoTo ErrHandler
     
     Dim targetRange As Range
+    Dim safeRange As Range
     Dim ctx As ActionContext
 
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
@@ -35,8 +36,52 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set targetRange = ctx.SelectionRange
     If targetRange Is Nothing Then GoTo CleanExit
 
-    If Not Infra_Undo.SaveStateOrConfirm(targetRange, "Apply Format", UndoCaptureFormatOnly) Then GoTo CleanExit
-    targetRange.NumberFormat = Infra_Config.Model.DefaultNumberFormat
+    Set safeRange = Infra_CommandSupport.GetSafeProcessingRange(targetRange, 50000, True)
+    If safeRange Is Nothing Then GoTo CleanExit
+
+    ' Determine default pre-populated format
+    Dim defaultFormat As String
+    defaultFormat = Infra_Config.Model.DefaultNumberFormat
+
+    Dim selectionFormat As Variant
+    selectionFormat = safeRange.NumberFormat
+    
+    If Not IsNull(selectionFormat) Then
+        defaultFormat = CStr(selectionFormat)
+    Else
+        ' If the range has mixed formats, fall back to the first cell's format
+        Dim firstCellFormat As Variant
+        firstCellFormat = safeRange.Cells(1, 1).NumberFormat
+        If Not IsNull(firstCellFormat) Then
+            defaultFormat = CStr(firstCellFormat)
+        End If
+    End If
+
+    ' Determine custom format code
+    Dim formatCode As String
+    Dim isTestMock As Boolean
+    
+    isTestMock = False
+    If Not context Is Nothing Then
+        If context.SourceName Like "TEST_FORMAT:*" Then
+            formatCode = Mid$(context.SourceName, 13)
+            isTestMock = True
+        End If
+    End If
+
+    If Not isTestMock Then
+        If Not Infra_Interaction.PromptText( _
+            "Enter custom number format code (e.g. #,##0.0 "" kwh""):", _
+            "Custom Number Format", _
+            defaultFormat, _
+            formatCode) Then
+            GoTo CleanExit
+        End If
+    End If
+
+    ' Apply format code with undo support
+    If Not Infra_Undo.SaveStateOrConfirm(safeRange, "Apply Custom Format", UndoCaptureFormatOnly) Then GoTo CleanExit
+    safeRange.NumberFormat = formatCode
 
 CleanExit:
     Exit Sub

@@ -407,9 +407,15 @@
     "Hotkeys":  [
                     {
                         "Key":  "^+4",
+                        "Macro":  "UI_Hotkeys.Hotkey_ApplyDefaultFormat",
+                        "CommandName":  "ApplyDefaultFormat",
+                        "Description":  "Apply default number format"
+                    },
+                    {
+                        "Key":  "^2",
                         "Macro":  "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat",
                         "CommandName":  "ApplyCustomNumberFormat",
-                        "Description":  "Apply custom number format"
+                        "Description":  "Apply custom number format with dialog"
                     },
                     {
                         "Key":  "^+p",

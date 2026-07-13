@@ -1,11 +1,102 @@
-﻿Attribute VB_Name = "Test_Feat_Formatting"
+Attribute VB_Name = "Test_Feat_Formatting"
 Option Explicit
 
 ' @Module: Test_Feat_Formatting
 ' @Category: Library
 ' @Description: Unit and integration tests for formatting feature commands.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Test_Runner, AppContainer, Infra_Error, Infra_Undo, FeatCmd_ApplyCustomNumberFormat, FeatCmd_PasteFormat, FeatCmd_FormatRange
+' @Dependencies: Test_Runner, AppContainer, Infra_Error, Infra_Undo, FeatCmd_ApplyCustomNumberFormat, FeatCmd_ApplyDefaultFormat, FeatCmd_PasteFormat, FeatCmd_FormatRange
+
+Public Sub Test_ApplyDefaultFormat_Execution()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ApplyDefaultFormat_Execution")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_DefaultFormat"
+
+    ws.Range("A1").Value2 = 1234.56
+
+    ' Initialize AppContainer
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("ApplyDefaultFormat")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A1")
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("ApplyDefaultFormat")
+    cmd.Execute ctx
+
+    Test_Runner.AssertEqual ws.Range("A1").NumberFormat, Infra_Config.Model.DefaultNumberFormat, "Default number format should be applied to A1"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ApplyDefaultFormat_Execution", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ApplyDefaultFormat_WholeSheetSafety()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ApplyDefaultFormat_WholeSheetSafety")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_DefFmtWhole"
+
+    ' Set value in C3
+    ws.Range("C3").Value2 = 1234.56
+
+    ' Initialize AppContainer
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("ApplyDefaultFormat")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Cells ' Entire worksheet selected
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("ApplyDefaultFormat")
+    cmd.Execute ctx
+
+    ' C3 should be formatted
+    Test_Runner.AssertEqual ws.Range("C3").NumberFormat, Infra_Config.Model.DefaultNumberFormat, "C3 should be formatted since it is in the UsedRange"
+
+    ' Z99 (outside UsedRange) should remain unformatted (General format)
+    Test_Runner.AssertEqual ws.Range("Z99").NumberFormat, "General", "Z99 should not be formatted"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ApplyDefaultFormat_WholeSheetSafety", Err
+    Resume CleanExit
+End Sub
 
 Public Sub Test_ApplyCustomNumberFormat_Execution()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ApplyCustomNumberFormat_Execution")
@@ -16,12 +107,14 @@ Public Sub Test_ApplyCustomNumberFormat_Execution()
     ws.Name = "Test_Temp_CustomFormat"
 
     ws.Range("A1").Value2 = 1234.56
+    ws.Range("A1").NumberFormat = "General"
 
     ' Initialize AppContainer
     AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
 
+    ' Pass the mock custom format via sourceName (TEST_FORMAT:<format>)
     Dim ctx As ICommandContext
-    Set ctx = AppContainer.CreateCommandContext("ApplyCustomNumberFormat")
+    Set ctx = AppContainer.CreateCommandContext("ApplyCustomNumberFormat", , "TEST_FORMAT:#,##0.0 "" kwh""")
     Set ctx.ActionContext.WorksheetRef = ws
     Set ctx.ActionContext.WorkbookRef = ThisWorkbook
     Set ctx.ActionContext.SelectionRange = ws.Range("A1")
@@ -31,7 +124,7 @@ Public Sub Test_ApplyCustomNumberFormat_Execution()
     Set cmd = AppContainer.ResolveCommand("ApplyCustomNumberFormat")
     cmd.Execute ctx
 
-    Test_Runner.AssertEqual ws.Range("A1").NumberFormat, Infra_Config.Model.DefaultNumberFormat, "Custom number format should be applied to A1"
+    Test_Runner.AssertEqual ws.Range("A1").NumberFormat, "#,##0.0 "" kwh""", "Custom number format should be applied via mock SourceName"
 
     ' Cleanup
     Application.DisplayAlerts = False
@@ -47,6 +140,56 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_ApplyCustomNumberFormat_Execution", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_ApplyCustomNumberFormat_WholeSheetSafety()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_ApplyCustomNumberFormat_WholeSheetSafety")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_CustFmtWhole"
+
+    ' Set value in C3
+    ws.Range("C3").Value2 = 1234.56
+    ws.Range("C3").NumberFormat = "General"
+
+    ' Initialize AppContainer
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+
+    ' Pass mock custom format via sourceName
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("ApplyCustomNumberFormat", , "TEST_FORMAT:#,##0.0 "" kwh""")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Cells ' Entire worksheet selected
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("ApplyCustomNumberFormat")
+    cmd.Execute ctx
+
+    ' C3 should be formatted
+    Test_Runner.AssertEqual ws.Range("C3").NumberFormat, "#,##0.0 "" kwh""", "C3 should be formatted via mock format"
+
+    ' Z99 (outside UsedRange) should remain unformatted (General format)
+    Test_Runner.AssertEqual ws.Range("Z99").NumberFormat, "General", "Z99 should not be formatted"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_ApplyCustomNumberFormat_WholeSheetSafety", Err
     Resume CleanExit
 End Sub
 

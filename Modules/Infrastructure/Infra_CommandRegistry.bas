@@ -106,6 +106,8 @@ Public Function ResolveCommandName(ByVal entryMacro As String) As String
             ResolveCommandName = "ForceNumber"
         Case "BTNFORCENUMBER"
             ResolveCommandName = "ForceNumber"
+        Case "UI_HOTKEYS.HOTKEY_APPLYDEFAULTFORMAT"
+            ResolveCommandName = "ApplyDefaultFormat"
         Case "UI_HOTKEYS.HOTKEY_APPLYCUSTOMNUMBERFORMAT"
             ResolveCommandName = "ApplyCustomNumberFormat"
         Case "UI_HOTKEYS.HOTKEY_MAKEPERMANENT"
@@ -191,6 +193,8 @@ Public Function CreateCommand(ByVal commandName As String) As ICommand
             Set CreateCommand = New FeatCmd_UnmergeFill
         Case "FORCENUMBER"
             Set CreateCommand = New FeatCmd_ForceNumber
+        Case "APPLYDEFAULTFORMAT"
+            Set CreateCommand = New FeatCmd_ApplyDefaultFormat
         Case "APPLYCUSTOMNUMBERFORMAT"
             Set CreateCommand = New FeatCmd_ApplyCustomNumberFormat
         Case "MAKEPERMANENT"

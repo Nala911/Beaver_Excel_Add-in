@@ -62,9 +62,6 @@ Private Sub Class_Initialize()
         Infra_AppState.OriginalCalculation = m_OriginalCalculation
     End If
     Infra_AppState.GuardNestingLevel = Infra_AppState.GuardNestingLevel + 1
-    
-    ' Apply Default Silent State
-    UpdateState
 
 CleanExit:
     Exit Sub

@@ -38,6 +38,9 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Test_Feat_Editing.Test_MakePermanent_SpillHandling_And_Undo", filterPattern) Then Test_Feat_Editing.Test_MakePermanent_SpillHandling_And_Undo
     If MatchesFilter("Test_Feat_FinancialModelling.Test_FinancialModelling_Execution", filterPattern) Then Test_Feat_FinancialModelling.Test_FinancialModelling_Execution
     If MatchesFilter("Test_Feat_Formatting.Test_ApplyCustomNumberFormat_Execution", filterPattern) Then Test_Feat_Formatting.Test_ApplyCustomNumberFormat_Execution
+    If MatchesFilter("Test_Feat_Formatting.Test_ApplyCustomNumberFormat_WholeSheetSafety", filterPattern) Then Test_Feat_Formatting.Test_ApplyCustomNumberFormat_WholeSheetSafety
+    If MatchesFilter("Test_Feat_Formatting.Test_ApplyDefaultFormat_Execution", filterPattern) Then Test_Feat_Formatting.Test_ApplyDefaultFormat_Execution
+    If MatchesFilter("Test_Feat_Formatting.Test_ApplyDefaultFormat_WholeSheetSafety", filterPattern) Then Test_Feat_Formatting.Test_ApplyDefaultFormat_WholeSheetSafety
     If MatchesFilter("Test_Feat_Formatting.Test_FormatRange_ErrorSafety", filterPattern) Then Test_Feat_Formatting.Test_FormatRange_ErrorSafety
     If MatchesFilter("Test_Feat_Formatting.Test_FormatRange_Execution", filterPattern) Then Test_Feat_Formatting.Test_FormatRange_Execution
     If MatchesFilter("Test_Feat_Formatting.Test_FormatRange_WholeSheetSafety", filterPattern) Then Test_Feat_Formatting.Test_FormatRange_WholeSheetSafety
