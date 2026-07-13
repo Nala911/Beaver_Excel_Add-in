@@ -264,6 +264,31 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+' Saves the list of created named ranges for custom Undo.
+Public Sub SaveCreatedNamesState(ByVal targetWb As Workbook, ByVal namesList As String)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("SaveCreatedNamesState")
+    On Error GoTo ErrHandler
+    
+    ' Clear normal undo metadata and sheet contents
+    Dim undoSh As Worksheet
+    Set undoSh = GetUndoSheet()
+    If Not undoSh Is Nothing Then undoSh.Cells.Clear
+    ClearUndoMetadata
+    
+    ' Save metadata
+    SetUndoMetadataValue UNDO_META_WORKBOOK_NAME, targetWb.Name
+    SetUndoMetadataValue UNDO_META_ACTION_NAME, "Create Named Ranges"
+    SetUndoMetadataValue "BeaverUndoCreatedNames", namesList
+    
+    m_PendingUndoAction = "Create Named Ranges"
+    
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "SaveCreatedNamesState", Err
+    Resume CleanExit
+End Sub
+
 ' Registers the staged undo action with Excel. Called at the end of command execution.
 Public Sub RegisterPendingUndo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("RegisterPendingUndo")
@@ -304,18 +329,57 @@ Public Sub PerformUndo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("PerformUndo")
     On Error GoTo ErrHandler
     
+    Dim actionName As String: actionName = GetUndoMetadataValue(UNDO_META_ACTION_NAME)
     Dim wbName As String: wbName = GetUndoMetadataValue(UNDO_META_WORKBOOK_NAME)
+    
+    If actionName = "Create Named Ranges" Then
+        Dim createdNamesStr As String
+        createdNamesStr = GetUndoMetadataValue("BeaverUndoCreatedNames")
+        
+        Dim targetWb As Workbook
+        On Error Resume Next
+        Set targetWb = Workbooks(wbName)
+        If targetWb Is Nothing Then Set targetWb = ActiveWorkbook
+        On Error GoTo ErrHandler
+        
+        If Not targetWb Is Nothing And createdNamesStr <> "" Then
+            Dim namesArr() As String
+            namesArr = Split(createdNamesStr, ";")
+            
+            Dim i As Long
+            For i = LBound(namesArr) To UBound(namesArr)
+                Dim nameToDelete As String
+                nameToDelete = namesArr(i)
+                If nameToDelete <> "" Then
+                    On Error Resume Next
+                    targetWb.Names(nameToDelete).Delete
+                    On Error GoTo ErrHandler
+                End If
+            Next i
+        End If
+        
+        DeleteUndoMetadataValue "BeaverUndoCreatedNames"
+        ClearUndoMetadata
+        GoTo CleanExit
+    End If
+    
     Dim wsName As String: wsName = GetUndoMetadataValue(UNDO_META_WORKSHEET_NAME)
     Dim addr As String: addr = GetUndoMetadataValue(UNDO_META_ADDRESS_NAME)
     Dim capModeStr As String: capModeStr = GetUndoMetadataValue(UNDO_META_CAPTURE_MODE)
     Dim capMode As UndoCaptureMode
-    capMode = CInt(capModeStr)
+    If capModeStr <> "" Then
+        capMode = CInt(capModeStr)
+    End If
     
     If wbName = "" Or wsName = "" Or addr = "" Then GoTo CleanExit
     
-    Dim targetWb As Workbook
+    Set targetWb = Nothing
     On Error Resume Next
     Set targetWb = Workbooks(wbName)
+    If targetWb Is Nothing Then
+        ' Fallback: maybe it's the active workbook?
+        Set targetWb = ActiveWorkbook
+    End If
     If targetWb Is Nothing Then
         ' Fallback: maybe it's the active workbook?
         Set targetWb = ActiveWorkbook

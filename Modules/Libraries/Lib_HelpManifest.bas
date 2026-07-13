@@ -171,6 +171,12 @@ Public Function GetFeatureHelp() As Collection
     dict.Add "Supertip", "Forces text-formatted numbers in the selection to become actual numeric values."
     col.Add dict
 
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.Add "Label", "Bulk Named Ranges"
+    dict.Add "Screentip", "Bulk Named Ranges"
+    dict.Add "Supertip", "Create Excel named ranges in bulk from non-adjacent value and label ranges. Automatically sanitizes labels."
+    col.Add dict
+
     Set GetFeatureHelp = col
 
 CleanExit:

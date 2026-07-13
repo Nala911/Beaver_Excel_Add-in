@@ -32,6 +32,7 @@
             <button id="BtnClearHighlights" label="Clear Highlights" imageMso="Clear" onAction="Ribbon_OnAction" keytip="CH" screentip="Clear Highlights" supertip="Clears all cells in the workbook matching the highlight color." />
           </menu>
           <button id="BtnBreakLinks" label="Break Links" imageMso="WorkbookLinks" size="large" onAction="Ribbon_OnAction" keytip="BL" screentip="Break External Links" supertip="Removes all external workbook references and keeps current values." />
+          <button id="BtnCreateNamedRanges" label="Bulk Named Ranges" imageMso="NameDefine" size="large" onAction="Ribbon_OnAction" keytip="NR" screentip="Bulk Named Ranges" supertip="Create Excel named ranges in bulk from non-adjacent value and label ranges. Automatically sanitizes labels." />
         </group>
         <group id="GrpExport" label="File Actions">
           <button id="BtnDuplicate" label="Duplicate Workbook" imageMso="FileSaveAs" size="large" onAction="Ribbon_OnAction" keytip="DP" screentip="Duplicate Active Workbook" supertip="Duplicates the active workbook to your Desktop, opens it, and closes the original so you can work safely on the copy." />

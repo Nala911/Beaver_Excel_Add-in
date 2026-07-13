@@ -1,28 +1,93 @@
 ﻿{
-  "timestamp": "2026-07-13T17:07:03+05:30",
+  "timestamp": "2026-07-14T02:13:24+05:30",
   "status": "success",
   "commandLine": ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
-  "buildMode": "incremental",
+  "buildMode": "full",
   "system": {
     "os": "Microsoft Windows NT 10.0.26200.0",
     "powershellVersion": "7.6.0",
     "excelProcess": {
-      "pid": 0,
+      "pid": 15504,
       "wasAlreadyOpen": false,
-      "reusedSession": false,
+      "reusedSession": true,
       "lockRecovered": false
     }
   },
   "changes": {
-    "hasChanges": false,
-    "changedFiles": [],
+    "hasChanges": true,
+    "changedFiles": [
+      "Modules/Commands/FeatCmd_CreateNamedRanges.cls",
+      "Modules/Infrastructure/Infra_AppStateGuard.cls",
+      "Modules/Infrastructure/Infra_CommandSupport.bas"
+    ],
     "deletedFiles": [],
     "manifestChanged": false,
     "manifestStructureChanged": false
   },
-  "stages": [],
+  "stages": [
+    {
+      "name": "manifest_sync",
+      "status": "success",
+      "durationMs": 81.26,
+      "details": "features synced from features.json"
+    },
+    {
+      "name": "command_registry_generation",
+      "status": "success",
+      "durationMs": 52.19,
+      "details": "command registry, help manifest, UDF registry refreshed"
+    },
+    {
+      "name": "ui_entry_generation",
+      "status": "success",
+      "durationMs": 24.21,
+      "details": "UI entry modules refreshed"
+    },
+    {
+      "name": "test_manifest_generation",
+      "status": "success",
+      "durationMs": 34.82,
+      "details": "test manifest refreshed"
+    },
+    {
+      "name": "validation",
+      "status": "success",
+      "durationMs": 815.86,
+      "details": "ribbon, syntax, lint, and form checks passed"
+    },
+    {
+      "name": "environment_checks",
+      "status": "success",
+      "durationMs": 15.88,
+      "details": "workbook available"
+    },
+    {
+      "name": "workbook_update",
+      "status": "success",
+      "durationMs": 5665.74,
+      "details": "modules imported and workbook saved"
+    },
+    {
+      "name": "ribbon_injection",
+      "status": "success",
+      "durationMs": 53.76,
+      "details": "customUI14.xml refreshed"
+    },
+    {
+      "name": "runtime_tests",
+      "status": "success",
+      "durationMs": 7599.72,
+      "details": ""
+    }
+  ],
   "lintResults": {
-    "checkedFiles": [],
+    "checkedFiles": [
+      "Modules/Commands/FeatCmd_CreateNamedRanges.cls",
+      "Modules/Infrastructure/Infra_AppStateGuard.cls",
+      "Modules/Infrastructure/Infra_CommandSupport.bas",
+      "Modules/UI/UI_HelpCenter.frm",
+      "Modules/UI/UI_OptionPicker.frm"
+    ],
     "errors": []
   },
   "compileResults": {
@@ -30,17 +95,17 @@
     "errorDetails": null
   },
   "testResults": {
-    "runTests": false,
-    "filter": null,
+    "runTests": true,
+    "filter": "",
     "ribbonValidation": {
-      "status": "success",
+      "status": "skipped",
       "error": null
     },
     "unitTests": {
-      "total": 0,
-      "passed": 0,
+      "total": 578,
+      "passed": 578,
       "failed": 0,
-      "durationMs": 0,
+      "durationMs": 6684,
       "failures": []
     },
     "headlessCallbacks": {
@@ -49,5 +114,5 @@
       "failures": []
     }
   },
-  "totalDurationMs": 1534.87
+  "totalDurationMs": 16590.55
 }

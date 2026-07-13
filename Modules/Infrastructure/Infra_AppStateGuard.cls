@@ -19,6 +19,8 @@ Private m_OriginalDisplayAlerts As Boolean
 Private m_OriginalCalculation As XlCalculation
 Private m_OriginalDisplayPageBreaks As Boolean
 Private m_ActiveSheetRef As Worksheet
+Private m_OriginalView As XlWindowView
+Private m_HasActiveWindow As Boolean
 
 Private m_ScreenUpdating As Boolean
 Private m_EnableEvents As Boolean
@@ -45,6 +47,16 @@ Private Sub Class_Initialize()
             m_OriginalDisplayPageBreaks = m_ActiveSheetRef.DisplayPageBreaks
             m_ActiveSheetRef.DisplayPageBreaks = False
         End If
+    End If
+    
+    ' Capture ActiveWindow View to toggle off Page Break Preview rendering lag
+    m_HasActiveWindow = False
+    If Not ActiveWindow Is Nothing Then
+        m_OriginalView = ActiveWindow.View
+        If m_OriginalView <> xlNormalView Then
+            ActiveWindow.View = xlNormalView
+        End If
+        m_HasActiveWindow = True
     End If
     On Error GoTo ErrHandler
     
@@ -77,6 +89,15 @@ Private Sub Class_Terminate()
     ' Restore ActiveSheet DisplayPageBreaks
     If Not m_ActiveSheetRef Is Nothing Then
         m_ActiveSheetRef.DisplayPageBreaks = m_OriginalDisplayPageBreaks
+    End If
+    
+    ' Restore ActiveWindow View
+    If m_HasActiveWindow Then
+        If Not ActiveWindow Is Nothing Then
+            If ActiveWindow.View <> m_OriginalView Then
+                ActiveWindow.View = m_OriginalView
+            End If
+        End If
     End If
     
     ' Clear active guard registration

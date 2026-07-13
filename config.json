@@ -25,7 +25,7 @@
   },
   "FeatureFlags": {
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 26
+    "GeneratedFeatureCount": 27
   },
   "Hotkeys": [
     {
@@ -121,6 +121,7 @@
     "BtnReportGenerator": "TableProperties",
     "BtnTableOfContents": "TableOfContentsDialog",
     "BtnUnmergeFill": "TableProperties",
-    "BtnForceNumber": "CalculateNow"
+    "BtnForceNumber": "CalculateNow",
+    "BtnCreateNamedRanges": "NameDefine"
   }
 }

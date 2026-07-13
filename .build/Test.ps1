@@ -462,7 +462,10 @@ try {
                             }
                             $runCompleted = $true
                         } catch {
-                            $errMsg = $_.Exception.Message + " " + $_.Exception.InnerException.Message
+                            $errMsg = $_.Exception.Message
+                            if ($null -ne $_.Exception.InnerException) {
+                                $errMsg += " " + $_.Exception.InnerException.Message
+                            }
                             if ($errMsg -match "0x800AC472" -or $errMsg -match "800ac472") {
                                 $retryCount++
                                 Write-Host "  Excel is busy (0x800AC472). Retrying in 1s ($retryCount/$maxRetries)..." -ForegroundColor Yellow

@@ -27,7 +27,8 @@
                                         "BtnCleanData",
                                         "BtnModifyData",
                                         "BtnHighlightData",
-                                        "BtnBreakLinks"
+                                        "BtnBreakLinks",
+                                        "BtnCreateNamedRanges"
                                     ]
                    },
                    {
@@ -401,6 +402,19 @@
                          "Keytip":  "FN",
                          "Screentip":  "Convert Text to Number",
                          "Supertip":  "Forces text-formatted numbers in the selection to become actual numeric values.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnCreateNamedRanges",
+                         "Label":  "Bulk Named Ranges",
+                         "OnAction":  "Ribbon_OnCreateNamedRanges",
+                         "Macro":  "UI_Ribbon.Ribbon_OnCreateNamedRanges",
+                         "CommandName":  "CreateNamedRanges",
+                         "CommandClass":  "FeatCmd_CreateNamedRanges",
+                         "Icon":  "NameDefine",
+                         "Keytip":  "NR",
+                         "Screentip":  "Bulk Named Ranges",
+                         "Supertip":  "Create Excel named ranges in bulk from non-adjacent value and label ranges. Automatically sanitizes labels.",
                          "RuntimeTestMode":  "interactive"
                      }
                  ],

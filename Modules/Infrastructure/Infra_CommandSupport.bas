@@ -674,7 +674,7 @@ Public Function AccumulateUnion( _
     Set AccumulateUnion = currentUnion
 
     If cellAddr <> vbNullString Then
-        If Len(addrList) + Len(cellAddr) + 1 > 240 Then
+        If Len(addrList) + Len(cellAddr) + 1 > 255 Then
             ' Flush current buffer
             If addrList <> vbNullString Then
                 If AccumulateUnion Is Nothing Then
