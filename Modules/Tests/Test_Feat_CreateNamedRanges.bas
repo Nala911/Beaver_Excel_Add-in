@@ -14,14 +14,19 @@ Public Sub Test_CreateNamedRanges_Sanitization()
     Dim cmd As New FeatCmd_CreateNamedRanges
     
     ' Run assertions for sanitization logic
-    Test_Runner.AssertEqual cmd.SanitizeExcelName("WACC %"), "WACC__", "WACC % should replace spaces and symbols with underscores"
+    Test_Runner.AssertEqual cmd.SanitizeExcelName("WACC %"), "WACC_", "WACC % should replace spaces and symbols with underscores and collapse them"
     Test_Runner.AssertEqual cmd.SanitizeExcelName("2026 Forecast"), "_2026_Forecast", "2026 Forecast should prepend underscore and replace space"
     Test_Runner.AssertEqual cmd.SanitizeExcelName("A1"), "A1_", "A1 coordinate conflict should append underscore"
-    Test_Runner.AssertEqual cmd.SanitizeExcelName("Terminal Value - Year 5"), "Terminal_Value___Year_5", "Terminal Value hyphen and spaces should become underscores"
+    Test_Runner.AssertEqual cmd.SanitizeExcelName("Terminal Value - Year 5"), "Terminal_Value_Year_5", "Terminal Value hyphen and spaces should become a single collapsed underscore"
     Test_Runner.AssertEqual cmd.SanitizeExcelName("C"), "C_", "C coordinate conflict should append underscore"
     Test_Runner.AssertEqual cmd.SanitizeExcelName("R"), "R_", "R coordinate conflict should append underscore"
     Test_Runner.AssertEqual cmd.SanitizeExcelName("USD100"), "USD100_", "Valid-looking cell coordinate USD100 should append underscore"
-    Test_Runner.AssertEqual cmd.SanitizeExcelName("  Discount Rate (WACC)  "), "Discount_Rate__WACC_", "Leading/trailing spaces should trim, brackets become underscores"
+    Test_Runner.AssertEqual cmd.SanitizeExcelName("  Discount Rate (WACC)  "), "Discount_Rate_WACC_", "Leading/trailing spaces trimmed, brackets/spaces collapsed to single underscore"
+    
+    ' Reserved word checks
+    Test_Runner.AssertEqual cmd.SanitizeExcelName("Print_Area"), "Print_Area_", "Print_Area reserved word should append underscore"
+    Test_Runner.AssertEqual cmd.SanitizeExcelName("Database"), "Database_", "Database reserved word should append underscore"
+    Test_Runner.AssertEqual cmd.SanitizeExcelName("CRITERIA"), "CRITERIA_", "CRITERIA reserved word should append underscore"
 
 CleanExit:
     Exit Sub
@@ -299,6 +304,143 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_CreateNamedRanges_EmptyValueSkipping", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_CreateNamedRanges_FullColumnOptimized()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CreateNamedRanges_FullColumnOptimized")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_FullCol"
+
+    ' Setup a few non-empty rows at the top
+    ws.Range("A1").Value2 = "Assumption_X"
+    ws.Range("A2").Value2 = ""                 ' Empty label
+    ws.Range("A3").Value2 = "Assumption_Y"
+    
+    ws.Range("B1").Value2 = 100
+    ws.Range("B2").Value2 = 200
+    ws.Range("B3").Value2 = 300
+
+    Dim cmd As New FeatCmd_CreateNamedRanges
+    Dim createdCount As Long
+    Dim createdList As String
+    Dim success As Boolean
+
+    ' Run bulk naming on full column ranges A:A and B:B
+    success = cmd.ExecuteBulkNamedRangesDirect( _
+        ws.Range("B:B"), ws.Range("A:A"), "Workbook", ThisWorkbook, ws, True, False, createdCount, createdList)
+
+    Test_Runner.AssertEqual success, True, "Full column execution should succeed quickly"
+    Test_Runner.AssertEqual createdCount, 2#, "Should have created exactly 2 named ranges (Assumption_X and Assumption_Y)"
+    Test_Runner.AssertEqual createdList, "Assumption_X;Assumption_Y", "Only B1 and B3 named, row 2 skipped"
+
+    ' Test Overwriting Collision (A1 is now renamed to Assumption_Z)
+    ws.Range("A1").Value2 = "Assumption_Z"
+    
+    success = cmd.ExecuteBulkNamedRangesDirect( _
+        ws.Range("B1"), ws.Range("A1"), "Workbook", ThisWorkbook, ws, True, False, createdCount, createdList)
+        
+    Test_Runner.AssertEqual success, True, "Overwriting should succeed"
+    
+    ' Old name Assumption_X should have been deleted, new name Assumption_Z created
+    Dim nameDeletedCheck As Boolean
+    Dim nameObj As Name
+    On Error Resume Next
+    Set nameObj = ThisWorkbook.Names("Assumption_X")
+    nameDeletedCheck = (Err.Number <> 0 Or nameObj Is Nothing)
+    On Error GoTo ErrHandler
+    Test_Runner.AssertEqual nameDeletedCheck, True, "Old name Assumption_X should be deleted when overwritten"
+    
+    Dim newNameObj As Name
+    On Error Resume Next
+    Set newNameObj = ThisWorkbook.Names("Assumption_Z")
+    On Error GoTo ErrHandler
+    Test_Runner.AssertEqual Not newNameObj Is Nothing, True, "New name Assumption_Z should exist"
+
+    ' Cleanup names
+    On Error Resume Next
+    ThisWorkbook.Names("Assumption_Z").Delete
+    ThisWorkbook.Names("Assumption_Y").Delete
+    On Error GoTo ErrHandler
+
+    ' Cleanup sheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_CreateNamedRanges_FullColumnOptimized", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_CreateNamedRanges_ApplyNames()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CreateNamedRanges_ApplyNames")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_ApplyN"
+
+    ws.Range("A1").Value2 = "Val_Rate"
+    ws.Range("B1").Value2 = 0.05
+    
+    ws.Range("A2").Value2 = "Val_Principal"
+    ws.Range("B2").Value2 = 1000
+    
+    ' Formula referencing B1 and B2 before naming
+    ws.Range("B3").Formula2 = "=B2 * (1 + B1)"
+    Test_Runner.AssertEqual ws.Range("B3").Formula2, "=B2 * (1 + B1)", "Initial formula has cell references"
+
+    Dim cmd As New FeatCmd_CreateNamedRanges
+    Dim createdCount As Long
+    Dim createdList As String
+    Dim success As Boolean
+
+    ' Execute bulk named ranges
+    success = cmd.ExecuteBulkNamedRangesDirect( _
+        ws.Range("B1:B2"), ws.Range("A1:A2"), "Workbook", ThisWorkbook, ws, True, False, createdCount, createdList)
+
+    Test_Runner.AssertEqual success, True, "Execution should succeed"
+    Test_Runner.AssertEqual createdCount, 2#, "Should create 2 names"
+    
+    ' Check if formula in B3 was automatically updated to use named ranges
+    Dim formulaResult As String: formulaResult = UCase$(ws.Range("B3").Formula2)
+    Dim ratePresent As Boolean: ratePresent = (InStr(formulaResult, "VAL_RATE") > 0)
+    Dim principalPresent As Boolean: principalPresent = (InStr(formulaResult, "VAL_PRINCIPAL") > 0)
+    
+    Test_Runner.AssertEqual ratePresent, True, "Formula should contain Val_Rate"
+    Test_Runner.AssertEqual principalPresent, True, "Formula should contain Val_Principal"
+
+    ' Cleanup names
+    On Error Resume Next
+    ThisWorkbook.Names("Val_Rate").Delete
+    ThisWorkbook.Names("Val_Principal").Delete
+    On Error GoTo ErrHandler
+
+    ' Cleanup sheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_CreateNamedRanges_ApplyNames", Err
     Resume CleanExit
 End Sub
 

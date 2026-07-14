@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "Infra_Interaction"
+Attribute VB_Name = "Infra_Interaction"
 Option Explicit
 
 ' @Module: Infra_Interaction
@@ -132,7 +132,7 @@ ErrHandler:
     Resume CleanExit
 End Function
 
-Public Function PromptRange(ByVal promptMsg As String, ByVal title As String, ByRef outRange As Range) As Boolean
+Public Function PromptRange(ByVal promptMsg As String, ByVal title As String, ByRef outRange As Range, Optional ByVal defaultVal As Variant) As Boolean
     Dim tracker As Object: Set tracker = Infra_Error.Track("PromptRange")
     On Error GoTo ErrHandler
 
@@ -149,7 +149,11 @@ Public Function PromptRange(ByVal promptMsg As String, ByVal title As String, By
     Dim selectedRange As Range
 
     On Error Resume Next
-    Set selectedRange = Application.InputBox(Prompt:=promptMsg, Title:=ResolveTitle(title), Type:=8)
+    If IsMissing(defaultVal) Then
+        Set selectedRange = Application.InputBox(Prompt:=promptMsg, Title:=ResolveTitle(title), Type:=8)
+    Else
+        Set selectedRange = Application.InputBox(Prompt:=promptMsg, Title:=ResolveTitle(title), Default:=defaultVal, Type:=8)
+    End If
     On Error GoTo ErrHandler
 
     If selectedRange Is Nothing Then

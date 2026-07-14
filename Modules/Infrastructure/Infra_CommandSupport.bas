@@ -1004,10 +1004,13 @@ Public Function GetFillDownBoundary( _
         Dim maxProximityDist As Long: maxProximityDist = Infra_Config.MAX_FILL_PROXIMITY_COLUMNS
         Dim dist As Long
         Dim leftCol As Long, rightCol As Long
-        Dim targetCol As Long
         
         Dim useCache As Boolean
         useCache = IsArray(cachedRowValues) And (cachedRowStartCol > 0)
+        
+        Dim nearRegion As Range
+        Dim inCached As Boolean
+        Dim candidateLastRow As Long
         
         For dist = 1 To maxProximityDist
             leftCol = colIdx - dist
@@ -1026,9 +1029,23 @@ Public Function GetFillDownBoundary( _
                 End If
                 
                 If Not leftIsEmpty Then
-                    targetCol = leftCol
-                    foundRef = True
-                    Exit For
+                    If Not cachedCurrentRegion Is Nothing Then
+                        inCached = (leftCol >= cachedCurrentRegion.Column) And _
+                                   (leftCol <= cachedCurrentRegion.Column + cachedCurrentRegion.Columns.Count - 1)
+                        If inCached Then
+                            Set nearRegion = cachedCurrentRegion
+                        Else
+                            Set nearRegion = ws.Cells(startRow, leftCol).CurrentRegion
+                        End If
+                    Else
+                        Set nearRegion = ws.Cells(startRow, leftCol).CurrentRegion
+                    End If
+                    candidateLastRow = nearRegion.Row + nearRegion.Rows.Count - 1
+                    If candidateLastRow > startRow Then
+                        lastRow = candidateLastRow
+                        foundRef = True
+                        Exit For
+                    End If
                 End If
             End If
             
@@ -1048,29 +1065,26 @@ Public Function GetFillDownBoundary( _
                 End If
                 
                 If Not rightIsEmpty Then
-                    targetCol = rightCol
-                    foundRef = True
-                    Exit For
+                    If Not cachedCurrentRegion Is Nothing Then
+                        inCached = (rightCol >= cachedCurrentRegion.Column) And _
+                                   (rightCol <= cachedCurrentRegion.Column + cachedCurrentRegion.Columns.Count - 1)
+                        If inCached Then
+                            Set nearRegion = cachedCurrentRegion
+                        Else
+                            Set nearRegion = ws.Cells(startRow, rightCol).CurrentRegion
+                        End If
+                    Else
+                        Set nearRegion = ws.Cells(startRow, rightCol).CurrentRegion
+                    End If
+                    candidateLastRow = nearRegion.Row + nearRegion.Rows.Count - 1
+                    If candidateLastRow > startRow Then
+                        lastRow = candidateLastRow
+                        foundRef = True
+                        Exit For
+                    End If
                 End If
             End If
         Next dist
-        
-        If foundRef Then
-            Dim nearRegion As Range
-            If Not cachedCurrentRegion Is Nothing Then
-                Dim inCached As Boolean
-                inCached = (targetCol >= cachedCurrentRegion.Column) And _
-                           (targetCol <= cachedCurrentRegion.Column + cachedCurrentRegion.Columns.Count - 1)
-                If inCached Then
-                    Set nearRegion = cachedCurrentRegion
-                Else
-                    Set nearRegion = ws.Cells(startRow, targetCol).CurrentRegion
-                End If
-            Else
-                Set nearRegion = ws.Cells(startRow, targetCol).CurrentRegion
-            End If
-            lastRow = nearRegion.Row + nearRegion.Rows.Count - 1
-        End If
     End If
     
     If foundRef And lastRow > startRow Then
@@ -1131,15 +1145,17 @@ Public Function GetFillRightBoundary( _
         End If
     End If
     
-    ' 2. Proximity Search (closest row neighbor)
     If Not foundRef Then
         Dim maxProximityDist As Long: maxProximityDist = Infra_Config.MAX_FILL_PROXIMITY_COLUMNS
         Dim dist As Long
         Dim upRow As Long, downRow As Long
-        Dim targetRow As Long
         
         Dim useCache As Boolean
         useCache = IsArray(cachedColValues) And (cachedColStartRow > 0)
+        
+        Dim nearRegion As Range
+        Dim inCached As Boolean
+        Dim candidateLastCol As Long
         
         For dist = 1 To maxProximityDist
             upRow = rowIdx - dist
@@ -1158,9 +1174,23 @@ Public Function GetFillRightBoundary( _
                 End If
                 
                 If Not upIsEmpty Then
-                    targetRow = upRow
-                    foundRef = True
-                    Exit For
+                    If Not cachedCurrentRegion Is Nothing Then
+                        inCached = (upRow >= cachedCurrentRegion.Row) And _
+                                   (upRow <= cachedCurrentRegion.Row + cachedCurrentRegion.Rows.Count - 1)
+                        If inCached Then
+                            Set nearRegion = cachedCurrentRegion
+                        Else
+                            Set nearRegion = ws.Cells(upRow, startCol).CurrentRegion
+                        End If
+                    Else
+                        Set nearRegion = ws.Cells(upRow, startCol).CurrentRegion
+                    End If
+                    candidateLastCol = nearRegion.Column + nearRegion.Columns.Count - 1
+                    If candidateLastCol > startCol Then
+                        lastCol = candidateLastCol
+                        foundRef = True
+                        Exit For
+                    End If
                 End If
             End If
             
@@ -1180,29 +1210,26 @@ Public Function GetFillRightBoundary( _
                 End If
                 
                 If Not downIsEmpty Then
-                    targetRow = downRow
-                    foundRef = True
-                    Exit For
+                    If Not cachedCurrentRegion Is Nothing Then
+                        inCached = (downRow >= cachedCurrentRegion.Row) And _
+                                   (downRow <= cachedCurrentRegion.Row + cachedCurrentRegion.Rows.Count - 1)
+                        If inCached Then
+                            Set nearRegion = cachedCurrentRegion
+                        Else
+                            Set nearRegion = ws.Cells(downRow, startCol).CurrentRegion
+                        End If
+                    Else
+                        Set nearRegion = ws.Cells(downRow, startCol).CurrentRegion
+                    End If
+                    candidateLastCol = nearRegion.Column + nearRegion.Columns.Count - 1
+                    If candidateLastCol > startCol Then
+                        lastCol = candidateLastCol
+                        foundRef = True
+                        Exit For
+                    End If
                 End If
             End If
         Next dist
-        
-        If foundRef Then
-            Dim nearRegion As Range
-            If Not cachedCurrentRegion Is Nothing Then
-                Dim inCached As Boolean
-                inCached = (targetRow >= cachedCurrentRegion.Row) And _
-                           (targetRow <= cachedCurrentRegion.Row + cachedCurrentRegion.Rows.Count - 1)
-                If inCached Then
-                    Set nearRegion = cachedCurrentRegion
-                Else
-                    Set nearRegion = ws.Cells(targetRow, startCol).CurrentRegion
-                End If
-            Else
-                Set nearRegion = ws.Cells(targetRow, startCol).CurrentRegion
-            End If
-            lastCol = nearRegion.Column + nearRegion.Columns.Count - 1
-        End If
     End If
     
     If foundRef And lastCol > startCol Then
@@ -1217,5 +1244,31 @@ ErrHandler:
     Infra_Error.HandleError "GetFillRightBoundary", Err
     Resume CleanExit
 End Function
+
+' Checks if innerRange is geometrically inside outerRange.
+Public Function IsRangeInsideRange(ByVal innerRange As Range, ByVal outerRange As Range) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("IsRangeInsideRange")
+    On Error GoTo ErrHandler
+
+    IsRangeInsideRange = False
+    
+    If innerRange Is Nothing Or outerRange Is Nothing Then Exit Function
+    If innerRange.Worksheet.Parent.Name <> outerRange.Worksheet.Parent.Name Then Exit Function
+    If innerRange.Worksheet.Name <> outerRange.Worksheet.Name Then Exit Function
+
+    If (innerRange.Row >= outerRange.Row) And _
+       (innerRange.Row + innerRange.Rows.Count - 1 <= outerRange.Row + outerRange.Rows.Count - 1) And _
+       (innerRange.Column >= outerRange.Column) And _
+       (innerRange.Column + innerRange.Columns.Count - 1 <= outerRange.Column + outerRange.Columns.Count - 1) Then
+        IsRangeInsideRange = True
+    End If
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "IsRangeInsideRange", Err
+    Resume CleanExit
+End Function
+
 
 

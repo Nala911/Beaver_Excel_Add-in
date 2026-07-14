@@ -251,11 +251,101 @@ Private Sub ApplyWrapperCellToCell(ByVal targetCell As Range, ByVal wrapperFormu
     Dim tracker As Object: Set tracker = Infra_Error.Track("ApplyWrapperCellToCell")
     On Error GoTo ErrHandler
 
+    Dim tokenStart As Long
+    Dim tokenLength As Long
+    
+    If PreCalculateTokenPosition(wrapperFormula, targetCell, tokenStart, tokenLength) Then
+        FastApplyWrapperCellToCell targetCell, wrapperFormula, tokenStart, tokenLength, errorCount
+    Else
+        errorCount = errorCount + 1
+    End If
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "ApplyWrapperCellToCell", Err
+    errorCount = errorCount + 1
+    Resume CleanExit
+End Sub
+
+' Finds the target reference token's start index and length in the wrapper formula.
+' If no match is found, or if it doesn't overlap targetCells, falls back to the first reference token.
+' Returns True if a token was found, False otherwise.
+Private Function PreCalculateTokenPosition( _
+    ByVal wrapperFormula As String, _
+    ByVal targetCells As Range, _
+    ByRef outStartIndex As Long, _
+    ByRef outTokenLength As Long) As Boolean
+    
+    Dim tracker As Object: Set tracker = Infra_Error.Track("PreCalculateTokenPosition")
+    On Error GoTo ErrHandler
+    
+    PreCalculateTokenPosition = False
+    outStartIndex = 0
+    outTokenLength = 0
+    
+    Dim re As Object
+    Set re = GetRegExp()
+    
+    Dim matches As Object
+    Set matches = re.Execute(wrapperFormula)
+    If matches.Count = 0 Then Exit Function
+    
+    Dim targetMatch As Object
+    Dim matchObj As Object
+    
+    For Each matchObj In matches
+        If IsReferenceToRange(matchObj.Value, targetCells) Then
+            Set targetMatch = matchObj
+            Exit For
+        End If
+    Next matchObj
+    
+    If targetMatch Is Nothing Then
+        Set targetMatch = matches(0)
+    End If
+    
+    outStartIndex = targetMatch.FirstIndex + 1
+    outTokenLength = Len(targetMatch.Value)
+    PreCalculateTokenPosition = True
+    
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "PreCalculateTokenPosition", Err
+    Resume CleanExit
+End Function
+
+' Performs a fast string replacement at a pre-calculated index/length.
+Private Function FastReplaceCellReference( _
+    ByVal formulaText As String, _
+    ByVal replacementText As String, _
+    ByVal tokenStart As Long, _
+    ByVal tokenLength As Long) As String
+    
+    If tokenStart > 0 And tokenLength > 0 And tokenStart <= Len(formulaText) Then
+        FastReplaceCellReference = Left$(formulaText, tokenStart - 1) & replacementText & Mid$(formulaText, tokenStart + tokenLength)
+    Else
+        FastReplaceCellReference = formulaText
+    End If
+End Function
+
+' Performs a fast wrapper cell application using pre-calculated token locations.
+Private Sub FastApplyWrapperCellToCell( _
+    ByVal targetCell As Range, _
+    ByVal wrapperFormula As String, _
+    ByVal tokenStart As Long, _
+    ByVal tokenLength As Long, _
+    ByRef errorCount As Long)
+    
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FastApplyWrapperCellToCell")
+    On Error GoTo ErrHandler
+
     Dim replacementText As String
     Dim finalFormula As String
 
     replacementText = GetCellArgumentText(targetCell)
-    finalFormula = ReplaceCellReference(wrapperFormula, replacementText, targetCell)
+    finalFormula = FastReplaceCellReference(wrapperFormula, replacementText, tokenStart, tokenLength)
 
     If finalFormula = vbNullString Then
         errorCount = errorCount + 1
@@ -273,12 +363,12 @@ Private Sub ApplyWrapperCellToCell(ByVal targetCell As Range, ByVal wrapperFormu
 
 CleanExit:
     Exit Sub
-
 ErrHandler:
-    Infra_Error.HandleError "ApplyWrapperCellToCell", Err
+    Infra_Error.HandleError "FastApplyWrapperCellToCell", Err
     errorCount = errorCount + 1
     Resume CleanExit
 End Sub
+
 
 Private Function ReplaceCellReference(ByVal formulaText As String, ByVal replacementText As String, ByVal targetRange As Range) As String
     Dim tracker As Object: Set tracker = Infra_Error.Track("ReplaceCellReference")
@@ -559,9 +649,19 @@ Private Sub ApplyWrapperCellToRange(ByVal targetCells As Range, ByVal wrapperFor
     Dim finalFormula As String
     Dim cell As Range
 
+    Dim tokenStart As Long
+    Dim tokenLength As Long
+    Dim hasToken As Boolean
+    
+    hasToken = PreCalculateTokenPosition(wrapperFormula, targetCells, tokenStart, tokenLength)
+
     For Each area In targetCells.Areas
         If area.CountLarge = 1 Then
-            ApplyWrapperCellToCell area.Cells(1, 1), wrapperFormula, errorCount
+            If hasToken Then
+                FastApplyWrapperCellToCell area.Cells(1, 1), wrapperFormula, tokenStart, tokenLength, errorCount
+            Else
+                ApplyWrapperCellToCell area.Cells(1, 1), wrapperFormula, errorCount
+            End If
         Else
             formulas = area.Formula2
             values = area.Value2
@@ -592,7 +692,11 @@ Private Sub ApplyWrapperCellToRange(ByVal targetCells As Range, ByVal wrapperFor
                         End If
                     End If
 
-                    finalFormula = ReplaceCellReference(wrapperFormula, replacementText, targetCells)
+                    If hasToken Then
+                        finalFormula = FastReplaceCellReference(wrapperFormula, replacementText, tokenStart, tokenLength)
+                    Else
+                        finalFormula = ReplaceCellReference(wrapperFormula, replacementText, targetCells)
+                    End If
                     formulas(r, c) = finalFormula
                 Next c
             Next r
@@ -602,7 +706,11 @@ Private Sub ApplyWrapperCellToRange(ByVal targetCells As Range, ByVal wrapperFor
             If Err.Number <> 0 Then
                 Err.Clear
                 For Each cell In area.Cells
-                    ApplyWrapperCellToCell cell, wrapperFormula, errorCount
+                    If hasToken Then
+                        FastApplyWrapperCellToCell cell, wrapperFormula, tokenStart, tokenLength, errorCount
+                    Else
+                        ApplyWrapperCellToCell cell, wrapperFormula, errorCount
+                    End If
                 Next cell
             End If
             On Error GoTo ErrHandler

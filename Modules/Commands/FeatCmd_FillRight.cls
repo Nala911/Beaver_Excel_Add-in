@@ -32,6 +32,9 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Dim startCol As Long
     Dim startRow As Long, endRow As Long
     Dim rowIdx As Long
+    Dim sourceCell As Range
+    Dim visibleRange As Range
+    Dim fullGroupRange As Range
     
     Dim ctx As ActionContext
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
@@ -86,8 +89,14 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     
     Dim undoRange As Range
 
+    ' We will loop through the rows and group contiguous rows that share the same lastCol
+    Dim groupStartRow As Long
+    Dim currentGroupLastCol As Long
+    
+    groupStartRow = startRow
+    currentGroupLastCol = -1
+    
     For rowIdx = startRow To endRow
-        Dim sourceCell As Range
         Set sourceCell = ws.Cells(rowIdx, startCol)
         
         Dim lastCol As Long
@@ -100,37 +109,22 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
             proximityStartRow _
         )
         
-        ' If a valid reference was found and lastCol goes past startCol
-        If lastCol > startCol Then
-            Dim fillRange As Range
-            Set fillRange = ws.Range(ws.Cells(rowIdx, startCol + 1), ws.Cells(rowIdx, lastCol))
-            
-            Dim visibleRange As Range
-            If fillRange.CountLarge = 1 Then
-                If Not fillRange.EntireRow.Hidden And Not fillRange.EntireColumn.Hidden Then
-                    Set visibleRange = fillRange
-                End If
-            Else
-                On Error Resume Next
-                Set visibleRange = fillRange.SpecialCells(xlCellTypeVisible)
-                On Error GoTo ErrHandler
-            End If
-            
-            If Not visibleRange Is Nothing Then
-                rowSourceCells.Add sourceCell
-                rowVisibleRanges.Add visibleRange
-                
-                ' Accumulate the full modified area for a single consolidated undo action
-                Dim fullRowRange As Range
-                Set fullRowRange = ws.Range(sourceCell, ws.Cells(rowIdx, lastCol))
-                If undoRange Is Nothing Then
-                    Set undoRange = fullRowRange
-                Else
-                    Set undoRange = Union(undoRange, fullRowRange)
-                End If
+        ' We want to see if we can continue the current group
+        If rowIdx = startRow Then
+            currentGroupLastCol = lastCol
+        Else
+            If lastCol <> currentGroupLastCol Then
+                ' Process the group from groupStartRow to rowIdx - 1
+                ProcessFillRightGroup ws, startCol, groupStartRow, rowIdx - 1, currentGroupLastCol, rowSourceCells, rowVisibleRanges, undoRange
+                ' Start a new group
+                groupStartRow = rowIdx
+                currentGroupLastCol = lastCol
             End If
         End If
     Next rowIdx
+    
+    ' Process the final group
+    ProcessFillRightGroup ws, startCol, groupStartRow, endRow, currentGroupLastCol, rowSourceCells, rowVisibleRanges, undoRange
 
     ' --- EXECUTION ---
     If rowSourceCells.Count = 0 Then GoTo CleanExit
@@ -152,13 +146,18 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         If Not Infra_Undo.SaveStateOrConfirm(undoRange, "Fill Right") Then GoTo CleanExit
     End If
 
-    ' Copy/Paste values/formulas/formats for each row
+    ' Copy/Paste values/formulas/formats for each row (or use native FillRight if no cells are hidden)
     For i = 1 To rowSourceCells.Count
         Set sourceCell = rowSourceCells(i)
         Set visibleRange = rowVisibleRanges(i)
         
-        sourceCell.Copy
-        visibleRange.PasteSpecial Paste:=xlPasteAll
+        Set fullGroupRange = ws.Range(sourceCell, visibleRange)
+        If visibleRange.Cells.CountLarge = fullGroupRange.Cells.CountLarge - sourceCell.Cells.CountLarge Then
+            fullGroupRange.FillRight
+        Else
+            sourceCell.Copy
+            visibleRange.PasteSpecial Paste:=xlPasteAll
+        End If
     Next i
     
     Application.CutCopyMode = False
@@ -174,3 +173,82 @@ ErrHandler:
     End If
     Resume CleanExit
 End Sub
+
+Private Sub ProcessFillRightGroup( _
+    ByVal ws As Worksheet, _
+    ByVal startCol As Long, _
+    ByVal groupStartRow As Long, _
+    ByVal groupEndRow As Long, _
+    ByVal groupLastCol As Long, _
+    ByVal rowSourceCells As Collection, _
+    ByVal rowVisibleRanges As Collection, _
+    ByRef undoRange As Range)
+    
+    Dim tracker As Object: Set tracker = Infra_Error.Track("FillRight.ProcessFillRightGroup")
+    On Error GoTo ErrHandler
+    
+    If groupLastCol <= startCol Then Exit Sub
+    
+    Dim groupFillRange As Range
+    Set groupFillRange = ws.Range(ws.Cells(groupStartRow, startCol + 1), ws.Cells(groupEndRow, groupLastCol))
+    
+    Dim visibleRange As Range
+    If groupFillRange.CountLarge = 1 Then
+        If Not groupFillRange.EntireRow.Hidden And Not groupFillRange.EntireColumn.Hidden Then
+            Set visibleRange = groupFillRange
+        End If
+    Else
+        On Error Resume Next
+        Set visibleRange = groupFillRange.SpecialCells(xlCellTypeVisible)
+        On Error GoTo ErrHandler
+    End If
+    
+    If Not visibleRange Is Nothing Then
+        If visibleRange.Address = groupFillRange.Address Then
+            ' No hidden cells! We can do bulk copy-paste for the whole group.
+            rowSourceCells.Add ws.Range(ws.Cells(groupStartRow, startCol), ws.Cells(groupEndRow, startCol))
+            rowVisibleRanges.Add groupFillRange
+        Else
+            ' There are hidden cells. Fallback to row-by-row processing for this group.
+            Dim rIdx As Long
+            For rIdx = groupStartRow To groupEndRow
+                Dim rowSource As Range
+                Set rowSource = ws.Cells(rIdx, startCol)
+                Dim rowFill As Range
+                Set rowFill = ws.Range(ws.Cells(rIdx, startCol + 1), ws.Cells(rIdx, groupLastCol))
+                
+                Dim rowVisible As Range
+                If rowFill.CountLarge = 1 Then
+                    If Not rowFill.EntireRow.Hidden And Not rowFill.EntireColumn.Hidden Then
+                        Set rowVisible = rowFill
+                    End If
+                Else
+                    On Error Resume Next
+                    Set rowVisible = rowFill.SpecialCells(xlCellTypeVisible)
+                    On Error GoTo ErrHandler
+                End If
+                
+                If Not rowVisible Is Nothing Then
+                    rowSourceCells.Add rowSource
+                    rowVisibleRanges.Add rowVisible
+                End If
+            Next rIdx
+        End If
+        
+        ' Accumulate the full modified area for a single consolidated undo action
+        Dim fullGroupRange As Range
+        Set fullGroupRange = ws.Range(ws.Cells(groupStartRow, startCol), ws.Cells(groupEndRow, groupLastCol))
+        If undoRange Is Nothing Then
+            Set undoRange = fullGroupRange
+        Else
+            Set undoRange = Union(undoRange, fullGroupRange)
+        End If
+    End If
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "FillRight.ProcessFillRightGroup", Err
+    Resume CleanExit
+End Sub
+

@@ -245,6 +245,39 @@ Public Sub Test_FillDown_Features()
     Test_Runner.AssertEqual ws.Range("A2").Value2, 50#, "No neighbors: A2 should remain 50"
     Test_Runner.AssertEqual ws.Range("A5").Value2, 50#, "No neighbors: A5 should remain 50"
 
+    ' --- TEST 5: Skip Closer Neighbor with No Extra Rows to Fill ---
+    ws.Cells.Clear
+    ws.Range("A1:A30").Value2 = 10
+    ws.Range("D1").Value2 = 100
+    ws.Range("E1").Value2 = 200
+    
+    Set ctx = AppContainer.CreateCommandContext("FillDown")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("D1")
+    ctx.ActionContext.HasRangeSelection = True
+    
+    cmd.Execute ctx
+    Test_Runner.AssertEqual ws.Range("D2").Value2, 100#, "Skip closer invalid neighbor: D2 should be 100"
+    Test_Runner.AssertEqual ws.Range("D30").Value2, 100#, "Skip closer invalid neighbor: D30 should be 100"
+    Test_Runner.AssertEqual ws.Range("D31").Value2, vbEmpty, "Skip closer invalid neighbor: D31 should be empty"
+
+    ' --- TEST 6: User Scenario with A1:A20 and E1:G1 ---
+    ws.Cells.Clear
+    ws.Range("A1:A20").Value2 = 10
+    ws.Range("E1:G1").Value2 = 200
+    
+    Set ctx = AppContainer.CreateCommandContext("FillDown")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("F1")
+    ctx.ActionContext.HasRangeSelection = True
+    
+    cmd.Execute ctx
+    Test_Runner.AssertEqual ws.Range("F2").Value2, 200#, "User scenario: F2 should be 200"
+    Test_Runner.AssertEqual ws.Range("F20").Value2, 200#, "User scenario: F20 should be 200"
+    Test_Runner.AssertEqual ws.Range("F21").Value2, vbEmpty, "User scenario: F21 should be empty"
+
     ' Cleanup
     ws.AutoFilterMode = False
     Application.DisplayAlerts = False
@@ -327,6 +360,23 @@ Public Sub Test_FillRight_Features()
     cmd.Execute ctx
     Test_Runner.AssertEqual ws.Range("B1").Value2, 50#, "No neighbors: B1 should remain 50"
     Test_Runner.AssertEqual ws.Range("E1").Value2, 50#, "No neighbors: E1 should remain 50"
+
+    ' --- TEST 4: Skip Closer Neighbor with No Extra Columns to Fill ---
+    ws.Cells.Clear
+    ws.Range("A1:AD1").Value2 = 10
+    ws.Range("A4").Value2 = 100
+    ws.Range("A5").Value2 = 200
+    
+    Set ctx = AppContainer.CreateCommandContext("FillRight")
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Range("A4")
+    ctx.ActionContext.HasRangeSelection = True
+    
+    cmd.Execute ctx
+    Test_Runner.AssertEqual ws.Range("B4").Value2, 100#, "Skip closer invalid neighbor: B4 should be 100"
+    Test_Runner.AssertEqual ws.Range("AD4").Value2, 100#, "Skip closer invalid neighbor: AD4 should be 100"
+    Test_Runner.AssertEqual ws.Range("AE4").Value2, vbEmpty, "Skip closer invalid neighbor: AE4 should be empty"
 
     ' Cleanup
     Application.DisplayAlerts = False

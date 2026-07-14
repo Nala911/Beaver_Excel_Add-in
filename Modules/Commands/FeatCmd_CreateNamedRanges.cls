@@ -52,11 +52,21 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         End If
     End If
     
+    ' Fetch saved range preferences
+    Dim lastValAddr As String
+    lastValAddr = Infra_Interaction.GetUserPreference("CreateNamedRanges", "LastValueRange", "")
+    Dim lastLblAddr As String
+    lastLblAddr = Infra_Interaction.GetUserPreference("CreateNamedRanges", "LastLabelRange", "")
+    
     If Not skipValuePrompt Then
         ' Prompt 1: Select Value Range
-        If Not Infra_Interaction.PromptRange("Select the Value Range (cells containing numbers/formulas to name):", "Select Value Range", valueRange) Then
-            GoTo CleanExit
+        Dim promptValSuccess As Boolean
+        If lastValAddr <> "" Then
+            promptValSuccess = Infra_Interaction.PromptRange("Select the Value Range (cells containing numbers/formulas to name):", "Select Value Range", valueRange, lastValAddr)
+        Else
+            promptValSuccess = Infra_Interaction.PromptRange("Select the Value Range (cells containing numbers/formulas to name):", "Select Value Range", valueRange)
         End If
+        If Not promptValSuccess Then GoTo CleanExit
     End If
     
     ' Prompt 2: Select Label Range
@@ -67,15 +77,23 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     If expectedCount <> 1 Then labelPrompt = labelPrompt & "s"
     labelPrompt = labelPrompt & ":"
     
-    If Not Infra_Interaction.PromptRange(labelPrompt, "Select Label Range", labelRange) Then
-        GoTo CleanExit
+    Dim promptLblSuccess As Boolean
+    If lastLblAddr <> "" Then
+        promptLblSuccess = Infra_Interaction.PromptRange(labelPrompt, "Select Label Range", labelRange, lastLblAddr)
+    Else
+        promptLblSuccess = Infra_Interaction.PromptRange(labelPrompt, "Select Label Range", labelRange)
     End If
+    If Not promptLblSuccess Then GoTo CleanExit
     
     ' Validation: Cells count must match
     If valueRange.Cells.CountLarge <> labelRange.Cells.CountLarge Then
         Infra_Interaction.ShowWarning "The Value Range has " & valueRange.Cells.CountLarge & " cells, but the Label Range has " & labelRange.Cells.CountLarge & " cells." & vbCrLf & vbCrLf & "Both ranges must contain the same number of cells.", "Bulk Named Ranges"
         GoTo CleanExit
     End If
+    
+    ' Save user preferences for the next execution
+    Infra_Interaction.SaveUserPreference "CreateNamedRanges", "LastValueRange", valueRange.Address(RowAbsolute:=True, ColumnAbsolute:=True)
+    Infra_Interaction.SaveUserPreference "CreateNamedRanges", "LastLabelRange", labelRange.Address(RowAbsolute:=True, ColumnAbsolute:=True)
     
     ' Default scope is always Workbook, no need to prompt
     Dim scopeChoice As String: scopeChoice = "Workbook"
@@ -142,20 +160,58 @@ Public Function ExecuteBulkNamedRangesDirect( _
     outCreatedCount = 0
     outCreatedList = ""
     
+    ' Crop ranges to active worksheet bounds to prevent looping 1M+ blank rows
+    Dim lastUsedRow As Long
+    lastUsedRow = targetWs.UsedRange.Row + targetWs.UsedRange.Rows.Count - 1
+    If lastUsedRow < 1 Then lastUsedRow = 1
+    
+    Dim valStartRow As Long: valStartRow = valueRange.Row
+    Dim valEndRow As Long: valEndRow = valStartRow + valueRange.Rows.Count - 1
+    
+    If valEndRow > lastUsedRow And valueRange.Rows.Count > 1 Then
+        Dim newRowCount As Long
+        newRowCount = lastUsedRow - valStartRow + 1
+        If newRowCount < 1 Then newRowCount = 1
+        
+        If newRowCount < valueRange.Rows.Count Then
+            Set valueRange = valueRange.Resize(newRowCount)
+            Set labelRange = labelRange.Resize(newRowCount)
+        End If
+    End If
+    
+    Dim lastUsedCol As Long
+    lastUsedCol = targetWs.UsedRange.Column + targetWs.UsedRange.Columns.Count - 1
+    If lastUsedCol < 1 Then lastUsedCol = 1
+    
+    Dim valStartCol As Long: valStartCol = valueRange.Column
+    Dim valEndCol As Long: valEndCol = valStartCol + valueRange.Columns.Count - 1
+    
+    If valEndCol > lastUsedCol And valueRange.Columns.Count > 1 Then
+        Dim newColCount As Long
+        newColCount = lastUsedCol - valStartCol + 1
+        If newColCount < 1 Then newColCount = 1
+        
+        If newColCount < valueRange.Columns.Count Then
+            Set valueRange = valueRange.Resize(, newColCount)
+            Set labelRange = labelRange.Resize(, newColCount)
+        End If
+    End If
+    
     Dim expectedCount As Long: expectedCount = valueRange.Cells.CountLarge
+    If expectedCount <= 0 Then
+        ExecuteBulkNamedRangesDirect = True
+        Exit Function
+    End If
     
-    ' Gather cells into flat collections to support transposed mapping sequentially
-    Dim valueCells As New Collection
-    Dim labelCells As New Collection
-    Dim cellObj As Range
+    ' Read values into variant arrays for fast memory checks
+    Dim valArr As Variant
+    Dim lblArr As Variant
+    Dim numCols As Long: numCols = valueRange.Columns.Count
     
-    For Each cellObj In valueRange.Cells
-        valueCells.Add cellObj
-    Next cellObj
-    
-    For Each cellObj In labelRange.Cells
-        labelCells.Add cellObj
-    Next cellObj
+    If expectedCount > 1 Then
+        valArr = valueRange.Value2
+        lblArr = labelRange.Value2
+    End If
     
     ' Cache existing names for speed/optimization
     Dim dictNamesByName As Object
@@ -175,67 +231,143 @@ Public Function ExecuteBulkNamedRangesDirect( _
     
     Dim nameObj As Name
     For Each nameObj In targetNames
-        Dim localName As String: localName = GetLocalName(nameObj)
-        If Not dictNamesByName.Exists(localName) Then
-            Set dictNamesByName(localName) = nameObj
+        Dim fullName As String: fullName = nameObj.Name
+        Dim pos As Long: pos = InStr(fullName, "!")
+        Dim isRelevant As Boolean: isRelevant = True
+        Dim localName As String
+        
+        If pos > 0 Then
+            Dim sheetPrefix As String: sheetPrefix = Left$(fullName, pos - 1)
+            ' Strip single quotes from sheet prefix if present
+            If Left$(sheetPrefix, 1) = "'" And Right$(sheetPrefix, 1) = "'" Then
+                sheetPrefix = Mid$(sheetPrefix, 2, Len(sheetPrefix) - 2)
+            End If
+            
+            If StrComp(sheetPrefix, targetWs.Name, vbTextCompare) <> 0 Then
+                isRelevant = False
+            End If
+            localName = Mid$(fullName, pos + 1)
+        Else
+            localName = fullName
         End If
         
-        Dim refersRange As Range
-        On Error Resume Next
-        Set refersRange = nameObj.RefersToRange
-        On Error GoTo ErrHandler
-        
-        If Not refersRange Is Nothing Then
-            Dim cellAddr As String: cellAddr = refersRange.Address(External:=True)
-            If Not dictNamesByCell.Exists(cellAddr) Then
-                Dim nameCol As Collection
-                Set nameCol = New Collection
-                dictNamesByCell.Add cellAddr, nameCol
+        If isRelevant Then
+            If Not dictNamesByName.Exists(localName) Then
+                Set dictNamesByName(localName) = nameObj
             End If
-            dictNamesByCell(cellAddr).Add nameObj
+            
+            ' Check RefersTo to see if it is a range reference on targetWs
+            Dim refersToFormula As String
+            refersToFormula = vbNullString
+            On Error Resume Next
+            refersToFormula = nameObj.RefersTo
+            On Error GoTo ErrHandler
+            
+            ' Only check RefersToRange if it contains the sheet name or "!" and refers to a range
+            If InStr(1, refersToFormula, "!", vbTextCompare) > 0 And _
+               InStr(1, refersToFormula, targetWs.Name, vbTextCompare) > 0 Then
+                
+                Dim refersRange As Range: Set refersRange = Nothing
+                On Error Resume Next
+                Set refersRange = nameObj.RefersToRange
+                On Error GoTo ErrHandler
+                
+                If Not refersRange Is Nothing Then
+                    ' Only cache single-cell references pointing to cells in valueRange
+                    If refersRange.Cells.CountLarge = 1 Then
+                        If Infra_CommandSupport.IsRangeInsideRange(refersRange, valueRange) Then
+                            Dim cellAddr As String: cellAddr = refersRange.Address(External:=True)
+                            If Not dictNamesByCell.Exists(cellAddr) Then
+                                Dim nameCol As Collection: Set nameCol = New Collection
+                                dictNamesByCell.Add cellAddr, nameCol
+                            End If
+                            dictNamesByCell(cellAddr).Add localName
+                        End If
+                    End If
+                End If
+            End If
         End If
     Next nameObj
     
+    ' Get column counts for each range to support transposed/differently-shaped mappings
+    Dim valCols As Long: valCols = valueRange.Columns.Count
+    Dim lblCols As Long: lblCols = labelRange.Columns.Count
+    
+    Dim createdNamesCol As New Collection
+    
     Dim i As Long
     For i = 1 To expectedCount
-        Dim labelCell As Range: Set labelCell = labelCells(i)
-        Dim valueCell As Range: Set valueCell = valueCells(i)
+        Dim lblVal As Variant
+        Dim valVal As Variant
         
-        Dim labelVal As Variant: labelVal = labelCell.Value
-        If IsEmpty(labelVal) Or IsNull(labelVal) Or IsError(labelVal) Then
+        If expectedCount > 1 Then
+            Dim valR As Long, valC As Long
+            valR = ((i - 1) \ valCols) + 1
+            valC = ((i - 1) Mod valCols) + 1
+            valVal = valArr(valR, valC)
+            
+            Dim lblR As Long, lblC As Long
+            lblR = ((i - 1) \ lblCols) + 1
+            lblC = ((i - 1) Mod lblCols) + 1
+            lblVal = lblArr(lblR, lblC)
+        Else
+            lblVal = labelRange.Value2
+            valVal = valueRange.Value2
+        End If
+        
+        ' Skip if label is empty, null, or error
+        If IsEmpty(lblVal) Or IsNull(lblVal) Or IsError(lblVal) Then
             GoTo NextCell
         End If
         
-        Dim rawLabel As String: rawLabel = Trim$(CStr(labelVal))
+        Dim rawLabel As String: rawLabel = Trim$(CStr(lblVal))
         If rawLabel = "" Then GoTo NextCell
         
-        Dim valueVal As Variant: valueVal = valueCell.Value
-        If IsEmpty(valueVal) Or IsNull(valueVal) Then
+        ' Skip if value is empty or null
+        If IsEmpty(valVal) Or IsNull(valVal) Then
             GoTo NextCell
         End If
         
-        If Not IsError(valueVal) Then
-            If Trim$(CStr(valueVal)) = "" Then
+        If Not IsError(valVal) Then
+            If Trim$(CStr(valVal)) = "" Then
                 GoTo NextCell
             End If
         End If
+        
+        ' Instantiate actual cells only when passing filters
+        Dim labelCell As Range: Set labelCell = labelRange.Cells(i)
+        Dim valueCell As Range: Set valueCell = valueRange.Cells(i)
         
         Dim sanitizedName As String: sanitizedName = SanitizeExcelName(rawLabel)
         
         ' Check if name already exists
         Dim nameExists As Boolean: nameExists = dictNamesByName.Exists(sanitizedName)
-        Dim existingName As Name
+        Dim existingName As Name: Set existingName = Nothing
+        
+        Dim currentAddr As String: currentAddr = valueCell.Address(External:=True)
+        Dim isRedundant As Boolean: isRedundant = False
         
         If nameExists Then
             Set existingName = dictNamesByName(sanitizedName)
             
-            ' Check if it points to the SAME cell
-            If NameRefersToRange(existingName, valueCell) Then
+            ' Check if it points to the SAME cell using dictNamesByCell
+            If dictNamesByCell.Exists(currentAddr) Then
+                Dim col As Collection: Set col = dictNamesByCell(currentAddr)
+                Dim nameStr As Variant
+                For Each nameStr In col
+                    If StrComp(CStr(nameStr), sanitizedName, vbTextCompare) = 0 Then
+                        isRedundant = True
+                        Exit For
+                    End If
+                Next nameStr
+            End If
+            
+            If isRedundant Then
                 ' Redundant: Already named sanitizedName. Skip silently.
                 GoTo NextCell
             Else
                 ' Points to a DIFFERENT cell. This is a conflict!
-                Dim existingRng As Range
+                Dim existingRng As Range: Set existingRng = Nothing
                 On Error Resume Next
                 Set existingRng = existingName.RefersToRange
                 On Error GoTo ErrHandler
@@ -255,23 +387,21 @@ Public Function ExecuteBulkNamedRangesDirect( _
             End If
         End If
         
-        ' If we reach here, we want to create sanitizedName for valueCell.
         ' Clean up other names pointing to this valueCell (renaming support)
-        Dim currentAddr As String: currentAddr = valueCell.Address(External:=True)
         If dictNamesByCell.Exists(currentAddr) Then
             Dim cellNamesCol As Collection: Set cellNamesCol = dictNamesByCell(currentAddr)
             Dim j As Long
             ' Iterate backwards when deleting/modifying collections
             For j = cellNamesCol.Count To 1 Step -1
-                Dim oldNameObj As Name: Set oldNameObj = cellNamesCol(j)
-                Dim oldLocalName As String: oldLocalName = GetLocalName(oldNameObj)
-                If oldLocalName <> sanitizedName Then
-                    On Error Resume Next
-                    oldNameObj.Delete
-                    On Error GoTo ErrHandler
-                    
-                    ' Remove from caches
+                Dim oldLocalName As String: oldLocalName = cellNamesCol(j)
+                If StrComp(oldLocalName, sanitizedName, vbTextCompare) <> 0 Then
                     If dictNamesByName.Exists(oldLocalName) Then
+                        Dim oldNameObj As Name: Set oldNameObj = dictNamesByName(oldLocalName)
+                        On Error Resume Next
+                        oldNameObj.Delete
+                        On Error GoTo ErrHandler
+                        
+                        ' Remove from caches
                         dictNamesByName.Remove oldLocalName
                     End If
                     cellNamesCol.Remove j
@@ -280,7 +410,7 @@ Public Function ExecuteBulkNamedRangesDirect( _
         End If
         
         ' Create Name
-        Dim newNameObj As Name
+        Dim newNameObj As Name: Set newNameObj = Nothing
         If scopeChoice = "Workbook" Then
             Set newNameObj = targetWb.Names.Add(Name:=sanitizedName, RefersTo:=valueCell)
         Else
@@ -291,11 +421,10 @@ Public Function ExecuteBulkNamedRangesDirect( _
         If Not newNameObj Is Nothing Then
             Set dictNamesByName(sanitizedName) = newNameObj
             If Not dictNamesByCell.Exists(currentAddr) Then
-                Dim newCol As Collection
-                Set newCol = New Collection
+                Dim newCol As Collection: Set newCol = New Collection
                 dictNamesByCell.Add currentAddr, newCol
             End If
-            dictNamesByCell(currentAddr).Add newNameObj
+            dictNamesByCell(currentAddr).Add sanitizedName
             
             ' Accumulate for custom Undo
             If outCreatedList = "" Then
@@ -303,11 +432,38 @@ Public Function ExecuteBulkNamedRangesDirect( _
             Else
                 outCreatedList = outCreatedList & ";" & newNameObj.Name
             End If
+            
+            createdNamesCol.Add GetLocalName(newNameObj)
             outCreatedCount = outCreatedCount + 1
         End If
         
 NextCell:
     Next i
+    
+    ' Apply names to formulas on the sheet if names were created/modified
+    If createdNamesCol.Count > 0 Then
+        Dim namesArray() As String
+        ReDim namesArray(0 To createdNamesCol.Count - 1)
+        Dim idx As Long
+        For idx = 0 To createdNamesCol.Count - 1
+            namesArray(idx) = createdNamesCol(idx + 1)
+        Next idx
+        
+        Dim hasFormulas As Boolean
+        hasFormulas = False
+        Dim formulaCells As Range
+        On Error Resume Next
+        Set formulaCells = targetWs.UsedRange.SpecialCells(xlCellTypeFormulas)
+        If Not formulaCells Is Nothing Then hasFormulas = True
+        On Error GoTo ErrHandler
+        
+        If hasFormulas Then
+            On Error Resume Next
+            targetWs.UsedRange.ApplyNames Names:=namesArray
+            On Error GoTo ErrHandler
+        End If
+
+    End If
     
     ExecuteBulkNamedRangesDirect = True
 
@@ -374,60 +530,71 @@ Public Function SanitizeExcelName(ByVal rawLabel As String) As String
         GoTo CleanExit
     End If
     
-    ' 1. Replace spaces, hyphens, slashes, and common special chars with underscores
-    result = Replace(result, " ", "_")
-    result = Replace(result, "-", "_")
-    result = Replace(result, "/", "_")
-    result = Replace(result, "\", "_")
-    result = Replace(result, "%", "_")
-    result = Replace(result, "$", "_")
-    result = Replace(result, "&", "_")
-    result = Replace(result, "(", "_")
-    result = Replace(result, ")", "_")
-    result = Replace(result, "+", "_")
-    result = Replace(result, "=", "_")
-    result = Replace(result, "[", "_")
-    result = Replace(result, "]", "_")
-    result = Replace(result, "{", "_")
-    result = Replace(result, "}", "_")
-    result = Replace(result, ",", "_")
-    result = Replace(result, ";", "_")
-    result = Replace(result, ":", "_")
-    result = Replace(result, "'", "_")
-    result = Replace(result, """", "_")
-    result = Replace(result, "<", "_")
-    result = Replace(result, ">", "_")
-    result = Replace(result, "?", "_")
-    result = Replace(result, "|", "_")
-    result = Replace(result, "`", "_")
-    result = Replace(result, "~", "_")
-    result = Replace(result, "!", "_")
-    result = Replace(result, "@", "_")
-    result = Replace(result, "#", "_")
-    result = Replace(result, "^", "_")
-    result = Replace(result, "*", "_")
+    Dim bytes() As Byte
+    bytes = result
     
-    ' 2. Strip any other non-alphanumeric, non-underscore, non-period characters
+    Dim outBytes() As Byte
+    ReDim outBytes(0 To UBound(bytes))
+    
+    Dim outIdx As Long
+    outIdx = 0
+    
+    Dim lastWasUnderscore As Boolean
+    lastWasUnderscore = False
+    
     Dim i As Long
-    Dim cleanResult As String
-    cleanResult = vbNullString
-    
-    For i = 1 To Len(result)
-        Dim charCode As Integer
-        Dim charStr As String
-        charStr = Mid$(result, i, 1)
-        charCode = Asc(charStr)
+    For i = 0 To UBound(bytes) Step 2
+        Dim b1 As Byte: b1 = bytes(i)
+        Dim b2 As Byte: b2 = bytes(i + 1)
         
-        ' Allow a-z, A-Z, 0-9, _, .
-        If (charCode >= 97 And charCode <= 122) Or _
-           (charCode >= 65 And charCode <= 90) Or _
-           (charCode >= 48 And charCode <= 57) Or _
-           charStr = "_" Or charStr = "." Then
-            cleanResult = cleanResult & charStr
+        If b2 = 0 Then
+            ' ASCII characters
+            Dim isAllowed As Boolean: isAllowed = False
+            Dim isUnderscore As Boolean: isUnderscore = False
+            
+            ' a-z (97-122), A-Z (65-90), 0-9 (48-57), . (46)
+            If (b1 >= 97 And b1 <= 122) Or (b1 >= 65 And b1 <= 90) Or (b1 >= 48 And b1 <= 57) Or b1 = 46 Then
+                isAllowed = True
+            ' _ (95)
+            ElseIf b1 = 95 Then
+                isAllowed = True
+                isUnderscore = True
+            ' Spaces, hyphens, slashes, and common special chars replaced with underscores
+            ElseIf b1 = 32 Or b1 = 45 Or b1 = 47 Or b1 = 92 Or b1 = 37 Or b1 = 36 Or b1 = 38 Or _
+                   b1 = 40 Or b1 = 41 Or b1 = 43 Or b1 = 61 Or b1 = 91 Or b1 = 93 Or b1 = 123 Or _
+                   b1 = 125 Or b1 = 44 Or b1 = 59 Or b1 = 58 Or b1 = 39 Or b1 = 34 Or b1 = 60 Or _
+                   b1 = 62 Or b1 = 63 Or b1 = 124 Or b1 = 96 Or b1 = 126 Or b1 = 33 Or b1 = 64 Or _
+                   b1 = 35 Or b1 = 94 Or b1 = 42 Then
+                isAllowed = True
+                b1 = 95
+                isUnderscore = True
+            End If
+            
+            If isAllowed Then
+                If isUnderscore Then
+                    If Not lastWasUnderscore Then
+                        outBytes(outIdx) = b1
+                        outBytes(outIdx + 1) = 0
+                        outIdx = outIdx + 2
+                        lastWasUnderscore = True
+                    End If
+                Else
+                    outBytes(outIdx) = b1
+                    outBytes(outIdx + 1) = 0
+                    outIdx = outIdx + 2
+                    lastWasUnderscore = False
+                End If
+            End If
         End If
     Next i
     
-    result = cleanResult
+    If outIdx > 0 Then
+        ReDim Preserve outBytes(0 To outIdx - 1)
+        result = outBytes
+    Else
+        result = "_"
+    End If
+    
     If result = vbNullString Then
         result = "_"
     End If
@@ -439,12 +606,21 @@ Public Function SanitizeExcelName(ByVal rawLabel As String) As String
         result = "_" & result
     End If
     
-    ' 4. Address conflict checks (e.g. A1, XFD1048576, R, C)
+    ' 4. Address conflict and reserved word checks
     Dim upperResult As String
     upperResult = UCase$(result)
     
-    If upperResult = "R" Or upperResult = "C" Then
+    Dim isReserved As Boolean
+    Select Case upperResult
+        Case "PRINT_AREA", "PRINT_TITLES", "DATABASE", "CRITERIA", "EXTRACT", "CONSOLIDATE_AREA", "SHEET_TITLE"
+            isReserved = True
+        Case Else
+            isReserved = False
+    End Select
+    
+    If isReserved Or upperResult = "R" Or upperResult = "C" Then
         result = result & "_"
+        upperResult = UCase$(result)
     Else
         ' Check if it looks like an A1 cell reference (1-3 letters followed by 1-7 digits)
         Dim isCellRef As Boolean
@@ -479,6 +655,7 @@ Public Function SanitizeExcelName(ByVal rawLabel As String) As String
         
         If isCellRef Then
             result = result & "_"
+            upperResult = UCase$(result)
         End If
     End If
     
