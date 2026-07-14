@@ -246,3 +246,59 @@ ErrHandler:
     Infra_Error.HandleError "Test_CreateNamedRanges_SmartValidation", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_CreateNamedRanges_EmptyValueSkipping()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_CreateNamedRanges_EmptyValueSkipping")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_EmptyVal"
+
+    ' Setup labels in col A
+    ws.Range("A1").Value2 = "Label_Valid"
+    ws.Range("A2").Value2 = "Label_EmptyVal"
+    ws.Range("A3").Value2 = "Label_SpaceVal"
+    ws.Range("A4").Value2 = "Label_ErrorVal"
+
+    ' Setup values in col B
+    ws.Range("B1").Value2 = 42                ' Valid
+    ' ws.Range("B2") remains completely empty
+    ws.Range("B3").Value2 = "   "             ' Empty space string
+    ws.Range("B4").Formula2 = "=1/0"          ' Formula Error (#DIV/0!)
+
+    Dim cmd As New FeatCmd_CreateNamedRanges
+    Dim createdCount As Long
+    Dim createdList As String
+    Dim success As Boolean
+
+    success = cmd.ExecuteBulkNamedRangesDirect( _
+        ws.Range("B1:B4"), ws.Range("A1:A4"), "Workbook", ThisWorkbook, ws, True, False, createdCount, createdList)
+
+    Test_Runner.AssertEqual success, True, "Execution should succeed when skipping empty values"
+    Test_Runner.AssertEqual createdCount, 2#, "Should have created exactly 2 named ranges (Valid and Error)"
+    Test_Runner.AssertEqual createdList, "Label_Valid;Label_ErrorVal", "Should only name Label_Valid and Label_ErrorVal"
+
+    ' Cleanup names
+    On Error Resume Next
+    ThisWorkbook.Names("Label_Valid").Delete
+    ThisWorkbook.Names("Label_ErrorVal").Delete
+    On Error GoTo ErrHandler
+
+    ' Cleanup sheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_CreateNamedRanges_EmptyValueSkipping", Err
+    Resume CleanExit
+End Sub
+

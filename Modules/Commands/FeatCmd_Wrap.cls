@@ -255,7 +255,7 @@ Private Sub ApplyWrapperCellToCell(ByVal targetCell As Range, ByVal wrapperFormu
     Dim finalFormula As String
 
     replacementText = GetCellArgumentText(targetCell)
-    finalFormula = ReplaceFirstCellReference(wrapperFormula, replacementText)
+    finalFormula = ReplaceCellReference(wrapperFormula, replacementText, targetCell)
 
     If finalFormula = vbNullString Then
         errorCount = errorCount + 1
@@ -280,26 +280,107 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
-Private Function ReplaceFirstCellReference(ByVal formulaText As String, ByVal replacementText As String) As String
-    Dim tracker As Object: Set tracker = Infra_Error.Track("ReplaceFirstCellReference")
+Private Function ReplaceCellReference(ByVal formulaText As String, ByVal replacementText As String, ByVal targetRange As Range) As String
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ReplaceCellReference")
     On Error GoTo ErrHandler
 
+    Dim re As Object
+    Dim matches As Object
+    Dim match As Object
+    Dim targetMatch As Object
     Dim startIndex As Long
     Dim tokenLength As Long
 
-    Call FindFirstReferenceToken(formulaText, startIndex, tokenLength)
-    If startIndex = 0 Or tokenLength = 0 Then GoTo CleanExit
+    Set re = GetRegExp()
+    Set matches = re.Execute(formulaText)
+    If matches.Count = 0 Then GoTo CleanExit
 
-    ReplaceFirstCellReference = Left$(formulaText, startIndex - 1) & replacementText & Mid$(formulaText, startIndex + tokenLength)
+    ' Search for a reference token that points to the target range
+    For Each match In matches
+        If IsReferenceToRange(match.Value, targetRange) Then
+            Set targetMatch = match
+            Exit For
+        End If
+    Next match
+
+    ' If no reference to the target range is found, fallback to the first reference in the formula
+    If targetMatch Is Nothing Then
+        Set targetMatch = matches(0)
+    End If
+
+    startIndex = targetMatch.FirstIndex + 1
+    tokenLength = Len(targetMatch.Value)
+
+    ReplaceCellReference = Left$(formulaText, startIndex - 1) & replacementText & Mid$(formulaText, startIndex + tokenLength)
     Exit Function
 
 CleanExit:
-    ReplaceFirstCellReference = vbNullString
+    ReplaceCellReference = vbNullString
     Exit Function
 
 ErrHandler:
-    Infra_Error.HandleError "ReplaceFirstCellReference", Err
-    ReplaceFirstCellReference = vbNullString
+    Infra_Error.HandleError "ReplaceCellReference", Err
+    ReplaceCellReference = vbNullString
+    Resume CleanExit
+End Function
+
+Private Function IsReferenceToRange(ByVal refToken As String, ByVal targetRange As Range) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("IsReferenceToRange")
+    On Error GoTo ErrHandler
+
+    Dim sheetPart As String
+    Dim addressPart As String
+    Dim bangPos As Long
+
+    bangPos = InStr(refToken, "!")
+    If bangPos > 0 Then
+        sheetPart = Left$(refToken, bangPos - 1)
+        addressPart = Mid$(refToken, bangPos + 1)
+        
+        ' Strip single quotes from sheet name if present
+        If Left$(sheetPart, 1) = "'" And Right$(sheetPart, 1) = "'" Then
+            If Len(sheetPart) > 2 Then
+                sheetPart = Mid$(sheetPart, 2, Len(sheetPart) - 2)
+            Else
+                sheetPart = vbNullString
+            End If
+        End If
+        
+        If StrComp(sheetPart, targetRange.Worksheet.Name, vbTextCompare) <> 0 Then
+            IsReferenceToRange = False
+            Exit Function
+        End If
+    Else
+        addressPart = refToken
+    End If
+
+    ' Strip trailing spill character '#' if present
+    If Right$(addressPart, 1) = "#" Then
+        addressPart = Left$(addressPart, Len(addressPart) - 1)
+    End If
+
+    Dim refRange As Range
+    On Error Resume Next
+    Set refRange = targetRange.Worksheet.Range(addressPart)
+    On Error GoTo ErrHandler
+
+    If Not refRange Is Nothing Then
+        ' Check if refRange is on the same worksheet and overlaps with targetRange
+        ' We do this using row/column boundaries to avoid active-sheet or COM Intersect quirks
+        If (refRange.Row <= targetRange.Row + targetRange.Rows.Count - 1) And _
+           (refRange.Row + refRange.Rows.Count - 1 >= targetRange.Row) And _
+           (refRange.Column <= targetRange.Column + targetRange.Columns.Count - 1) And _
+           (refRange.Column + refRange.Columns.Count - 1 >= targetRange.Column) Then
+            IsReferenceToRange = True
+            Exit Function
+        End If
+    End If
+
+CleanExit:
+    IsReferenceToRange = False
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "IsReferenceToRange", Err
     Resume CleanExit
 End Function
 
@@ -511,7 +592,7 @@ Private Sub ApplyWrapperCellToRange(ByVal targetCells As Range, ByVal wrapperFor
                         End If
                     End If
 
-                    finalFormula = ReplaceFirstCellReference(wrapperFormula, replacementText)
+                    finalFormula = ReplaceCellReference(wrapperFormula, replacementText, targetCells)
                     formulas(r, c) = finalFormula
                 Next c
             Next r

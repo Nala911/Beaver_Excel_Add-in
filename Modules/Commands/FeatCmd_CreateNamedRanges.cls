@@ -209,6 +209,17 @@ Public Function ExecuteBulkNamedRangesDirect( _
         Dim rawLabel As String: rawLabel = Trim$(CStr(labelVal))
         If rawLabel = "" Then GoTo NextCell
         
+        Dim valueVal As Variant: valueVal = valueCell.Value
+        If IsEmpty(valueVal) Or IsNull(valueVal) Then
+            GoTo NextCell
+        End If
+        
+        If Not IsError(valueVal) Then
+            If Trim$(CStr(valueVal)) = "" Then
+                GoTo NextCell
+            End If
+        End If
+        
         Dim sanitizedName As String: sanitizedName = SanitizeExcelName(rawLabel)
         
         ' Check if name already exists

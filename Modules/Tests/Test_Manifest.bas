@@ -29,6 +29,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Test_Feat_CleanData.Test_TryConvertToNumber_Unification", filterPattern) Then Test_Feat_CleanData.Test_TryConvertToNumber_Unification
     If MatchesFilter("Test_Feat_CleanData.Test_UnifiedHelpers_And_CleanDataDisjoint", filterPattern) Then Test_Feat_CleanData.Test_UnifiedHelpers_And_CleanDataDisjoint
     If MatchesFilter("Test_Feat_CleanData.Test_UnmergeFill_Execution_And_Undo", filterPattern) Then Test_Feat_CleanData.Test_UnmergeFill_Execution_And_Undo
+    If MatchesFilter("Test_Feat_CreateNamedRanges.Test_CreateNamedRanges_EmptyValueSkipping", filterPattern) Then Test_Feat_CreateNamedRanges.Test_CreateNamedRanges_EmptyValueSkipping
     If MatchesFilter("Test_Feat_CreateNamedRanges.Test_CreateNamedRanges_Execution", filterPattern) Then Test_Feat_CreateNamedRanges.Test_CreateNamedRanges_Execution
     If MatchesFilter("Test_Feat_CreateNamedRanges.Test_CreateNamedRanges_Sanitization", filterPattern) Then Test_Feat_CreateNamedRanges.Test_CreateNamedRanges_Sanitization
     If MatchesFilter("Test_Feat_CreateNamedRanges.Test_CreateNamedRanges_SmartValidation", filterPattern) Then Test_Feat_CreateNamedRanges.Test_CreateNamedRanges_SmartValidation
