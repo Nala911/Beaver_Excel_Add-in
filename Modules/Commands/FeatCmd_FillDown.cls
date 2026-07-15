@@ -204,7 +204,7 @@ Private Sub ProcessFillDownGroup( _
     End If
     
     If Not visibleRange Is Nothing Then
-        If visibleRange.Address = groupFillRange.Address Then
+        If visibleRange.Areas.Count = 1 And visibleRange.Cells.CountLarge = groupFillRange.Cells.CountLarge Then
             ' No hidden cells! We can do bulk copy-paste for the whole group.
             colSourceCells.Add ws.Range(ws.Cells(startRow, groupStartCol), ws.Cells(startRow, groupEndCol))
             colVisibleRanges.Add groupFillRange

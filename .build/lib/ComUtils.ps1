@@ -500,6 +500,31 @@ function Get-ActiveExcelWorkbook {
         return $null
     }
     
+    # Try attaching to cached PID first to avoid ROT/GetActiveObject registration issues
+    $buildState = Get-BuildState
+    if ($null -ne $buildState -and $buildState.PSObject.Properties.Name -contains "ExcelPid") {
+        $cachedPid = $buildState.ExcelPid
+        if ($cachedPid -gt 0) {
+            $proc = Get-Process -Id $cachedPid -ErrorAction SilentlyContinue
+            if ($null -ne $proc -and $proc.Name -eq "EXCEL") {
+                try {
+                    $excel = [WindowScraper]::GetExcelObject($cachedPid)
+                    if ($null -ne $excel) {
+                        foreach ($wb in $excel.Workbooks) {
+                            if ($wb.FullName -eq $WorkbookPath) {
+                                return [pscustomobject]@{
+                                    Excel = $excel
+                                    Workbook = $wb
+                                    WasAlreadyOpen = $true
+                                }
+                            }
+                        }
+                    }
+                } catch {}
+            }
+        }
+    }
+    
     try {
         $excel = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
         if ($null -ne $excel) {

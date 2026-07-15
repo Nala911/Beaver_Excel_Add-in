@@ -215,6 +215,17 @@ try {
             return "workbook available"
         }
 
+        # 1.5 For incremental builds where the ribbon XML did not change, we can leave the workbook open and reuse the running Excel session
+        if (-not $forceFullBuild -and -not $manifestChanged) {
+            $activeWbInfo = Get-ActiveExcelWorkbook -WorkbookPath $excelPath
+            if ($null -ne $activeWbInfo) {
+                # Workbook is open in a running Excel session, and we can reuse it!
+                Release-ComObjectSafely $activeWbInfo.Workbook
+                Release-ComObjectSafely $activeWbInfo.Excel
+                return "workbook open in active session (reuse active)"
+            }
+        }
+
         Write-Host "Excel workbook is locked. Attempting to close it..." -ForegroundColor Yellow
         $closedGracefully = $false
         
@@ -710,6 +721,16 @@ try {
 
     Write-StageSummary
     Save-BuildLog -Status "success"
+
+    # Sync compiled workbook to Desktop
+    $desktopExcelPath = "C:\Users\fazil_uxry2im\Desktop\Beaver Add-in.xlsm"
+    Write-Host "Syncing compiled workbook to Desktop..." -ForegroundColor Cyan
+    try {
+        Copy-Item -Path $excelPath -Destination $desktopExcelPath -Force
+        Write-Host "  Successfully copied compiled workbook to Desktop: $desktopExcelPath" -ForegroundColor Green
+    } catch {
+        Write-Warning "  Could not copy compiled workbook to Desktop (it may be open/locked by Excel): $($_.Exception.Message)"
+    }
 } catch {
     Stop-Script $_.Exception.Message
 } finally {

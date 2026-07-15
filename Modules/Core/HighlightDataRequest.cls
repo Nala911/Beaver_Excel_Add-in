@@ -26,6 +26,7 @@ Public HighlightErrors As Boolean
 Public HighlightHardcodedValues As Boolean
 Public HighlightDataValidations As Boolean
 Public HighlightConditionalFormatting As Boolean
+Public HighlightNamedRanges As Boolean
 
 Private Sub Class_Initialize()
     HighlightInconsistentFormulas = True
@@ -34,6 +35,7 @@ Private Sub Class_Initialize()
     HighlightHardcodedValues = False
     HighlightDataValidations = False
     HighlightConditionalFormatting = False
+    HighlightNamedRanges = False
 End Sub
 
 Private Property Get IRequest_Context() As ActionContext

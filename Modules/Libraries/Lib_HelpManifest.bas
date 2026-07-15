@@ -94,6 +94,12 @@ Public Function GetFeatureHelp() As Collection
     col.Add dict
 
     Set dict = CreateObject("Scripting.Dictionary")
+    dict.Add "Label", "Named Ranges"
+    dict.Add "Screentip", "Highlight Named Ranges"
+    dict.Add "Supertip", "Highlights cells that are referenced by named ranges in light blue."
+    col.Add dict
+
+    Set dict = CreateObject("Scripting.Dictionary")
     dict.Add "Label", "Financial Modelling"
     dict.Add "Screentip", "Financial Modelling"
     dict.Add "Supertip", "Formats cells using the standard financial model coloring scheme."

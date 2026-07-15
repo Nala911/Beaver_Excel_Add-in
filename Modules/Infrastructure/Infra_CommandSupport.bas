@@ -659,6 +659,64 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+' Parses refersTo formula like "='Sheet Name'!$A$1" or "=Sheet1!$B$5:$C$10"
+' Returns True if successful, and outputs sheetName and rangeAddress.
+' Bypasses COM calls to RefersToRange for performance.
+Public Function ParseSimpleRefersTo(ByVal refersTo As String, ByRef outSheetName As String, ByRef outRangeAddress As String) As Boolean
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ParseSimpleRefersTo")
+    On Error GoTo ErrHandler
+
+    ParseSimpleRefersTo = False
+    outSheetName = vbNullString
+    outRangeAddress = vbNullString
+    
+    If Left$(refersTo, 1) <> "=" Then GoTo CleanExit
+    
+    Dim posExcl As Long
+    posExcl = InStr(1, refersTo, "!")
+    If posExcl <= 2 Then GoTo CleanExit
+    
+    If InStr(refersTo, "(") > 0 Or InStr(refersTo, "#REF!") > 0 Or InStr(refersTo, "[") > 0 Then GoTo CleanExit
+    
+    Dim sheetPart As String
+    sheetPart = Mid$(refersTo, 2, posExcl - 2)
+    
+    If Left$(sheetPart, 1) = "'" And Right$(sheetPart, 1) = "'" Then
+        If Len(sheetPart) > 2 Then
+            sheetPart = Mid$(sheetPart, 2, Len(sheetPart) - 2)
+        Else
+            sheetPart = vbNullString
+        End If
+    End If
+    
+    sheetPart = Replace(sheetPart, "''", "'")
+    
+    Dim addrPart As String
+    addrPart = Mid$(refersTo, posExcl + 1)
+    
+    If InStr(addrPart, "$") = 0 Then GoTo CleanExit
+    
+    Dim i As Long
+    Dim c As String
+    For i = 1 To Len(addrPart)
+        c = Mid$(addrPart, i, 1)
+        If Not (c = "$" Or c = ":" Or c = "," Or (c >= "0" And c <= "9") Or (c >= "A" And c <= "Z") Or (c >= "a" And c <= "z")) Then
+            GoTo CleanExit
+        End If
+    Next i
+    
+    outSheetName = sheetPart
+    outRangeAddress = addrPart
+    ParseSimpleRefersTo = True
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "ParseSimpleRefersTo", Err
+    Resume CleanExit
+End Function
+
+
 ' Accumulates a cell or range address into a buffered Union range to optimize performance.
 ' Flushes the address buffer to Union when the string length exceeds 240 characters.
 Public Function AccumulateUnion( _

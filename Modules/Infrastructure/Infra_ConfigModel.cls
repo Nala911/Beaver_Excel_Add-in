@@ -25,6 +25,7 @@ Private pColumnWidthThreshold As Long
 Private pMaxColumnWidth As Long
 Private pHeaderColor As Long
 Private pHighlightColor As Long
+Private pHighlightNamedRangesColor As Long
 Private pDefaultExportScale As Long
 Private pMaxExportScale As Long
 Private pName As String
@@ -104,6 +105,13 @@ Public Property Get HighlightColor() As Long
 End Property
 Public Property Let HighlightColor(ByVal v As Long)
     pHighlightColor = v ' @Internal
+End Property
+
+Public Property Get HighlightNamedRangesColor() As Long
+    HighlightNamedRangesColor = pHighlightNamedRangesColor
+End Property
+Public Property Let HighlightNamedRangesColor(ByVal v As Long)
+    pHighlightNamedRangesColor = v ' @Internal
 End Property
 
 Public Property Get DefaultExportScale() As Long

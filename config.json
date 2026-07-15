@@ -9,6 +9,7 @@
     "MaxColumnWidth": 25,
     "HeaderColor": "#AEAAAA",
     "HighlightColor": "#FFC7CE",
+    "HighlightNamedRangesColor": "#DCE6F2",
     "DefaultExportScale": 3,
     "MaxExportScale": 10
   },
@@ -25,7 +26,7 @@
   },
   "FeatureFlags": {
     "ManifestFile": "features.json",
-    "GeneratedFeatureCount": 27
+    "GeneratedFeatureCount": 28
   },
   "Hotkeys": [
     {
@@ -109,6 +110,7 @@
     "BtnHighlightHardcodedValues": "FunctionWizard",
     "BtnHighlightDataValidations": "TableProperties",
     "BtnHighlightConditionalFormatting": "ConditionalFormattingMenu",
+    "BtnHighlightNamedRanges": "NameDefine",
     "BtnHighlightFinancialModelling": "FontColorCycle",
     "BtnClearHighlights": "Clear",
     "BtnBreakLinks": "WorkbookLinks",

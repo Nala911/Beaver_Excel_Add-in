@@ -67,6 +67,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Test_Feat_HighlightData.Test_HighlightData_FormulaLimitSafety", filterPattern) Then Test_Feat_HighlightData.Test_HighlightData_FormulaLimitSafety
     If MatchesFilter("Test_Feat_HighlightData.Test_HighlightData_HardcodedValues", filterPattern) Then Test_Feat_HighlightData.Test_HighlightData_HardcodedValues
     If MatchesFilter("Test_Feat_HighlightData.Test_HighlightData_InconsistentFormulasAndDuplicates", filterPattern) Then Test_Feat_HighlightData.Test_HighlightData_InconsistentFormulasAndDuplicates
+    If MatchesFilter("Test_Feat_HighlightData.Test_HighlightData_NamedRanges", filterPattern) Then Test_Feat_HighlightData.Test_HighlightData_NamedRanges
     If MatchesFilter("Test_Feat_ModifyData.Test_ModifyData_BulkFormattingOverride", filterPattern) Then Test_Feat_ModifyData.Test_ModifyData_BulkFormattingOverride
     If MatchesFilter("Test_Feat_ModifyData.Test_ModifyData_Casing", filterPattern) Then Test_Feat_ModifyData.Test_ModifyData_Casing
     If MatchesFilter("Test_Feat_ModifyData.Test_ModifyData_DateStandardization", filterPattern) Then Test_Feat_ModifyData.Test_ModifyData_DateStandardization

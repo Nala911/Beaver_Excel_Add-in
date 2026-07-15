@@ -4,38 +4,25 @@ This project is a VBA-based Microsoft Excel Add-in called **Beaver Add-in** that
 
 ---
 
-## 📂 Project Structure
-
-- `Modules/Commands/`: Implementations of `ICommand` (e.g., `FeatCmd_*.cls`).
-- `Modules/Core/`: Base classes/interfaces (e.g., `AppContainer.cls`, `ICommand.cls`, `IConfig.cls`).
-- `Modules/Infrastructure/`: Cross-cutting concerns (e.g., `Infra_Error.cls`, `Infra_Undo.bas`, `Infra_Config.cls`).
-- `Modules/Libraries/`: Helper code (e.g., `Lib_JsonConverter.bas`, custom UDFs).
-- `Modules/Tests/`: Unit tests (e.g., `Test_Feat_*.bas`, `Test_Runner.bas`).
-- `Modules/UI/`: Forms and Ribbon bindings (e.g., `UI_Ribbon.bas`).
-- `config.json`: Constant and Hotkey declarations.
-- `features.json`: Declarative registry of ribbon controls, hotkeys, and features.
-- `Update.ps1`: Main developer script. Run `pwsh -File .\Update.ps1` to lint, compile, and run tests.
-
----
-
-## 🛠️ Workflow & Build Pipeline
-
-1. **Source Control**: Only `.bas`, `.cls`, `.frm` source files are tracked. The binary workbook `Beaver Add-in.xlsm` is compiled on demand.
-2. **Rebuilding**: After making edits to any source files, run:
-   ```powershell
-   pwsh -File .\Update.ps1
-   ```
-   This will import all changed files, compile the VBA project, and run unit tests.
+## 📂 Project Structure & Workflow
+- **Rebuilding & Testing**: Run `pwsh -File .\Update.ps1` to lint, compile, and run tests.
+- **Source Control**: Only `.bas`, `.cls`, `.frm` source files are tracked. The binary workbook `Beaver Add-in.xlsm` is compiled on demand.
+- **Directories**:
+  - `Modules/Commands/`: `ICommand` features (prefix/VB_Name: `FeatCmd_`).
+  - `Modules/Core/`: Base classes/interfaces (e.g., `AppContainer.cls`, `ICommand.cls`).
+  - `Modules/Infrastructure/`: Cross-cutting helpers (prefix/VB_Name: `Infra_`).
+  - `Modules/Libraries/`: Helper code (prefix/VB_Name: `Lib_` / `Udf_`).
+  - `Modules/Tests/`: Unit tests (prefix/VB_Name: `Test_`).
+  - `Modules/UI/`: Forms and Ribbon bindings (prefix/VB_Name: `UI_`).
+  - `config.json` & `features.json`: Declarative registries of settings, ribbon controls, and features.
 
 ---
 
 ## 📏 Development Rules & Linter Constraints
-
 Every code file is automatically verified by `.build/Linter.ps1`. Adhere to the following strictly:
 
 ### 1. Mandatory File Headers
-- Every file must start with `Option Explicit`.
-- Every file must have a metadata header comment matching:
+- Every file must start with `Option Explicit` followed by:
   ```vba
   ' @Module: ModuleName
   ' @Category: Core | Infrastructure | Feature | Library | UI
@@ -43,14 +30,12 @@ Every code file is automatically verified by `.build/Linter.ps1`. Adhere to the 
   ```
 
 ### 2. Context Tracking & Error Handling
-- Every public procedure and command execution must track context and handle errors using the project's standard patterns:
+- Every public procedure (except events/infra/libs) and command execution must track context and handle errors:
   ```vba
   Public Sub ProcedureName()
       Dim tracker As Object: Set tracker = Infra_Error.Track("ProcedureName")
       On Error GoTo ErrHandler
-
       ' Implementation here
-
   CleanExit:
       Exit Sub
   ErrHandler:
@@ -59,28 +44,14 @@ Every code file is automatically verified by `.build/Linter.ps1`. Adhere to the 
   End Sub
   ```
 
-### 3. Spill-Safe Range Formulas
-- Always use `Range.Formula2` instead of `Range.Formula` to prevent dynamic array spill errors.
+### 3. Safety & Design Rules
+- **Range Formulas**: Always use `Range.Formula2` instead of `Range.Formula` to prevent dynamic array spill errors.
+- **Direct Conversions**: Do not call conversion functions (e.g., `CStr`, `CLng`) directly on range properties (e.g., `NumberFormat`, `Font.Name`, `Font.Size`) without first checking for `IsNull`. Mixed ranges return `Null`, causing Error 94.
+- **Loop Deletion**: When modifying or deleting items in a collection inside a loop, iterate backwards (`For i = count To 1 Step -1`).
+- **Explicit References**: Always qualify references to Excel globals (`Range`, `Cells`, `Rows`, `Columns`) with a sheet variable (e.g., `ws.Range`) to prevent active sheet bugs.
+- **Localization**: Do not hardcode localized sheet names (e.g., `"Sheet1"`). Use constants or dynamic discovery.
 
-### 4. Direct Conversion Safe Guards
-- Do not call conversion functions (e.g., `CStr`, `CLng`) directly on range properties (`NumberFormat`, `Font.Name`, `Font.Size`) without first checking for `IsNull`. Mixed ranges return `Null`, causing Run-time Error 94.
-
-### 5. Loop Deletion / Collection Mutation
-- When modifying or deleting items in a collection/array inside a loop, always iterate backwards:
-  ```vba
-  For i = count To 1 Step -1
-  ```
-
-### 6. Explicit References
-- Always qualify references to Excel globals like `Range`, `Cells`, `Rows`, and `Columns` with a sheet variable (e.g., `ws.Range`) to prevent `ActiveSheet` selection bugs.
-
-### 7. Sheet Localization
-- Do not hardcode localized sheet names (e.g., `"Sheet1"`), which fail in non-English Excel environments. Use constants or dynamic discovery.
-
-### 8. Standardized Naming Conventions
-- **Commands/Features**: Prefix files and VB_Name with `FeatCmd_` (e.g., `FeatCmd_CleanData.cls`).
-- **Infrastructure**: Prefix files and VB_Name with `Infra_` (e.g., `Infra_Error.cls`, `Infra_Config.cls`).
-- **UI Dialogs & Entrypoints**: Prefix files and VB_Name with `UI_` (e.g., `UI_Ribbon.bas`, `UI_DialogShared.bas`).
-- **UDF Modules**: Prefix files and VB_Name with `Udf_` (e.g., `Udf_XFilter.bas`, `Udf_XUnpivot.bas`).
-- **Unit Tests**: Prefix files and VB_Name with `Test_` or `Test_Feat_` (e.g., `Test_Feat_CleanData.bas`, `Test_Runner.bas`).
-- **Variable Casing**: Use camelCase for local variables and internal method parameters. Reserve PascalCase/Snake_Case strictly for public APIs and Excel-exposed properties.
+### 4. Standardized Naming Conventions
+- **Variable Casing**: camelCase for local variables and internal parameters.
+- **Public APIs/Properties**: PascalCase or Snake_Case.
+- **Files/VB_Name prefixes**: `FeatCmd_` (Features), `Infra_` (Infrastructure), `UI_` (UI), `Udf_` (UDFs), `Test_` (Tests).

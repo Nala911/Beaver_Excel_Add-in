@@ -219,28 +219,16 @@ Public Function PromptForScopeSelection( _
     Dim userChoice As String
     Dim normalizedChoice As String
 
-    Do
-        If Not Infra_Interaction.PromptOption(promptMsg, BuildDialogTitle(dialogName), defaultChoice, options, userChoice, Replace(dialogName, " ", "") & "ScopeOptions") Then
-            PromptForScopeSelection = False
-            GoTo CleanExit
-        End If
+    If Not Infra_Interaction.PromptOption(promptMsg, BuildDialogTitle(dialogName), defaultChoice, options, userChoice, Replace(dialogName, " ", "") & "ScopeOptions") Then
+        PromptForScopeSelection = False
+        GoTo CleanExit
+    End If
 
-        normalizedChoice = NormalizeChoiceText(userChoice)
-        If normalizedChoice = "" Then normalizedChoice = UCase$(defaultChoice)
+    normalizedChoice = NormalizeChoiceText(userChoice)
+    If normalizedChoice = "" Then normalizedChoice = UCase$(defaultChoice)
 
-        If (normalizedChoice = "W" Or normalizedChoice = "WB" Or normalizedChoice = "WORKBOOK" Or _
-            normalizedChoice = "WHOLE WORKBOOK" Or normalizedChoice = "WHOLEWORKBOOK") And confirmMessage <> "" Then
-            If Not Infra_Interaction.Confirm(confirmMessage, BuildDialogTitle("Confirm Workbook Scope"), vbDefaultButton2) Then
-                GoTo ContinueLoop
-            End If
-        End If
-
-        outChoice = normalizedChoice
-        PromptForScopeSelection = True
-        Exit Do
-
-ContinueLoop:
-    Loop
+    outChoice = normalizedChoice
+    PromptForScopeSelection = True
 
 CleanExit:
     Exit Function

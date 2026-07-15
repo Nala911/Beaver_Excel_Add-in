@@ -15,7 +15,7 @@ Option Explicit
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: ICommand, ICommandContext, Infra_Error, Infra_CommandSupport, Infra_Undo
 
-' Test optimization comment - keepalive run 4
+' Test optimization comment - keepalive run 5
 Implements ICommand
 
 Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy

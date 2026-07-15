@@ -69,6 +69,10 @@ Public Property Get HIGHLIGHT_COLOR() As Long
     HIGHLIGHT_COLOR = Model.HighlightColor
 End Property
 
+Public Property Get HIGHLIGHT_NAMED_RANGES_COLOR() As Long
+    HIGHLIGHT_NAMED_RANGES_COLOR = Model.HighlightNamedRangesColor
+End Property
+
 Public Property Get HEADER_FONT_SIZE() As Long
     HEADER_FONT_SIZE = Model.HeaderFontSize
 End Property
@@ -191,6 +195,7 @@ Private Sub LoadConfig()
         .MaxColumnWidth = GetValidatedValue("UIConstants", "MaxColumnWidth", .MaxColumnWidth, "Long", 5, 255)
         .HeaderColor = ParseHexColor(CStr(GetValue("UIConstants", "HeaderColor", "#AEAAAA")))
         .HighlightColor = ParseHexColor(CStr(GetValue("UIConstants", "HighlightColor", "#FFC7CE")))
+        .HighlightNamedRangesColor = ParseHexColor(CStr(GetValue("UIConstants", "HighlightNamedRangesColor", "#DCE6F2")))
         .DefaultExportScale = GetValidatedValue("UIConstants", "DefaultExportScale", .DefaultExportScale, "Long", 1, 10)
         .MaxExportScale = GetValidatedValue("UIConstants", "MaxExportScale", .MaxExportScale, "Long", 1, 20)
         .ReleaseTier = GetValidatedValue("FeatureFlags", "ReleaseTier", .ReleaseTier, "String")
@@ -239,6 +244,7 @@ Private Sub ApplyDefaultConfigModel(ByVal model As Infra_ConfigModel)
     model.MaxColumnWidth = 25
     model.HeaderColor = RGB(174, 170, 170)
     model.HighlightColor = RGB(255, 199, 206)
+    model.HighlightNamedRangesColor = RGB(220, 230, 242)
     model.DefaultExportScale = 3
     model.MaxExportScale = 10
     model.ReleaseTier = "stable"

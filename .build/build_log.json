@@ -1,93 +1,28 @@
 ﻿{
-  "timestamp": "2026-07-15T02:08:54+05:30",
+  "timestamp": "2026-07-16T00:33:30+05:30",
   "status": "success",
   "commandLine": ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
-  "buildMode": "full",
+  "buildMode": "incremental",
   "system": {
     "os": "Microsoft Windows NT 10.0.26200.0",
     "powershellVersion": "7.6.0",
     "excelProcess": {
-      "pid": 4124,
+      "pid": 0,
       "wasAlreadyOpen": false,
-      "reusedSession": true,
+      "reusedSession": false,
       "lockRecovered": false
     }
   },
   "changes": {
-    "hasChanges": true,
-    "changedFiles": [
-      "Modules/Commands/FeatCmd_CreateNamedRanges.cls",
-      "Modules/Commands/FeatCmd_FillDown.cls",
-      "Modules/Commands/FeatCmd_FillRight.cls"
-    ],
+    "hasChanges": false,
+    "changedFiles": [],
     "deletedFiles": [],
     "manifestChanged": false,
     "manifestStructureChanged": false
   },
-  "stages": [
-    {
-      "name": "manifest_sync",
-      "status": "success",
-      "durationMs": 84.13,
-      "details": "features synced from features.json"
-    },
-    {
-      "name": "command_registry_generation",
-      "status": "success",
-      "durationMs": 66.11,
-      "details": "command registry, help manifest, UDF registry refreshed"
-    },
-    {
-      "name": "ui_entry_generation",
-      "status": "success",
-      "durationMs": 25.99,
-      "details": "UI entry modules refreshed"
-    },
-    {
-      "name": "test_manifest_generation",
-      "status": "success",
-      "durationMs": 37.19,
-      "details": "test manifest refreshed"
-    },
-    {
-      "name": "validation",
-      "status": "success",
-      "durationMs": 848.03,
-      "details": "ribbon, syntax, lint, and form checks passed"
-    },
-    {
-      "name": "environment_checks",
-      "status": "success",
-      "durationMs": 29.78,
-      "details": "workbook available"
-    },
-    {
-      "name": "workbook_update",
-      "status": "success",
-      "durationMs": 5459.36,
-      "details": "modules imported and workbook saved"
-    },
-    {
-      "name": "ribbon_injection",
-      "status": "success",
-      "durationMs": 52.32,
-      "details": "customUI14.xml refreshed"
-    },
-    {
-      "name": "runtime_tests",
-      "status": "success",
-      "durationMs": 7862.53,
-      "details": ""
-    }
-  ],
+  "stages": [],
   "lintResults": {
-    "checkedFiles": [
-      "Modules/Commands/FeatCmd_FillRight.cls",
-      "Modules/Commands/FeatCmd_FillDown.cls",
-      "Modules/Commands/FeatCmd_CreateNamedRanges.cls",
-      "Modules/UI/UI_HelpCenter.frm",
-      "Modules/UI/UI_OptionPicker.frm"
-    ],
+    "checkedFiles": [],
     "errors": []
   },
   "compileResults": {
@@ -95,17 +30,17 @@
     "errorDetails": null
   },
   "testResults": {
-    "runTests": true,
-    "filter": "",
+    "runTests": false,
+    "filter": null,
     "ribbonValidation": {
-      "status": "skipped",
+      "status": "success",
       "error": null
     },
     "unitTests": {
-      "total": 611,
-      "passed": 611,
+      "total": 0,
+      "passed": 0,
       "failed": 0,
-      "durationMs": 6897,
+      "durationMs": 0,
       "failures": []
     },
     "headlessCallbacks": {
@@ -114,5 +49,5 @@
       "failures": []
     }
   },
-  "totalDurationMs": 17262.96
+  "totalDurationMs": 2810.69
 }

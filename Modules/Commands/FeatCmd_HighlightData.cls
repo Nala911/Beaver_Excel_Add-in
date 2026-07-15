@@ -160,6 +160,11 @@ Private Sub ProcessRangeForHighlight(ByRef targetRange As Range, ByVal request A
             HighlightConditionalFormattingInArea area
         End If
         
+        ' 7. Highlight Named Ranges
+        If request.HighlightNamedRanges Then
+            HighlightNamedRangesInArea area
+        End If
+        
         DoEvents
         If Infra_Progress.UserCancelled Then Exit For
     Next i
@@ -434,6 +439,12 @@ Public Function HasHardcodedValue(ByVal formula As String, Optional ByVal rePass
     ' Remove any leading "=" sign
     If Left$(formula, 1) = "=" Then formula = Mid$(formula, 2)
     
+    ' Fast native check: if no digits and no quotes, it cannot have hardcoded numbers or strings
+    If Not (formula Like "*[0-9]*" Or formula Like "*""*") Then
+        HasHardcodedValue = False
+        Exit Function
+    End If
+    
     Static reTextLiteral As Object
     Static reStringLiteral As Object
     Static reTableCol As Object
@@ -576,6 +587,87 @@ Private Sub HighlightConditionalFormattingInArea(ByVal area As Range)
     On Error GoTo 0
 End Sub
 
+Private Sub HighlightNamedRangesInArea(ByVal area As Range)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("HighlightNamedRangesInArea")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet: Set ws = area.Worksheet
+    Dim wb As Workbook: Set wb = ws.Parent
+    Dim nameObj As Name
+    Dim unionRange As Range
+    Dim refersRange As Range
+    Dim intersectRange As Range
+    Dim refersToFormula As String
+    Dim sheetName As String
+    Dim rangeAddress As String
+    
+    ' Workbook scope names
+    For Each nameObj In wb.Names
+        refersToFormula = vbNullString
+        On Error Resume Next
+        refersToFormula = nameObj.RefersTo
+        On Error GoTo ErrHandler
+        
+        If Infra_CommandSupport.ParseSimpleRefersTo(refersToFormula, sheetName, rangeAddress) Then
+            If StrComp(sheetName, ws.Name, vbTextCompare) = 0 Then
+                Set refersRange = Nothing
+                On Error Resume Next
+                Set refersRange = ws.Range(rangeAddress)
+                On Error GoTo ErrHandler
+                
+                If Not refersRange Is Nothing Then
+                    Set intersectRange = Application.Intersect(refersRange, area)
+                    If Not intersectRange Is Nothing Then
+                        If unionRange Is Nothing Then
+                            Set unionRange = intersectRange
+                        Else
+                            Set unionRange = Application.Union(unionRange, intersectRange)
+                        End If
+                    End If
+                End If
+            End If
+        End If
+    Next nameObj
+    
+    ' Worksheet scope names
+    For Each nameObj In ws.Names
+        refersToFormula = vbNullString
+        On Error Resume Next
+        refersToFormula = nameObj.RefersTo
+        On Error GoTo ErrHandler
+        
+        If Infra_CommandSupport.ParseSimpleRefersTo(refersToFormula, sheetName, rangeAddress) Then
+            If StrComp(sheetName, ws.Name, vbTextCompare) = 0 Then
+                Set refersRange = Nothing
+                On Error Resume Next
+                Set refersRange = ws.Range(rangeAddress)
+                On Error GoTo ErrHandler
+                
+                If Not refersRange Is Nothing Then
+                    Set intersectRange = Application.Intersect(refersRange, area)
+                    If Not intersectRange Is Nothing Then
+                        If unionRange Is Nothing Then
+                            Set unionRange = intersectRange
+                        Else
+                            Set unionRange = Application.Union(unionRange, intersectRange)
+                        End If
+                    End If
+                End If
+            End If
+        End If
+    Next nameObj
+    
+    If Not unionRange Is Nothing Then
+        unionRange.Interior.Color = Infra_Config.HIGHLIGHT_NAMED_RANGES_COLOR
+    End If
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "HighlightNamedRangesInArea", Err
+    Resume CleanExit
+End Sub
+
 ' --- Testing Entry Points ---
 Public Sub HighlightRangeDirect(ByVal targetRange As Range)
     Dim tracker As Object: Set tracker = Infra_Error.Track("HighlightRangeDirect")
@@ -612,12 +704,8 @@ Public Sub ClearWorkbookHighlights(ByVal wb As Workbook)
     Dim targetColor As Long
     targetColor = Infra_Config.HIGHLIGHT_COLOR
     
-    ' Set up search and replace formats
-    Application.FindFormat.Clear
-    Application.FindFormat.Interior.Color = targetColor
-    
-    Application.ReplaceFormat.Clear
-    Application.ReplaceFormat.Interior.ColorIndex = xlNone
+    Dim targetBlueColor As Long
+    targetBlueColor = Infra_Config.HIGHLIGHT_NAMED_RANGES_COLOR
     
     ' Configure app state to optimize replacement performance
     guard.ScreenUpdating = False
@@ -628,6 +716,22 @@ Public Sub ClearWorkbookHighlights(ByVal wb As Workbook)
     Dim ws As Worksheet
     For Each ws In wb.Worksheets
         If Left$(ws.Name, 1) <> "_" Then
+            ' Clear targetColor
+            Application.FindFormat.Clear
+            Application.FindFormat.Interior.Color = targetColor
+            Application.ReplaceFormat.Clear
+            Application.ReplaceFormat.Interior.ColorIndex = xlNone
+            
+            On Error Resume Next
+            ws.UsedRange.Replace What:="", Replacement:="", SearchFormat:=True, ReplaceFormat:=True
+            On Error GoTo ErrHandler
+            
+            ' Clear targetBlueColor
+            Application.FindFormat.Clear
+            Application.FindFormat.Interior.Color = targetBlueColor
+            Application.ReplaceFormat.Clear
+            Application.ReplaceFormat.Interior.ColorIndex = xlNone
+            
             On Error Resume Next
             ws.UsedRange.Replace What:="", Replacement:="", SearchFormat:=True, ReplaceFormat:=True
             On Error GoTo ErrHandler

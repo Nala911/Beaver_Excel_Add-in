@@ -12,43 +12,20 @@ Public Function ShowHighlightDataDialog(ByVal ctx As ActionContext, Optional ByV
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowHighlightDataDialog")
     On Error GoTo ErrHandler
     
-    Dim promptMsg As String
     Dim normalizedChoice As String
     Dim request As HighlightDataRequest
-    Dim options As Variant
-    Dim defaultChoice As String
     Dim hasSelection As Boolean
-    Dim confirmMsg As String
-    Dim bypassScopePrompt As Boolean
 
     hasSelection = UI_DialogShared.HasUsableSelection(ctx)
-    bypassScopePrompt = False
 
     If hasSelection Then
         If ctx.SelectionRange.Cells.CountLarge > 1 Then
             normalizedChoice = "RANGE"
-            bypassScopePrompt = True
         Else
-            options = UI_DialogShared.BuildChoiceArray("Sheet", "Workbook")
-            defaultChoice = "Sheet"
+            normalizedChoice = "WORKBOOK"
         End If
     Else
-        options = UI_DialogShared.BuildChoiceArray("Sheet", "Workbook")
-        defaultChoice = "Sheet"
-    End If
-
-    promptMsg = UI_DialogShared.BuildScopePromptMsg("Highlight key data patterns (Inconsistent Formulas, Duplicates, Errors, Hardcoded Values).", hasSelection, bypassScopePrompt)
-    confirmMsg = UI_DialogShared.BuildScopeConfirmMsg("Highlight Data", UI_DialogShared.SafeWorkbookName(ctx))
-
-    If Not bypassScopePrompt Then
-        If Not UI_DialogShared.PromptForScopeSelection(ctx, "Highlight Data", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
-    End If
-
-    If normalizedChoice = "R" Or normalizedChoice = "RANGE" Or normalizedChoice = "SELECTED" Or normalizedChoice = "SELECTION" Then
-        If Not hasSelection Then
-            Infra_Interaction.ShowWarning "Select a range first if you want to highlight only the current selection.", UI_DialogShared.BuildDialogTitle("Highlight Data")
-            GoTo CleanExit
-        End If
+        normalizedChoice = "WORKBOOK"
     End If
 
     Set request = UI_DialogShared.CreateHighlightDataRequest(ctx, normalizedChoice)
@@ -68,6 +45,8 @@ Public Function ShowHighlightDataDialog(ByVal ctx As ActionContext, Optional ByV
             chosenOption = "Highlight Data Validations (soft green)"
         Case "highlightconditionalformatting"
             chosenOption = "Highlight Conditional Formatting (soft blue)"
+        Case "highlightnamedranges"
+            chosenOption = "Highlight Named Ranges (light blue)"
         Case Else
             Dim highlightOptionsList As Variant
             highlightOptionsList = Array( _
@@ -76,7 +55,8 @@ Public Function ShowHighlightDataDialog(ByVal ctx As ActionContext, Optional ByV
                 "Highlight Errors (orange)", _
                 "Highlight Hardcoded Values in Formulas (lavender)", _
                 "Highlight Data Validations (soft green)", _
-                "Highlight Conditional Formatting (soft blue)" _
+                "Highlight Conditional Formatting (soft blue)", _
+                "Highlight Named Ranges (light blue)" _
             )
 
             If Not Infra_Interaction.PromptOption( _
@@ -96,6 +76,7 @@ Public Function ShowHighlightDataDialog(ByVal ctx As ActionContext, Optional ByV
     request.HighlightHardcodedValues = False
     request.HighlightDataValidations = False
     request.HighlightConditionalFormatting = False
+    request.HighlightNamedRanges = False
 
     If chosenOption = "Highlight Inconsistent Formulas (yellow)" Then
         request.HighlightInconsistentFormulas = True
@@ -109,6 +90,8 @@ Public Function ShowHighlightDataDialog(ByVal ctx As ActionContext, Optional ByV
         request.HighlightDataValidations = True
     ElseIf chosenOption = "Highlight Conditional Formatting (soft blue)" Then
         request.HighlightConditionalFormatting = True
+    ElseIf chosenOption = "Highlight Named Ranges (light blue)" Then
+        request.HighlightNamedRanges = True
     End If
 
     Set ShowHighlightDataDialog = request

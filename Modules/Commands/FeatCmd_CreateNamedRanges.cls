@@ -263,20 +263,19 @@ Public Function ExecuteBulkNamedRangesDirect( _
             refersToFormula = nameObj.RefersTo
             On Error GoTo ErrHandler
             
-            ' Only check RefersToRange if it contains the sheet name or "!" and refers to a range
-            If InStr(1, refersToFormula, "!", vbTextCompare) > 0 And _
-               InStr(1, refersToFormula, targetWs.Name, vbTextCompare) > 0 Then
-                
-                Dim refersRange As Range: Set refersRange = Nothing
-                On Error Resume Next
-                Set refersRange = nameObj.RefersToRange
-                On Error GoTo ErrHandler
-                
-                If Not refersRange Is Nothing Then
-                    ' Only cache single-cell references pointing to cells in valueRange
-                    If refersRange.Cells.CountLarge = 1 Then
+            Dim sheetName As String
+            Dim rangeAddress As String
+            If Infra_CommandSupport.ParseSimpleRefersTo(refersToFormula, sheetName, rangeAddress) Then
+                If StrComp(sheetName, targetWs.Name, vbTextCompare) = 0 Then
+                    Dim refersRange As Range: Set refersRange = Nothing
+                    On Error Resume Next
+                    Set refersRange = targetWs.Range(rangeAddress)
+                    On Error GoTo ErrHandler
+                    
+                    If Not refersRange Is Nothing Then
                         If Infra_CommandSupport.IsRangeInsideRange(refersRange, valueRange) Then
-                            Dim cellAddr As String: cellAddr = refersRange.Address(External:=True)
+                            Dim cellAddr As String
+                            cellAddr = refersRange.Address(External:=True)
                             If Not dictNamesByCell.Exists(cellAddr) Then
                                 Dim nameCol As Collection: Set nameCol = New Collection
                                 dictNamesByCell.Add cellAddr, nameCol
@@ -293,6 +292,12 @@ Public Function ExecuteBulkNamedRangesDirect( _
     Dim valCols As Long: valCols = valueRange.Columns.Count
     Dim lblCols As Long: lblCols = labelRange.Columns.Count
     
+    ' Fetch the external prefix once to construct external addresses in memory
+    Dim dummyAddr As String
+    Dim extPrefix As String
+    dummyAddr = targetWs.Cells(1, 1).Address(External:=True)
+    extPrefix = Left$(dummyAddr, InStrRev(dummyAddr, "!") - 1)
+    
     Dim createdNamesCol As New Collection
     
     Dim i As Long
@@ -300,8 +305,8 @@ Public Function ExecuteBulkNamedRangesDirect( _
         Dim lblVal As Variant
         Dim valVal As Variant
         
+        Dim valR As Long, valC As Long
         If expectedCount > 1 Then
-            Dim valR As Long, valC As Long
             valR = ((i - 1) \ valCols) + 1
             valC = ((i - 1) Mod valCols) + 1
             valVal = valArr(valR, valC)
@@ -311,6 +316,8 @@ Public Function ExecuteBulkNamedRangesDirect( _
             lblC = ((i - 1) Mod lblCols) + 1
             lblVal = lblArr(lblR, lblC)
         Else
+            valR = 1
+            valC = 1
             lblVal = labelRange.Value2
             valVal = valueRange.Value2
         End If
@@ -334,18 +341,22 @@ Public Function ExecuteBulkNamedRangesDirect( _
             End If
         End If
         
-        ' Instantiate actual cells only when passing filters
-        Dim labelCell As Range: Set labelCell = labelRange.Cells(i)
-        Dim valueCell As Range: Set valueCell = valueRange.Cells(i)
-        
         Dim sanitizedName As String: sanitizedName = SanitizeExcelName(rawLabel)
         
         ' Check if name already exists
         Dim nameExists As Boolean: nameExists = dictNamesByName.Exists(sanitizedName)
         Dim existingName As Name: Set existingName = Nothing
         
-        Dim currentAddr As String: currentAddr = valueCell.Address(External:=True)
+        ' Calculate row and column numbers of target cell
+        Dim cellRow As Long: cellRow = valStartRow + valR - 1
+        Dim cellCol As Long: cellCol = valStartCol + valC - 1
+        
+        ' Construct external address in memory
+        Dim currentAddr As String
+        currentAddr = extPrefix & "!$" & Infra_CommandSupport.GetColLetter(cellCol) & "$" & cellRow
+        
         Dim isRedundant As Boolean: isRedundant = False
+        Dim valueCell As Range: Set valueCell = Nothing
         
         If nameExists Then
             Set existingName = dictNamesByName(sanitizedName)
@@ -379,6 +390,7 @@ Public Function ExecuteBulkNamedRangesDirect( _
                     existingCellRef = "another formula/reference"
                 End If
                 
+                Set valueCell = valueRange.Cells(i)
                 Dim targetCellRef As String
                 targetCellRef = valueCell.Parent.Name & "!" & valueCell.Address(RowAbsolute:=False, ColumnAbsolute:=False)
                 
@@ -387,7 +399,7 @@ Public Function ExecuteBulkNamedRangesDirect( _
             End If
         End If
         
-        ' Clean up other names pointing to this valueCell (renaming support)
+        ' Clean up other names pointing to this cell (renaming support)
         If dictNamesByCell.Exists(currentAddr) Then
             Dim cellNamesCol As Collection: Set cellNamesCol = dictNamesByCell(currentAddr)
             Dim j As Long
@@ -411,6 +423,8 @@ Public Function ExecuteBulkNamedRangesDirect( _
         
         ' Create Name
         Dim newNameObj As Name: Set newNameObj = Nothing
+        If valueCell Is Nothing Then Set valueCell = valueRange.Cells(i)
+        
         If scopeChoice = "Workbook" Then
             Set newNameObj = targetWb.Names.Add(Name:=sanitizedName, RefersTo:=valueCell)
         Else

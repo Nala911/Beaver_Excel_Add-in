@@ -3,12 +3,12 @@
                 {
                     "Id":  "BeaverTab",
                     "Label":  "Beaver",
-                    "Keytip":  "B"
+                    "Keytip":  "K"
                 },
                 {
                     "Id":  "OfficeToolsTab",
                     "Label":  "Office Tools",
-                    "Keytip":  "O"
+                    "Keytip":  "X"
                 }
             ],
     "Groups":  [
@@ -82,7 +82,7 @@
                          "Macro":  "UI_Ribbon.Ribbon_OnStaticSheetWorkbook",
                          "CommandName":  "StaticSheetWorkbook",
                          "Icon":  "CalculateNow",
-                         "Keytip":  "SW",
+                         "Keytip":  "S",
                          "Screentip":  "Convert Formulas to Static Values",
                          "Supertip":  "Permanently replaces all formulas with their current values across the active sheet or the entire workbook. Handles spill ranges correctly.",
                          "RuntimeTestMode":  "interactive"
@@ -94,7 +94,7 @@
                          "Macro":  "UI_Ribbon.Ribbon_OnCleanData",
                          "CommandName":  "CleanData",
                          "Icon":  "Clear",
-                         "Keytip":  "CD",
+                         "Keytip":  "C",
                          "Screentip":  "Clean Data",
                          "Supertip":  "Trims spaces and removes non-printable characters for the selected scope (Range, Sheet, or Workbook).",
                          "RuntimeTestMode":  "interactive"
@@ -105,7 +105,7 @@
                          "Type":  "Menu",
                          "CommandName":  "ModifyData",
                          "Icon":  "ChangeCase",
-                         "Keytip":  "MD",
+                         "Keytip":  "M",
                          "Screentip":  "Modify Data",
                          "Supertip":  "Modifies text and dates in the selection (casing or date standardization).",
                          "MenuItems":  [
@@ -123,7 +123,7 @@
                          "CommandName":  "DateFixer",
                          "CommandClass":  "FeatCmd_ModifyData",
                          "Icon":  "CalculateNow",
-                         "Keytip":  "DF",
+                         "Keytip":  "D",
                          "Screentip":  "Date Fixer",
                          "Supertip":  "Standardizes dates in the selection.",
                          "RuntimeTestMode":  "interactive"
@@ -136,7 +136,7 @@
                          "CommandName":  "CaseFixer",
                          "CommandClass":  "FeatCmd_ModifyData",
                          "Icon":  "ChangeCase",
-                         "Keytip":  "CF",
+                         "Keytip":  "C",
                          "Screentip":  "Case Fixer",
                          "Supertip":  "Standardizes casing of text in the selection.",
                          "RuntimeTestMode":  "interactive"
@@ -147,7 +147,7 @@
                          "Type":  "Menu",
                          "CommandName":  "HighlightData",
                          "Icon":  "ConditionalFormattingMenu",
-                         "Keytip":  "HD",
+                         "Keytip":  "H",
                          "Screentip":  "Highlight Data",
                          "Supertip":  "Highlights key data patterns and duplicates.",
                          "MenuItems":  [
@@ -157,6 +157,7 @@
                                            "BtnHighlightHardcodedValues",
                                            "BtnHighlightDataValidations",
                                            "BtnHighlightConditionalFormatting",
+                                           "BtnHighlightNamedRanges",
                                            "BtnHighlightFinancialModelling",
                                            "BtnClearHighlights"
                                        ]
@@ -169,7 +170,7 @@
                          "CommandName":  "HighlightInconsistentFormulas",
                          "CommandClass":  "FeatCmd_HighlightData",
                          "Icon":  "CalculateNow",
-                         "Keytip":  "HI",
+                         "Keytip":  "I",
                          "Screentip":  "Inconsistent Formulas",
                          "Supertip":  "Highlights inconsistent formulas in yellow.",
                          "RuntimeTestMode":  "interactive"
@@ -182,7 +183,7 @@
                          "CommandName":  "HighlightDuplicates",
                          "CommandClass":  "FeatCmd_HighlightData",
                          "Icon":  "ConditionalFormattingMenu",
-                         "Keytip":  "HD",
+                         "Keytip":  "D",
                          "Screentip":  "Duplicates",
                          "Supertip":  "Highlights duplicate values in soft red.",
                          "RuntimeTestMode":  "interactive"
@@ -195,7 +196,7 @@
                          "CommandName":  "HighlightErrors",
                          "CommandClass":  "FeatCmd_HighlightData",
                          "Icon":  "ErrorChecking",
-                         "Keytip":  "HE",
+                         "Keytip":  "E",
                          "Screentip":  "Errors",
                          "Supertip":  "Highlights cells with errors in orange.",
                          "RuntimeTestMode":  "interactive"
@@ -208,7 +209,7 @@
                          "CommandName":  "HighlightHardcodedValues",
                          "CommandClass":  "FeatCmd_HighlightData",
                          "Icon":  "FunctionWizard",
-                         "Keytip":  "HH",
+                         "Keytip":  "H",
                          "Screentip":  "Hardcoded Values",
                          "Supertip":  "Highlights formulas containing hardcoded values in lavender.",
                          "RuntimeTestMode":  "interactive"
@@ -221,7 +222,7 @@
                          "CommandName":  "HighlightDataValidations",
                          "CommandClass":  "FeatCmd_HighlightData",
                          "Icon":  "TableProperties",
-                         "Keytip":  "HV",
+                         "Keytip":  "V",
                          "Screentip":  "Data Validations",
                          "Supertip":  "Highlights cells with data validation rules in soft green.",
                          "RuntimeTestMode":  "interactive"
@@ -234,9 +235,22 @@
                          "CommandName":  "HighlightConditionalFormatting",
                          "CommandClass":  "FeatCmd_HighlightData",
                          "Icon":  "ConditionalFormattingMenu",
-                         "Keytip":  "HC",
+                         "Keytip":  "C",
                          "Screentip":  "Conditional Formatting",
                          "Supertip":  "Highlights cells with conditional formatting in soft blue.",
+                         "RuntimeTestMode":  "interactive"
+                     },
+                     {
+                         "ControlId":  "BtnHighlightNamedRanges",
+                         "Label":  "Named Ranges",
+                         "OnAction":  "Ribbon_OnHighlightNamedRanges",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHighlightNamedRanges",
+                         "CommandName":  "HighlightNamedRanges",
+                         "CommandClass":  "FeatCmd_HighlightData",
+                         "Icon":  "NameDefine",
+                         "Keytip":  "N",
+                         "Screentip":  "Highlight Named Ranges",
+                         "Supertip":  "Highlights cells that are referenced by named ranges in light blue.",
                          "RuntimeTestMode":  "interactive"
                      },
                      {
@@ -247,7 +261,7 @@
                          "CommandName":  "HighlightFinancialModelling",
                          "CommandClass":  "FeatCmd_FinancialModelling",
                          "Icon":  "FontColorCycle",
-                         "Keytip":  "HF",
+                         "Keytip":  "F",
                          "Screentip":  "Financial Modelling",
                          "Supertip":  "Formats cells using the standard financial model coloring scheme.",
                          "RuntimeTestMode":  "interactive"
@@ -260,7 +274,7 @@
                          "CommandName":  "ClearHighlights",
                          "CommandClass":  "FeatCmd_HighlightData",
                          "Icon":  "Clear",
-                         "Keytip":  "CH",
+                         "Keytip":  "X",
                          "Screentip":  "Clear Highlights",
                          "Supertip":  "Clears all cells in the workbook matching the highlight color.",
                          "RuntimeTestMode":  "interactive"
@@ -272,7 +286,7 @@
                          "Macro":  "UI_Ribbon.Ribbon_OnBreakExternalLinks",
                          "CommandName":  "BreakExternalLinks",
                          "Icon":  "WorkbookLinks",
-                         "Keytip":  "BL",
+                         "Keytip":  "L",
                          "Screentip":  "Break External Links",
                          "Supertip":  "Removes all external workbook references and keeps current values.",
                          "RuntimeTestMode":  "interactive"
@@ -284,7 +298,7 @@
                          "Macro":  "UI_Ribbon.Ribbon_OnDuplicate",
                          "CommandName":  "Duplicate",
                          "Icon":  "FileSaveAs",
-                         "Keytip":  "DP",
+                         "Keytip":  "D",
                          "Screentip":  "Duplicate Active Workbook",
                          "Supertip":  "Duplicates the active workbook to your Desktop, opens it, and closes the original so you can work safely on the copy.",
                          "RuntimeTestMode":  "interactive"
@@ -296,7 +310,7 @@
                          "CommandName":  "ExportImageOrPdf",
                          "CommandClass":  "FeatCmd_ExportImageOrPdf",
                          "Icon":  "Export",
-                         "Keytip":  "EX",
+                         "Keytip":  "E",
                          "Screentip":  "Export",
                          "Supertip":  "Exports the selected range as a PNG image or a PDF document.",
                          "MenuItems":  [
@@ -312,7 +326,7 @@
                          "CommandName":  "ExportPng",
                          "CommandClass":  "FeatCmd_ExportImageOrPdf",
                          "Icon":  "FileSaveAs",
-                         "Keytip":  "EP",
+                         "Keytip":  "P",
                          "Screentip":  "Export as PNG",
                          "Supertip":  "Exports the selected range as a PNG image.",
                          "RuntimeTestMode":  "interactive"
@@ -325,7 +339,7 @@
                          "CommandName":  "ExportPdf",
                          "CommandClass":  "FeatCmd_ExportImageOrPdf",
                          "Icon":  "Export",
-                         "Keytip":  "ED",
+                         "Keytip":  "D",
                          "Screentip":  "Export as PDF",
                          "Supertip":  "Exports the selected range as a PDF document.",
                          "RuntimeTestMode":  "interactive"
@@ -337,7 +351,7 @@
                          "Macro":  "UI_Ribbon.Ribbon_OnShowHelpCenter",
                          "CommandName":  "ShowHelpCenter",
                          "Icon":  "Help",
-                         "Keytip":  "H",
+                         "Keytip":  "I",
                          "Screentip":  "Show Help Center",
                          "Supertip":  "Opens the Beaver Help Center, listing all registered hotkeys, user-defined functions, and their descriptions.",
                          "RuntimeTestMode":  "interactive"
@@ -349,7 +363,7 @@
                           "Macro":  "UI_Ribbon.Ribbon_OnHelloWorld",
                           "CommandName":  "HelloWorld",
                           "Icon":  "HappyFace",
-                          "Keytip":  "HW",
+                          "Keytip":  "H",
                           "Screentip":  "Say Hello World",
                           "Supertip":  "Puts 'Hello world' into the active cell (metadata test).",
                           "RuntimeTestMode":  "interactive"
@@ -359,7 +373,7 @@
                          "Label":  "Report Generator",
                          "Type":  "Menu",
                          "Icon":  "TableProperties",
-                         "Keytip":  "RG",
+                         "Keytip":  "R",
                          "Screentip":  "Report Generator",
                          "Supertip":  "Generate structured Table of Contents.",
                          "MenuItems":  [
@@ -373,7 +387,7 @@
                          "Macro":  "UI_Ribbon.Ribbon_OnTableOfContents",
                          "CommandName":  "TableOfContents",
                          "Icon":  "TableOfContentsDialog",
-                         "Keytip":  "TC",
+                         "Keytip":  "T",
                          "Screentip":  "Table of Contents",
                          "Supertip":  "Creates a hyperlinked index sheet at the beginning of the workbook.",
                          "RuntimeTestMode":  "interactive"
@@ -386,7 +400,7 @@
                          "CommandName":  "UnmergeFill",
                          "CommandClass":  "FeatCmd_UnmergeFill",
                          "Icon":  "TableProperties",
-                         "Keytip":  "UF",
+                         "Keytip":  "U",
                          "Screentip":  "Unmerge FillDown",
                          "Supertip":  "Unmerges the selected cells and fills the parent value to all unmerged cells.",
                          "RuntimeTestMode":  "interactive"
@@ -399,7 +413,7 @@
                          "CommandName":  "ForceNumber",
                          "CommandClass":  "FeatCmd_ForceNumber",
                          "Icon":  "CalculateNow",
-                         "Keytip":  "FN",
+                         "Keytip":  "N",
                          "Screentip":  "Convert Text to Number",
                          "Supertip":  "Forces text-formatted numbers in the selection to become actual numeric values.",
                          "RuntimeTestMode":  "interactive"
@@ -412,7 +426,7 @@
                          "CommandName":  "CreateNamedRanges",
                          "CommandClass":  "FeatCmd_CreateNamedRanges",
                          "Icon":  "NameDefine",
-                         "Keytip":  "NR",
+                         "Keytip":  "N",
                          "Screentip":  "Bulk Named Ranges",
                          "Supertip":  "Create Excel named ranges in bulk from non-adjacent value and label ranges. Automatically sanitizes labels.",
                          "RuntimeTestMode":  "interactive"

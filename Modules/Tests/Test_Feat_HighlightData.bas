@@ -1,4 +1,4 @@
-﻿Attribute VB_Name = "Test_Feat_HighlightData"
+Attribute VB_Name = "Test_Feat_HighlightData"
 Option Explicit
 
 ' @Module: Test_Feat_HighlightData
@@ -381,5 +381,68 @@ ErrHandler:
     Application.DisplayAlerts = True
     On Error GoTo 0
     Infra_Error.HandleError "Test_HighlightData_ClearHighlights", Err
+    Resume CleanExit
+End Sub
+
+Public Sub Test_HighlightData_NamedRanges()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HighlightData_NamedRanges")
+    Dim guard As New Infra_AppStateGuard
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_NamedRng"
+
+    ' 1. Set up values and add named ranges
+    ws.Range("B2").Value = 100
+    ws.Range("C3").Value = 200
+    ws.Range("D4").Value = 300
+    
+    ws.Names.Add Name:="Test_Local_Name", RefersTo:=ws.Range("B2")
+    ws.Parent.Names.Add Name:="Test_Global_Name", RefersTo:=ws.Range("C3")
+
+    ' Reset colors
+    ws.Range("B2:D4").Interior.ColorIndex = xlNone
+
+    Dim req As New HighlightDataRequest
+    req.HighlightInconsistentFormulas = False
+    req.HighlightDuplicates = False
+    req.HighlightNamedRanges = True
+
+    Dim cmd As New FeatCmd_HighlightData
+    cmd.HighlightRangeWithOptionsDirect ws.Range("B2:D4"), req
+
+    ' Check assertions: B2 and C3 should be highlighted with HIGHLIGHT_NAMED_RANGES_COLOR
+    Test_Runner.AssertEqual ws.Range("B2").Interior.Color, Infra_Config.HIGHLIGHT_NAMED_RANGES_COLOR, "B2 (local named range) should be highlighted light blue"
+    Test_Runner.AssertEqual ws.Range("C3").Interior.Color, Infra_Config.HIGHLIGHT_NAMED_RANGES_COLOR, "C3 (global named range) should be highlighted light blue"
+    Test_Runner.AssertEqual ws.Range("D4").Interior.ColorIndex, xlNone, "D4 has no named range and should not be highlighted"
+
+    ' Clear highlights
+    cmd.ClearWorkbookHighlights ws.Parent
+    Test_Runner.AssertEqual ws.Range("B2").Interior.ColorIndex, xlNone, "B2 highlight should be cleared"
+    Test_Runner.AssertEqual ws.Range("C3").Interior.ColorIndex, xlNone, "C3 highlight should be cleared"
+
+    ' Clean up names
+    On Error Resume Next
+    ws.Names("Test_Local_Name").Delete
+    ws.Parent.Names("Test_Global_Name").Delete
+    On Error GoTo ErrHandler
+
+    ' Cleanup sheet
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    ws.Names("Test_Local_Name").Delete
+    ws.Parent.Names("Test_Global_Name").Delete
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_HighlightData_NamedRanges", Err
     Resume CleanExit
 End Sub
