@@ -251,6 +251,72 @@ function Sync-CommandRegistry {
         }
     }
 
+    # Scaffold missing command classes to ensure linter compliance for AI agents
+    $commandsDir = Join-Path $modulesDir "Commands"
+    foreach ($entry in $commandMap.GetEnumerator()) {
+        $className = $entry.Value.CommandClass
+        $classFile = Join-Path $commandsDir "$className.cls"
+        if (-not (Test-Path $classFile)) {
+            Write-Host "  [Scaffolding] Auto-scaffolding missing command class: $className" -ForegroundColor Yellow
+            $commandName = $entry.Value.CommandName
+            $content = @"
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "$className"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
+Option Explicit
+
+' @Module: $className
+' @Category: Feature
+' @Description: Template feature class for $commandName.
+' @ManagedBy: BeaverAddin Agent
+' @Dependencies: ICommand, ICommandContext, Infra_Error, Infra_CommandSupport, Infra_Undo
+
+Implements ICommand
+
+Private Property Get ICommand_ExecutionPolicy() As CommandExecutionPolicy
+    Set ICommand_ExecutionPolicy = Infra_CommandSupport.PolicyInteractiveUI()
+End Property
+
+Private Function ICommand_Validate(ByVal context As ICommandContext) As CommandValidationResult
+    Set ICommand_Validate = Infra_CommandSupport.ValidateHasWorksheet(context)
+End Function
+
+Private Sub ICommand_Execute(ByVal context As ICommandContext)
+    Dim tracker As Object: Set tracker = Infra_Error.Track("$($commandName).Execute")
+    On Error GoTo ErrHandler
+
+    Dim ctx As ActionContext
+    Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
+    If ctx Is Nothing Then GoTo CleanExit
+
+    ' TODO: Implement custom feature logic here
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "$($commandName).Execute", Err
+    Resume CleanExit
+End Sub
+"@
+            [System.IO.File]::WriteAllText($classFile, $content, [System.Text.Encoding]::UTF8)
+            
+            # If orchestrator has a changedFiles list, register it so the compiler imports it!
+            if ($null -ne $script:changedFiles) {
+                $relPath = "Modules/Commands/$className.cls"
+                if ($script:changedFiles -notcontains $relPath) {
+                    $script:changedFiles += $relPath
+                }
+            }
+        }
+    }
+
     $lines = @(
         'Attribute VB_Name = "Infra_CommandRegistry"',
         'Option Explicit',
