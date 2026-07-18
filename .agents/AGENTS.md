@@ -1,28 +1,29 @@
 # Agent Instructions: Beaver Excel Add-in
 
-This project is a VBA-based Microsoft Excel Add-in called **Beaver Add-in** that provides advanced formatting, cleanup, highlights, and reporting tools.
+VBA Excel Add-in for advanced formatting, cleanup, and reporting.
 
 ---
 
 ## 📂 Project Structure & Workflow
-- **Rebuilding & Testing**: Run `pwsh -File .\Update.ps1` to lint, compile, and run tests.
-- **Source Control**: Only `.bas`, `.cls`, `.frm` source files are tracked. The binary workbook `Beaver Add-in.xlsm` is compiled on demand.
-- **Directories**:
-  - `Modules/Commands/`: `ICommand` features (prefix/VB_Name: `FeatCmd_`).
-  - `Modules/Core/`: Base classes/interfaces (e.g., `AppContainer.cls`, `ICommand.cls`).
-  - `Modules/Infrastructure/`: Cross-cutting helpers (prefix/VB_Name: `Infra_`).
-  - `Modules/Libraries/`: Helper code (prefix/VB_Name: `Lib_` / `Udf_`).
-  - `Modules/Tests/`: Unit tests (prefix/VB_Name: `Test_`).
-  - `Modules/UI/`: Forms and Ribbon bindings (prefix/VB_Name: `UI_`).
-  - `config.json` & `features.json`: Declarative registries of settings, ribbon controls, and features.
+- **Rebuilding & Testing**: Run `pwsh -File .\Update.ps1`.
+- **Architecture Map**: Automatically regenerated on successful build/test execution by `Update.ps1` when changes are detected. Can also be manually forced with `pwsh -File .\Update.ps1 -GenerateDocs` or `pwsh -File .build\GenerateArchitectureMap.ps1`.
+- **Architecture Reference**: Check [ARCHITECTURE.md](file:///c:/Users/fazil_uxry2im/Documents/Beaver/Excel Add-in/ARCHITECTURE.md) for module layering, dependencies, and mapping enums before any refactoring.
+- **Source Control**: Only `.bas`, `.cls`, `.frm`, and the auto-generated `ARCHITECTURE.md` are tracked.
+
+### 🛠️ Developer & Agent Command-Line Controls
+Run `Update.ps1` at the root with these agent-centric switches for faster cycles:
+- `pwsh -File .\Update.ps1 -Status` — Get repository diagnostics, module count, and lint health report.
+- `pwsh -File .\Update.ps1 -LintOnly [-AutoFix]` — Run quick syntax and style validation (bypassing Excel entirely).
+- `pwsh -File .\Update.ps1 -TestCategory UI|Feature|Infrastructure|Core` — Test only a specific layer of code.
+- `pwsh -File .\Update.ps1 -GenerateDocs` — Force regeneration of `ARCHITECTURE.md` Mermaid map.
+- `pwsh -File .\Update.ps1 -SkipDocs` — Skip documentation auto-generation.
 
 ---
 
-## 📏 Development Rules & Linter Constraints
-Every code file is automatically verified by `.build/Linter.ps1`. Adhere to the following strictly:
+## 📏 Development & Linter Rules (Verified by `.build/Linter.ps1`)
 
-### 1. Mandatory File Headers
-- Every file must start with `Option Explicit` followed by:
+### 1. Mandatory Headers
+- Must start with `Option Explicit` followed by:
   ```vba
   ' @Module: ModuleName
   ' @Category: Core | Infrastructure | Feature | Library | UI
@@ -30,7 +31,7 @@ Every code file is automatically verified by `.build/Linter.ps1`. Adhere to the 
   ```
 
 ### 2. Context Tracking & Error Handling
-- Every public procedure (except events/infra/libs) and command execution must track context and handle errors:
+- Public procedures (except events/infra/libs) and commands must track context:
   ```vba
   Public Sub ProcedureName()
       Dim tracker As Object: Set tracker = Infra_Error.Track("ProcedureName")
@@ -45,13 +46,8 @@ Every code file is automatically verified by `.build/Linter.ps1`. Adhere to the 
   ```
 
 ### 3. Safety & Design Rules
-- **Range Formulas**: Always use `Range.Formula2` instead of `Range.Formula` to prevent dynamic array spill errors.
-- **Direct Conversions**: Do not call conversion functions (e.g., `CStr`, `CLng`) directly on range properties (e.g., `NumberFormat`, `Font.Name`, `Font.Size`) without first checking for `IsNull`. Mixed ranges return `Null`, causing Error 94.
-- **Loop Deletion**: When modifying or deleting items in a collection inside a loop, iterate backwards (`For i = count To 1 Step -1`).
-- **Explicit References**: Always qualify references to Excel globals (`Range`, `Cells`, `Rows`, `Columns`) with a sheet variable (e.g., `ws.Range`) to prevent active sheet bugs.
-- **Localization**: Do not hardcode localized sheet names (e.g., `"Sheet1"`). Use constants or dynamic discovery.
-
-### 4. Standardized Naming Conventions
-- **Variable Casing**: camelCase for local variables and internal parameters.
-- **Public APIs/Properties**: PascalCase or Snake_Case.
-- **Files/VB_Name prefixes**: `FeatCmd_` (Features), `Infra_` (Infrastructure), `UI_` (UI), `Udf_` (UDFs), `Test_` (Tests).
+- **Range Formulas**: Use `Range.Formula2` instead of `Range.Formula`.
+- **Direct Conversions**: Do not call `CStr`, `CLng`, etc. directly on Range properties (e.g., `NumberFormat`, `Font.Name`) without checking `IsNull` first.
+- **Loop Deletion**: Iterate backwards when deleting from collections (`For i = count To 1 Step -1`).
+- **Explicit References**: Qualify all Excel globals (`Range`, `Cells`, etc.) with a sheet variable (e.g., `ws.Range`).
+- **Conventions**: camelCase for local variables; PascalCase/Snake_Case for public APIs; prefixes: `FeatCmd_` (Features), `Infra_` (Infrastructure), `UI_` (UI), `Udf_`/`Lib_` (Libraries), `Test_` (Tests).

@@ -87,14 +87,18 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String, Opt
     Set targetWb = Target.Worksheet.Parent
     
     m_UseMemoryUndo = False
-    If (actualCaptureMode = UndoCaptureFormulaOnly Or actualCaptureMode = UndoCaptureFormatOnly) And captureRange.Cells.CountLarge <= 20000 Then
+    If (actualCaptureMode = UndoCaptureFormulaOnly Or actualCaptureMode = UndoCaptureFormatOnly Or actualCaptureMode = UndoCaptureValueOnly) And captureRange.Cells.CountLarge <= 20000 Then
         m_UseMemoryUndo = True
         Set m_MemoryValues = New Collection
         Set m_MemoryFormulas = New Collection
         Set m_MemoryFormats = New Collection
         
         For Each area In captureRange.Areas
-            m_MemoryValues.Add area.Value
+            If actualCaptureMode = UndoCaptureValueOnly Then
+                m_MemoryValues.Add area.Value2
+            Else
+                m_MemoryValues.Add area.Value
+            End If
             m_MemoryFormulas.Add area.Formula2
             m_MemoryFormats.Add area.NumberFormat
         Next area
@@ -149,6 +153,10 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String, Opt
             Dim formats As Variant
             formats = area.NumberFormat
             undoSh.Range(area.Address).NumberFormat = formats
+        Next area
+    ElseIf actualCaptureMode = UndoCaptureValueOnly Then
+        For Each area In captureRange.Areas
+            undoSh.Range(area.Address).Value2 = area.Value2
         Next area
     Else
         For Each area In captureRange.Areas
@@ -406,6 +414,8 @@ Public Sub PerformUndo()
                 areaObj.Formula2 = m_MemoryFormulas(areaIdx)
             ElseIf capMode = UndoCaptureFormatOnly Then
                 areaObj.NumberFormat = m_MemoryFormats(areaIdx)
+            ElseIf capMode = UndoCaptureValueOnly Then
+                areaObj.Value2 = m_MemoryValues(areaIdx)
             Else
                 areaObj.Value = m_MemoryValues(areaIdx)
                 areaObj.NumberFormat = m_MemoryFormats(areaIdx)
@@ -433,6 +443,8 @@ Public Sub PerformUndo()
             area.Formula2 = undoSh.Range(area.Address).Formula2
         ElseIf capMode = UndoCaptureFormatOnly Then
             area.NumberFormat = undoSh.Range(area.Address).NumberFormat
+        ElseIf capMode = UndoCaptureValueOnly Then
+            area.Value2 = undoSh.Range(area.Address).Value2
         Else
             undoSh.Range(area.Address).Copy Destination:=area
         End If

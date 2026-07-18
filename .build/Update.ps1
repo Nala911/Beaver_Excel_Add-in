@@ -18,7 +18,13 @@ param(
     [string]$Format = "Text",
     [switch]$FailedOnly,
     [switch]$AutoFix,
-    [string]$ShowDeps
+    [string]$ShowDeps,
+    [switch]$LintOnly,
+    [switch]$GenerateDocs,
+    [switch]$SkipDocs,
+    [string]$TestCategory,
+    [switch]$Status,
+    [string[]]$File
 )
 
 Set-StrictMode -Version Latest
@@ -39,6 +45,168 @@ $global:BeaverFeatureManifestCache = $null
 $global:BeaverFileContentCache = $null
 
 try {
+    if ($Status) {
+        Write-Host "=========================================" -ForegroundColor Cyan
+        Write-Host "     BEAVER WORKSPACE AGENT STATUS       " -ForegroundColor Cyan
+        Write-Host "=========================================" -ForegroundColor Cyan
+
+        # 1. Add-in Identity
+        if (Test-Path $configPath) {
+            $config = Get-Content $configPath -Raw | ConvertFrom-Json
+            Write-Host "Add-in Name:    $($config.AddinIdentity.Name)" -ForegroundColor Green
+            Write-Host "Version:        $($config.AddinIdentity.Version)" -ForegroundColor Green
+            if ($null -ne $config.AddinIdentity.PSObject.Properties['ReleaseTier']) {
+                Write-Host "Release Tier:   $($config.AddinIdentity.ReleaseTier)" -ForegroundColor Green
+            }
+        }
+
+        # 2. Git Status
+        Write-Host ""
+        Write-Host "Git Status:" -ForegroundColor Yellow
+        $gitBranch = (git branch --show-current 2>$null)
+        if ($gitBranch) {
+            Write-Host "  Branch: $gitBranch" -ForegroundColor Gray
+        }
+        $gitStatus = (git status --short 2>$null)
+        if ($gitStatus) {
+            $gitStatus -split "`r`n" | ForEach-Object { 
+                if ($_.Trim()) { Write-Host "  $_" -ForegroundColor Yellow }
+            }
+        } else {
+            Write-Host "  Clean (no uncommitted changes)" -ForegroundColor Green
+        }
+
+        # 3. Module Breakdown
+        Write-Host ""
+        Write-Host "Module Breakdown (by Category):" -ForegroundColor Yellow
+        $buildState = Get-BuildState
+        $categories = @{}
+        $totalModules = 0
+        $useCache = $null -ne $buildState -and $null -ne $buildState.Metadata
+        
+        if ($useCache) {
+            foreach ($prop in $buildState.Metadata.PSObject.Properties) {
+                $relPath = $prop.Name
+                if ($relPath -match "\.(bas|cls|frm)$" -or $relPath -eq "ThisWorkbook.cls") {
+                    $totalModules++
+                    $meta = $prop.Value
+                    $category = "Unknown"
+                    if ($meta.PSObject.Properties.Name -contains "Category" -and $null -ne $meta.Category) {
+                        $category = $meta.Category
+                    }
+                    $categories[$category] = [int]$categories[$category] + 1
+                }
+            }
+        }
+        
+        if ($totalModules -eq 0 -and (Test-Path $modulesDir)) {
+            $vbaFiles = Get-ChildItem -Path $modulesDir -Include *.bas, *.cls, *.frm -Recurse
+            foreach ($file in $vbaFiles) {
+                $headerLines = [System.IO.File]::ReadLines($file.FullName) | Select-Object -First 15
+                $category = "Unknown"
+                foreach ($line in $headerLines) {
+                    if ($line -match "'\s*@Category:\s*([^\r\n]+)") {
+                        $category = $Matches[1].Trim()
+                        break
+                    }
+                }
+                $categories[$category] = [int]$categories[$category] + 1
+            }
+            $totalModules = $vbaFiles.Count
+        }
+        
+        foreach ($cat in $categories.Keys) {
+            Write-Host "  $($cat): $($categories[$cat]) module(s)" -ForegroundColor Gray
+        }
+        Write-Host "  Total Modules: $totalModules" -ForegroundColor Gray
+
+        # 4. Build State & Logs
+        Write-Host ""
+        Write-Host "Build & Test Cache State:" -ForegroundColor Yellow
+        $buildState = Get-BuildState
+        if ($null -ne $buildState) {
+            Write-Host "  Last Build Time: $($buildState.LastBuildTime)" -ForegroundColor Gray
+            $testsPassed = ($buildState.PSObject.Properties.Name.Contains("TestsPassed") -and $buildState.TestsPassed -eq $true)
+            if ($testsPassed) {
+                Write-Host "  Last Tests Status: PASSED" -ForegroundColor Green
+            } else {
+                Write-Host "  Last Tests Status: FAILED / UNRUN" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "  No build state cache found." -ForegroundColor Red
+        }
+
+        # 5. Schema Validity
+        if (Test-Path $featureManifestPath) {
+            $schemaPath = Join-Path $projectRoot "features.schema.json"
+            if (Test-Path $schemaPath) {
+                $jsonContent = Get-Content $featureManifestPath -Raw
+                if (Test-Json -Json $jsonContent -SchemaFile $schemaPath) {
+                    Write-Host "  features.json:   VALID against schema" -ForegroundColor Green
+                } else {
+                    Write-Host "  features.json:   INVALID against schema" -ForegroundColor Red
+                }
+            }
+        }
+
+        # 6. Syntax / Lint Check Summary
+        Write-Host ""
+        Write-Host "Running quick syntax / lint scan..." -ForegroundColor Yellow
+        . (Join-Path $PSScriptRoot "Linter.ps1")
+        $projectChanges = Get-ProjectChanges -Force:$Force
+        $changedFiles = $projectChanges.ChangedFiles
+        $filesToValidate = if ($Force) { $null } else { $changedFiles }
+        
+        $validLint = Invoke-VbaLint -SourceDir $modulesDir -FilesToProcess $filesToValidate -AutoFix:$false
+        if ($validLint) {
+            Write-Host "  Syntax / Lint check: PASSED" -ForegroundColor Green
+        } else {
+            Write-Host "  Syntax / Lint check: FAILED (see output above)" -ForegroundColor Red
+        }
+
+        exit 0
+    }
+
+    if ($LintOnly) {
+        . (Join-Path $PSScriptRoot "Linter.ps1")
+        $projectChanges = Get-ProjectChanges -Force:$Force
+        $changedFiles = $projectChanges.ChangedFiles
+        if ($null -ne $File -and $File.Count -gt 0) {
+            $normalizedFiles = @()
+            foreach ($f in $File) {
+                $rel = $f.Replace("\", "/")
+                if ($rel.StartsWith("./")) { $rel = $rel.Substring(2) }
+                $normalizedFiles += $rel
+            }
+            $changedFiles = $normalizedFiles
+        }
+        $filesToValidate = if ($Force -and $null -eq $File) { $null } else { $changedFiles }
+        
+        $validLint = Invoke-VbaLint -SourceDir $modulesDir -FilesToProcess $filesToValidate -AutoFix:$AutoFix
+        if ($validLint) {
+            Write-Host "Lint check completed successfully!" -ForegroundColor Green
+            exit 0
+        } else {
+            Write-Host "Lint check failed with errors." -ForegroundColor Red
+            exit 1
+        }
+    }
+
+    if ($TestCategory) {
+        switch ($TestCategory.ToLower().Trim()) {
+            "ui" { $Filter = "Test_UI.*" }
+            "feature" { $Filter = "Test_Feat_*.*" }
+            "feat" { $Filter = "Test_Feat_*.*" }
+            "infrastructure" { $Filter = "Test_CommandInfrastructure.*,Test_Runner.*" }
+            "infra" { $Filter = "Test_CommandInfrastructure.*,Test_Runner.*" }
+            "core" { $Filter = "Test_Runner.*" }
+            default {
+                Write-Warning "Unknown TestCategory '$TestCategory'. Using category as direct wild-card filter."
+                $Filter = "*$TestCategory*"
+            }
+        }
+    }
+
     if ($ShowDeps) {
         Show-Dependencies -Target $ShowDeps
         exit 0
@@ -63,6 +231,19 @@ try {
     $manifestChanged = $projectChanges.ManifestChanged
     $manifestStructureChanged = $projectChanges.ManifestStructureChanged
     $hasAnyChanges = $projectChanges.HasAnyChanges
+
+    if ($null -ne $File -and $File.Count -gt 0) {
+        $normalizedFiles = @()
+        foreach ($f in $File) {
+            $rel = $f.Replace("\", "/")
+            if ($rel.StartsWith("./")) { $rel = $rel.Substring(2) }
+            $normalizedFiles += $rel
+        }
+        $changedFiles = $normalizedFiles
+        $hasAnyChanges = $true
+        $manifestChanged = ($changedFiles -contains "features.json")
+        $manifestStructureChanged = $manifestChanged
+    }
 
     $buildState = Get-BuildState
     $skipUnitTests = $false
@@ -96,6 +277,20 @@ try {
             }
             Record-BuildChanges -ManifestChanged $manifestChanged -ManifestStructureChanged $manifestStructureChanged -ChangedFiles $changedFiles -DeletedFiles $deletedFiles -Force $Force
             Save-BuildLog -Status "success" -Force
+
+            if ($GenerateDocs) {
+                $genDocsPath = Join-Path $PSScriptRoot "GenerateArchitectureMap.ps1"
+                if (Test-Path $genDocsPath) {
+                    Write-Host ""
+                    Write-Host "Running auto-generation of ARCHITECTURE.md..." -ForegroundColor Cyan
+                    try {
+                        & pwsh -File $genDocsPath
+                        Write-Host "  ARCHITECTURE.md regenerated successfully." -ForegroundColor Green
+                    } catch {
+                        Write-Warning "Failed to auto-regenerate ARCHITECTURE.md: $($_.Exception.Message)"
+                    }
+                }
+            }
             exit 0
         }
         
@@ -128,6 +323,7 @@ try {
     if ($Force) { $buildParams["Force"] = $true }
     if ($SkipLint) { $buildParams["SkipLint"] = $true }
     if ($AutoFix) { $buildParams["AutoFix"] = $true }
+    if ($null -ne $File -and $File.Count -gt 0) { $buildParams["File"] = $File }
 
     & "$PSScriptRoot\Build.ps1" @buildParams
     if (-not $?) {
@@ -201,6 +397,22 @@ try {
             Release-ComObjectSafely $wbs
         } catch {
             Write-Warning "Failed to save workbook on success: $($_.Exception.Message)"
+        }
+    }
+
+    # Auto-generate ARCHITECTURE.md if changes occurred or if requested, and not skipped
+    $shouldGenerateDocs = $GenerateDocs -or ($hasAnyChanges -and -not $SkipDocs)
+    if ($shouldGenerateDocs) {
+        $genDocsPath = Join-Path $PSScriptRoot "GenerateArchitectureMap.ps1"
+        if (Test-Path $genDocsPath) {
+            Write-Host ""
+            Write-Host "Running auto-generation of ARCHITECTURE.md..." -ForegroundColor Cyan
+            try {
+                & pwsh -File $genDocsPath
+                Write-Host "  ARCHITECTURE.md regenerated successfully." -ForegroundColor Green
+            } catch {
+                Write-Warning "Failed to auto-regenerate ARCHITECTURE.md: $($_.Exception.Message)"
+            }
         }
     }
 

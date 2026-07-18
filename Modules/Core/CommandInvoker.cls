@@ -18,8 +18,10 @@ Public Sub ExecuteCommand(ByVal cmd As ICommand, ByVal context As ICommandContex
     On Error GoTo ErrHandler
 
     Dim validation As CommandValidationResult
-    Dim policy As CommandExecutionPolicy
-    Dim guard As Infra_AppStateGuard
+    Dim filter As ICommandFilter
+    Dim cancel As Boolean
+    Dim filters As Collection
+    Dim i As Long
     
     Dim opId As String
     Dim startTime As Double
@@ -52,30 +54,37 @@ Public Sub ExecuteCommand(ByVal cmd As ICommand, ByVal context As ICommandContex
         GoTo CleanExit
     End If
 
-    Set policy = cmd.ExecutionPolicy
-    If policy Is Nothing Then Set policy = Infra_CommandSupport.CreateExecutionPolicy()
-
-    If policy.UseAppStateGuard Then
-        Set guard = New Infra_AppStateGuard
-        guard.ScreenUpdating = policy.ScreenUpdating
-        guard.EnableEvents = policy.EnableEvents
-        guard.DisplayAlerts = policy.DisplayAlerts
-        guard.Calculation = policy.Calculation
-        guard.UpdateState
-    End If
+    ' Run before filters
+    cancel = False
+    Set filters = New Collection
+    filters.Add Infra_FilterAppState
+    
+    For Each filter In filters
+        filter.BeforeExecute cmd, context, cancel
+        If cancel Then GoTo CleanExit
+    Next filter
 
     cmd.Execute context
     
-    ' Ensure AppStateGuard is terminated so Application state is restored
-    ' before we register the Undo macro.
-    If Not guard Is Nothing Then Set guard = Nothing
+    ' Run after filters to restore app state before registering undo
+    For i = filters.Count To 1 Step -1
+        Set filter = filters(i)
+        filter.AfterExecute cmd, context, True
+    Next i
+    Set filters = Nothing
     
     Infra_Undo.RegisterPendingUndo
     
     successFlag = True
 
 CleanExit:
-    If Not guard Is Nothing Then Set guard = Nothing
+    ' Run after filters on failure/cleanup if not already run
+    If Not filters Is Nothing Then
+        For i = filters.Count To 1 Step -1
+            Set filter = filters(i)
+            filter.AfterExecute cmd, context, successFlag
+        Next i
+    End If
     
     If opId <> vbNullString Then
         Dim elapsed As Double

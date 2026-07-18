@@ -121,6 +121,14 @@ Public Property Get MAX_FILL_DOWN_AREAS() As Long
     MAX_FILL_DOWN_AREAS = Model.MaxFillDownAreas
 End Property
 
+Public Property Get CHUNK_ROWS_LIMIT() As Long
+    CHUNK_ROWS_LIMIT = Model.ChunkRowsLimit
+End Property
+
+Public Property Get CHUNK_CELLS_LIMIT() As Long
+    CHUNK_CELLS_LIMIT = Model.ChunkCellsLimit
+End Property
+
 Public Property Get GENERATED_FEATURE_COUNT() As Long
     GENERATED_FEATURE_COUNT = Model.GeneratedFeatureCount
 End Property
@@ -209,6 +217,8 @@ Private Sub LoadConfig()
         .MaxFormulaCheckCells = GetValidatedValue("SafetyConstants", "MaxFormulaCheckCells", .MaxFormulaCheckCells, "Long", 100, 1000000)
         .MaxFillProximityColumns = GetValidatedValue("SafetyConstants", "MaxFillProximityColumns", .MaxFillProximityColumns, "Long", 1, 100)
         .MaxFillDownAreas = GetValidatedValue("SafetyConstants", "MaxFillDownAreas", .MaxFillDownAreas, "Long", 100, 100000)
+        .ChunkRowsLimit = GetValidatedValue("SafetyConstants", "ChunkRowsLimit", .ChunkRowsLimit, "Long", 100, 100000)
+        .ChunkCellsLimit = GetValidatedValue("SafetyConstants", "ChunkCellsLimit", .ChunkCellsLimit, "Long", 100, 1000000)
         
         ' Icons
         On Error Resume Next
@@ -257,6 +267,8 @@ Private Sub ApplyDefaultConfigModel(ByVal model As Infra_ConfigModel)
     model.MaxFormulaCheckCells = 5000
     model.MaxFillProximityColumns = 15
     model.MaxFillDownAreas = 5000
+    model.ChunkRowsLimit = 20000
+    model.ChunkCellsLimit = 50000
     
     Set model.Icons = CreateObject("Scripting.Dictionary")
     Set model.FeatureFlags = CreateObject("Scripting.Dictionary")

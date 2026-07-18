@@ -41,6 +41,8 @@ Private pMaxWrapCells As Long
 Private pMaxFormulaCheckCells As Long
 Private pMaxFillProximityColumns As Long
 Private pMaxFillDownAreas As Long
+Private pChunkRowsLimit As Long
+Private pChunkCellsLimit As Long
 
 ' --- UI Constants (Read-Only) ---
 
@@ -229,4 +231,18 @@ Public Property Get MaxFillDownAreas() As Long
 End Property
 Public Property Let MaxFillDownAreas(ByVal v As Long)
     pMaxFillDownAreas = v ' @Internal
+End Property
+
+Public Property Get ChunkRowsLimit() As Long
+    ChunkRowsLimit = pChunkRowsLimit
+End Property
+Public Property Let ChunkRowsLimit(ByVal v As Long)
+    pChunkRowsLimit = v ' @Internal
+End Property
+
+Public Property Get ChunkCellsLimit() As Long
+    ChunkCellsLimit = pChunkCellsLimit
+End Property
+Public Property Let ChunkCellsLimit(ByVal v As Long)
+    pChunkCellsLimit = v ' @Internal
 End Property

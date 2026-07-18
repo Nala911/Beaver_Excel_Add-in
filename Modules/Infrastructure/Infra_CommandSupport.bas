@@ -384,7 +384,7 @@ End Function
 ' Returns a Collection of Range objects, representing chunked sub-ranges of a large range.
 ' If targetRange is small, returns targetRange as the single element in the collection.
 ' Otherwise, splits targetRange areas into chunks of up to maxRowsPerChunk rows.
-Public Function GetChunkedRanges(ByVal targetRange As Range, Optional ByVal maxRowsPerChunk As Long = 20000) As Collection
+Public Function GetChunkedRanges(ByVal targetRange As Range, Optional ByVal maxRowsPerChunk As Long = 0) As Collection
     Dim tracker As Object: Set tracker = Infra_Error.Track("GetChunkedRanges")
     Dim result As New Collection
     On Error GoTo ErrHandler
@@ -394,8 +394,15 @@ Public Function GetChunkedRanges(ByVal targetRange As Range, Optional ByVal maxR
     Dim area As Range
     Dim r As Long, chunkRowsCount As Long
     
+    Dim localMaxRows As Long
+    If maxRowsPerChunk > 0 Then
+        localMaxRows = maxRowsPerChunk
+    Else
+        localMaxRows = Infra_Config.CHUNK_ROWS_LIMIT
+    End If
+
     Dim maxCellsPerChunk As Long
-    maxCellsPerChunk = 50000 ' Target cell limit per chunk to avoid heavy memory allocation and CPU spikes
+    maxCellsPerChunk = Infra_Config.CHUNK_CELLS_LIMIT
     
     Dim dynamicMaxRows As Long
 
@@ -406,9 +413,9 @@ Public Function GetChunkedRanges(ByVal targetRange As Range, Optional ByVal maxR
         If colCount > 0 Then
             dynamicMaxRows = maxCellsPerChunk \ colCount
             If dynamicMaxRows < 1 Then dynamicMaxRows = 1
-            If dynamicMaxRows > maxRowsPerChunk Then dynamicMaxRows = maxRowsPerChunk
+            If dynamicMaxRows > localMaxRows Then dynamicMaxRows = localMaxRows
         Else
-            dynamicMaxRows = maxRowsPerChunk
+            dynamicMaxRows = localMaxRows
         End If
 
         If area.Rows.Count > dynamicMaxRows Then
@@ -826,7 +833,7 @@ Public Function ProcessRangeUnified( _
     
     ' Split into contiguous ranges and process in chunks
     Dim chunks As Collection
-    Set chunks = GetChunkedRanges(targetCells, 20000)
+    Set chunks = GetChunkedRanges(targetCells, Infra_Config.CHUNK_ROWS_LIMIT)
     
     Dim chunkRange As Range
     For Each chunkRange In chunks

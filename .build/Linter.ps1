@@ -15,6 +15,26 @@ function Invoke-VbaLint {
     Write-Host "Linting VBA Files (Single Pass)..." -ForegroundColor Cyan
 
     $projectRoot = Split-Path $PSScriptRoot -Parent
+
+    # Validate JSON manifests against schemas
+    $manifestValid = $true
+    $schemaPath = Join-Path $projectRoot "features.schema.json"
+    $manifestPath = Join-Path $projectRoot "features.json"
+    if (Test-Path $schemaPath) {
+        Write-Host "Validating features.json against features.schema.json..." -ForegroundColor Cyan
+        try {
+            $jsonContent = Get-Content $manifestPath -Raw
+            if (-not (Test-Json -Json $jsonContent -SchemaFile $schemaPath)) {
+                Write-Error "Validation Error: features.json does not conform to features.schema.json!"
+                $manifestValid = $false
+            } else {
+                Write-Host "  features.json schema validation passed." -ForegroundColor Green
+            }
+        } catch {
+            Write-Host "  Error validating features.json schema: $_" -ForegroundColor Red
+            $manifestValid = $false
+        }
+    }
     $buildState = Get-BuildState
     if (-not (Get-Variable -Name "BeaverLintStatusCache" -Scope Global -ErrorAction SilentlyContinue)) { $global:BeaverLintStatusCache = @{} }
     $global:BeaverFileContentCache = @{}
@@ -345,6 +365,47 @@ function Invoke-VbaLint {
                 }
             }
 
+            # --- Rule F: Prohibited Selection/ActiveCell Check ---
+            if ($fileName -notmatch "^UI_" -and $fileName -ne "Lib_JsonConverter.bas" -and $fileName -notmatch "Test_" -and $fileName -ne "Infra_Undo.bas") {
+                if (($line -match '\.\b(Select|Activate)\b' -or $line -match '\bActiveCell\b') -and 
+                    $line -notmatch '^\s*''' -and $line -notmatch '".*\b(Select|Activate|ActiveCell)\b.*"') {
+                    [void]$errors.Add([ordered]@{
+                        file = $fileName
+                        type = "enhanced"
+                        message = "Usage of Selection-dependent methods (.Select, .Activate, ActiveCell) is prohibited in feature/infrastructure modules. Use direct, sheet-qualified range variables instead."
+                        line = $lineNum
+                    })
+                    $allPassed = $false
+                }
+            }
+
+            # --- Rule G: Dependency Layer Validation ---
+            if ($line -match "^'\s*@Dependencies:\s*(.*)") {
+                $depLine = $Matches[1].Trim()
+                if ($depLine -ne "None" -and -not [string]::IsNullOrWhiteSpace($depLine)) {
+                    $dependencies = $depLine.Split(",") | ForEach-Object { $_.Trim() }
+                    foreach ($dep in $dependencies) {
+                        $isInvalidDep = $false
+                        if ($fileName -match "^FeatCmd_") {
+                            if ($dep -match "^(FeatCmd_|UI_)") { $isInvalidDep = $true }
+                        } elseif ($fileName -match "^Infra_") {
+                            if ($dep -match "^(FeatCmd_|UI_)") { $isInvalidDep = $true }
+                        } elseif ($fileName -match "^(Lib_|Udf_)") {
+                            if ($dep -match "^(FeatCmd_|Infra_|UI_)") { $isInvalidDep = $true }
+                        }
+                        if ($isInvalidDep) {
+                            [void]$errors.Add([ordered]@{
+                                file = $fileName
+                                type = "enhanced"
+                                message = "Invalid layer dependency: '$fileName' is not allowed to depend on '$dep' under strict architecture rules."
+                                line = $lineNum
+                            })
+                            $allPassed = $false
+                        }
+                    }
+                }
+            }
+
             # --- Context Tracking Check ---
             if ($line.IndexOf("Sub", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or 
                 $line.IndexOf("Function", [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
@@ -504,7 +565,7 @@ function Invoke-VbaLint {
     }
 
     # Process and merge results on the main thread (thread-safe)
-    $allPassed = $true
+    $allPassed = $manifestValid
     foreach ($res in $results) {
         $relPath = $res.RelPath
         if ($res.Cached) {

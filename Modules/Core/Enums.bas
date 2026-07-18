@@ -30,4 +30,5 @@ Public Enum UndoCaptureMode
     UndoCaptureFull = 0
     UndoCaptureFormulaOnly = 1
     UndoCaptureFormatOnly = 2
+    UndoCaptureValueOnly = 3
 End Enum

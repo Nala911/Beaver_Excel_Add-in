@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BeaverFeaturesSchema",
+  "type": "object",
+  "properties": {
+    "Tabs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Id": { "type": "string" },
+          "Label": { "type": "string" },
+          "Keytip": { "type": "string" }
+        },
+        "required": ["Id", "Label"]
+      }
+    },
+    "Groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Id": { "type": "string" },
+          "Label": { "type": "string" },
+          "TabId": { "type": "string" },
+          "Features": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["Id", "Label", "Features"]
+      }
+    },
+    "Features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ControlId": { "type": "string" },
+          "Label": { "type": "string" },
+          "OnAction": { "type": "string" },
+          "Macro": { "type": "string" },
+          "CommandName": { "type": "string" },
+          "CommandClass": { "type": "string" },
+          "Icon": { "type": "string" },
+          "Keytip": { "type": "string" },
+          "Screentip": { "type": "string" },
+          "Supertip": { "type": "string" },
+          "Type": { "type": "string" },
+          "MenuItems": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "RuntimeTestMode": { "type": "string" }
+        },
+        "required": ["ControlId", "Label"]
+      }
+    },
+    "Hotkeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Key": { "type": "string" },
+          "Macro": { "type": "string" },
+          "CommandName": { "type": "string" },
+          "Description": { "type": "string" },
+          "CommandClass": { "type": "string" }
+        },
+        "required": ["Key", "Macro", "CommandName", "Description"]
+      }
+    },
+    "UDFs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": { "type": "string" },
+          "Description": { "type": "string" },
+          "Category": { "type": "string" },
+          "Syntax": { "type": "string" },
+          "ArgumentDescriptions": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["Name", "Description", "Category", "Syntax"]
+      }
+    }
+  },
+  "required": ["Tabs", "Groups", "Features"]
+}

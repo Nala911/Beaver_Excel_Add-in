@@ -18,7 +18,9 @@
     "MaxWrapCells": 50000,
     "MaxFormulaCheckCells": 5000,
     "MaxFillProximityColumns": 15,
-    "MaxFillDownAreas": 5000
+    "MaxFillDownAreas": 5000,
+    "ChunkRowsLimit": 20000,
+    "ChunkCellsLimit": 50000
   },
   "AddinIdentity": {
     "Name": "Beaver Add-in",

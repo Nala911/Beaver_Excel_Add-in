@@ -15,17 +15,40 @@ Public Function ShowHighlightDataDialog(ByVal ctx As ActionContext, Optional ByV
     Dim normalizedChoice As String
     Dim request As HighlightDataRequest
     Dim hasSelection As Boolean
+    Dim promptMsg As String
+    Dim confirmMsg As String
+    Dim options As Variant
+    Dim defaultChoice As String
+    Dim bypassScopePrompt As Boolean
 
     hasSelection = UI_DialogShared.HasUsableSelection(ctx)
+    bypassScopePrompt = False
 
     If hasSelection Then
         If ctx.SelectionRange.Cells.CountLarge > 1 Then
             normalizedChoice = "RANGE"
+            bypassScopePrompt = True
         Else
-            normalizedChoice = "WORKBOOK"
+            options = UI_DialogShared.BuildChoiceArray("Sheet", "Workbook")
+            defaultChoice = "Sheet"
         End If
     Else
-        normalizedChoice = "WORKBOOK"
+        options = UI_DialogShared.BuildChoiceArray("Sheet", "Workbook")
+        defaultChoice = "Sheet"
+    End If
+
+    promptMsg = UI_DialogShared.BuildScopePromptMsg("Highlight patterns and duplicates.", hasSelection, bypassScopePrompt)
+    confirmMsg = UI_DialogShared.BuildScopeConfirmMsg("Highlight Data", UI_DialogShared.SafeWorkbookName(ctx))
+
+    If Not bypassScopePrompt Then
+        If Not UI_DialogShared.PromptForScopeSelection(ctx, "Highlight Data", promptMsg, defaultChoice, options, confirmMsg, normalizedChoice) Then GoTo CleanExit
+    End If
+
+    If normalizedChoice = "R" Or normalizedChoice = "RANGE" Or normalizedChoice = "SELECTED" Or normalizedChoice = "SELECTION" Then
+        If Not hasSelection Then
+            Infra_Interaction.ShowWarning "Select a range first if you want to highlight only the current selection.", UI_DialogShared.BuildDialogTitle("Highlight Data")
+            GoTo CleanExit
+        End If
     End If
 
     Set request = UI_DialogShared.CreateHighlightDataRequest(ctx, normalizedChoice)

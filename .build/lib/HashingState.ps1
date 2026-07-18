@@ -133,7 +133,38 @@ function Save-BuildState {
         }
     }
     
+    $oldState = Get-BuildState
+    
     foreach ($relPath in $FileHashes.Keys) {
+        $currentHash = $FileHashes[$relPath]
+        
+        # Check if the file was in the old build state and has the same hash and contains new metadata fields
+        $cachedMeta = $null
+        if ($null -ne $oldState -and $null -ne $oldState.Files -and $null -ne $oldState.Metadata) {
+            $oldHashProp = $oldState.Files.PSObject.Properties[$relPath]
+            $oldMetaProp = $oldState.Metadata.PSObject.Properties[$relPath]
+            if ($null -ne $oldHashProp -and $oldHashProp.Value -eq $currentHash -and $null -ne $oldMetaProp) {
+                $oldMeta = $oldMetaProp.Value
+                if ($oldMeta.PSObject.Properties.Name -contains "Category" -and $oldMeta.PSObject.Properties.Name -contains "Loc") {
+                    $cachedMeta = $oldMeta
+                }
+            }
+        }
+        
+        if ($null -ne $cachedMeta) {
+            # Lint status from global cache if updated this session, otherwise preserve old
+            if ($null -ne $global:BeaverLintStatusCache -and $global:BeaverLintStatusCache.ContainsKey($relPath)) {
+                $cachedMeta.LintPassed = $global:BeaverLintStatusCache[$relPath]
+            }
+            # Test manifest from global cache if updated this session
+            if ($null -ne $global:BeaverTestManifestCache -and $global:BeaverTestManifestCache.ContainsKey($relPath)) {
+                $cachedMeta.Tests = $global:BeaverTestManifestCache[$relPath]
+            }
+            $metadata[$relPath] = $cachedMeta
+            continue
+        }
+        
+        # Cache miss: read file and compute metadata
         $absPath = Join-Path $resolvedProjectRoot $relPath
         if (Test-Path $absPath) {
             $file = Get-Item $absPath
@@ -146,7 +177,6 @@ function Save-BuildState {
             if ($null -ne $global:BeaverTestManifestCache -and $global:BeaverTestManifestCache.ContainsKey($relPath)) {
                 $meta["Tests"] = $global:BeaverTestManifestCache[$relPath]
             } else {
-                $oldState = Get-BuildState
                 if ($null -ne $oldState -and $null -ne $oldState.Metadata -and $null -ne $oldState.Metadata.PSObject.Properties[$relPath]) {
                     $oldMeta = $oldState.Metadata.PSObject.Properties[$relPath].Value
                     if ($oldMeta.PSObject.Properties.Name -contains "Tests" -and $null -ne $oldMeta.Tests) {
@@ -157,35 +187,14 @@ function Save-BuildState {
             
             # Parse standard module dependencies
             $deps = @()
-            $hasDepsCached = $false
-            $oldState = Get-BuildState
-            if ($null -ne $oldState -and $null -ne $oldState.Metadata -and $null -ne $oldState.Metadata.PSObject.Properties[$relPath]) {
-                $oldMeta = $oldState.Metadata.PSObject.Properties[$relPath].Value
-                if ($oldMeta.Length -eq $file.Length -and $oldMeta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString()) {
-                    if ($oldMeta.PSObject.Properties.Name -contains "Dependencies") {
-                        $deps = @($oldMeta.Dependencies)
-                        $hasDepsCached = $true
-                    }
-                }
-            }
-            if (-not $hasDepsCached -and $relPath -match "\.(bas|cls|frm)$") {
+            if ($relPath -match "\.(bas|cls|frm)$") {
                 $deps = Get-ModuleDependencies -FilePath $absPath
             }
             $meta["Dependencies"] = $deps
             
             # Parse test dependencies
             $testDeps = @{}
-            $hasTestDepsCached = $false
-            if ($null -ne $oldState -and $null -ne $oldState.Metadata -and $null -ne $oldState.Metadata.PSObject.Properties[$relPath]) {
-                $oldMeta = $oldState.Metadata.PSObject.Properties[$relPath].Value
-                if ($oldMeta.Length -eq $file.Length -and $oldMeta.LastWriteTime -eq $file.LastWriteTime.ToFileTime().ToString()) {
-                    if ($oldMeta.PSObject.Properties.Name -contains "TestDependencies") {
-                        $testDeps = $oldMeta.TestDependencies
-                        $hasTestDepsCached = $true
-                    }
-                }
-            }
-            if (-not $hasTestDepsCached -and ($null -ne $meta["Tests"]) -and ($meta["Tests"].Count -gt 0)) {
+            if (($null -ne $meta["Tests"]) -and ($meta["Tests"].Count -gt 0)) {
                 $testDeps = Get-TestProcedureDependencies -FilePath $absPath -ComponentNames $componentNames
             }
             $meta["TestDependencies"] = $testDeps
@@ -203,6 +212,34 @@ function Save-BuildState {
                     }
                 }
             }
+            
+            # Extract basic module info for Architecture Map and status caching
+            $category = "Unknown"
+            $description = ""
+            $compName = [System.IO.Path]::GetFileNameWithoutExtension($relPath)
+            $loc = 0
+            
+            if ($relPath -match "\.(bas|cls|frm)$" -or $relPath -eq "ThisWorkbook.cls") {
+                try {
+                    $linesForHeader = [System.IO.File]::ReadLines($absPath) | Select-Object -First 30
+                    $headerContent = $linesForHeader -join "`r`n"
+                    if ($headerContent -match '(?m)^Attribute\s+VB_Name\s*=\s*"([^"]+)"') {
+                        $compName = $Matches[1]
+                    }
+                    if ($headerContent -match "'\s*@Category:\s*([^\r\n]+)") {
+                        $category = $Matches[1].Trim()
+                    }
+                    if ($headerContent -match "'\s*@Description:\s*([^\r\n]+)") {
+                        $description = $Matches[1].Trim()
+                    }
+                    $loc = [System.IO.File]::ReadAllLines($absPath).Count
+                } catch {}
+            }
+            
+            $meta["Category"] = $category
+            $meta["Description"] = $description
+            $meta["Name"] = $compName
+            $meta["Loc"] = $loc
             
             $metadata[$relPath] = $meta
         }
@@ -346,9 +383,8 @@ function Get-SourceFileHashes {
     $buildState = Get-BuildState
     
     $resolveHash = {
-        param($filePath, $relPath)
-        if (-not (Test-Path $filePath)) { return "" }
-        $file = Get-Item $filePath
+        param($file, $relPath)
+        if ($null -eq $file) { return "" }
         
         if ($null -ne $buildState -and $null -ne $buildState.Metadata -and $null -ne $buildState.Metadata.PSObject.Properties[$relPath]) {
             $meta = $buildState.Metadata.PSObject.Properties[$relPath].Value
@@ -361,17 +397,17 @@ function Get-SourceFileHashes {
                 }
             }
         }
-        return Get-FileHashOptimized -FilePath $filePath
+        return Get-FileHashOptimized -FilePath $file.FullName
     }
     
     # Manifest
     if (Test-Path $resolvedFeatureManifestPath) {
-        $hashes["features.json"] = & $resolveHash $resolvedFeatureManifestPath "features.json"
+        $hashes["features.json"] = & $resolveHash (Get-Item $resolvedFeatureManifestPath) "features.json"
     }
     
     # ThisWorkbook
     if (Test-Path $resolvedThisWorkbook) {
-        $hashes["ThisWorkbook.cls"] = & $resolveHash $resolvedThisWorkbook "ThisWorkbook.cls"
+        $hashes["ThisWorkbook.cls"] = & $resolveHash (Get-Item $resolvedThisWorkbook) "ThisWorkbook.cls"
     }
     
     # Modules
@@ -379,14 +415,15 @@ function Get-SourceFileHashes {
         $vbaFiles = Get-ChildItem -Path $resolvedModulesDir -Include *.bas, *.cls, *.frm -Recurse
         foreach ($file in $vbaFiles) {
             $relPath = $file.FullName.Substring($resolvedProjectRoot.Length + 1).Replace("\", "/")
-            $hashes[$relPath] = & $resolveHash $file.FullName $relPath
+            $hashes[$relPath] = & $resolveHash $file $relPath
             
             # If it's a form, also include the companion FRX file hash if it exists
             if ($file.Extension -eq ".frm") {
                 $frxPath = [System.IO.Path]::ChangeExtension($file.FullName, ".frx")
                 if (Test-Path $frxPath) {
                     $frxRelPath = $frxPath.Substring($resolvedProjectRoot.Length + 1).Replace("\", "/")
-                    $hashes[$frxRelPath] = & $resolveHash $frxPath $frxRelPath
+                    $frxFile = Get-Item $frxPath
+                    $hashes[$frxRelPath] = & $resolveHash $frxFile $frxRelPath
                 }
             }
         }

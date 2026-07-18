@@ -3,7 +3,8 @@ param(
     [switch]$Force,
     [switch]$SkipLint,
     [switch]$Clean,
-    [switch]$AutoFix
+    [switch]$AutoFix,
+    [string[]]$File
 )
 
 Set-StrictMode -Version Latest
@@ -47,6 +48,19 @@ try {
     $manifestChanged = $projectChanges.ManifestChanged
     $manifestStructureChanged = $projectChanges.ManifestStructureChanged
     $hasAnyChanges = $projectChanges.HasAnyChanges
+
+    if ($null -ne $File -and $File.Count -gt 0) {
+        $normalizedFiles = @()
+        foreach ($f in $File) {
+            $rel = $f.Replace("\", "/")
+            if ($rel.StartsWith("./")) { $rel = $rel.Substring(2) }
+            $normalizedFiles += $rel
+        }
+        $changedFiles = $normalizedFiles
+        $hasAnyChanges = $true
+        $manifestChanged = ($changedFiles -contains "features.json")
+        $manifestStructureChanged = $manifestChanged
+    }
 
     if (-not $hasAnyChanges -and (Test-Path $excelPath) -and -not $Force) {
         Write-Host "No changes detected. Build skipped." -ForegroundColor Green

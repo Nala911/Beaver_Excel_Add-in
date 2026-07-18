@@ -152,7 +152,7 @@ if (-not $DryRun) {
 # 5. Git commit & push
 if (-not $DryRun) {
     Write-Host "Staging files..." -ForegroundColor Cyan
-    git add config.json features.json ribbon.xml Modules/ ThisWorkbook.cls
+    git add config.json features.json ribbon.xml Modules/ ThisWorkbook.cls ARCHITECTURE.md
     
     $fullMessage = "$commitSubject`n`n$commitBody"
     Write-Host "Committing changes..." -ForegroundColor Cyan

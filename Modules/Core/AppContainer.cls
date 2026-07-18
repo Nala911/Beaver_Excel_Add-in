@@ -15,9 +15,7 @@ Option Explicit
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: IConfig, Infra_Error, ExcelContextProvider, BasicCommandContext, Infra_CommandRegistry, Infra_Bootstrap
 
-Private pConfig As IConfig
-Private pErrorTracker As Infra_Error
-Private pContextProvider As ExcelContextProvider
+Private pServices As Object
 Private pIsInitialized As Boolean
 
 Private Sub Class_Initialize()
@@ -26,9 +24,10 @@ Private Sub Class_Initialize()
 End Sub
 
 Public Sub Initialize(ByVal cfg As IConfig, ByVal errTrk As Infra_Error, ByVal contextProvider As ExcelContextProvider)
-    Set pConfig = cfg
-    Set pErrorTracker = errTrk
-    Set pContextProvider = contextProvider
+    Set pServices = CreateObject("Scripting.Dictionary")
+    Set pServices("IConfig") = cfg
+    Set pServices("IErrorTracker") = errTrk
+    Set pServices("ExcelContextProvider") = contextProvider
     pIsInitialized = True
 End Sub
 
@@ -37,19 +36,33 @@ Public Sub EnsureInitialized()
     Initialize Infra_Config, Infra_Error, ExcelContextProvider
 End Sub
 
+Public Sub Register(ByVal interfaceName As String, ByVal serviceInstance As Object)
+    EnsureInitialized
+    Set pServices(interfaceName) = serviceInstance
+End Sub
+
+Public Function Resolve(ByVal interfaceName As String) As Object
+    EnsureInitialized
+    If pServices.Exists(interfaceName) Then
+        Set Resolve = pServices(interfaceName)
+    Else
+        Set Resolve = Nothing
+    End If
+End Function
+
 Public Property Get Config() As IConfig
     EnsureInitialized
-    Set Config = pConfig
+    Set Config = Resolve("IConfig")
 End Property
 
 Public Property Get ErrorTracker() As Infra_Error
     EnsureInitialized
-    Set ErrorTracker = pErrorTracker
+    Set ErrorTracker = Resolve("IErrorTracker")
 End Property
 
 Public Property Get ContextProvider() As ExcelContextProvider
     EnsureInitialized
-    Set ContextProvider = pContextProvider
+    Set ContextProvider = Resolve("ExcelContextProvider")
 End Property
 
 Public Function ResolveCommand(ByVal commandName As String) As ICommand

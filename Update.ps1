@@ -16,7 +16,13 @@ param(
     [string]$Format = "Text",
     [switch]$FailedOnly,
     [switch]$AutoFix,
-    [string]$ShowDeps
+    [string]$ShowDeps,
+    [switch]$LintOnly,
+    [switch]$GenerateDocs,
+    [switch]$SkipDocs,
+    [string]$TestCategory,
+    [switch]$Status,
+    [string[]]$File
 )
 
 Set-StrictMode -Version Latest
