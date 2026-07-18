@@ -21,7 +21,7 @@ function Get-SafeProperty {
     return $null
 }
 
-$modules = @()
+$modules = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 $buildStatePath = Join-Path $PSScriptRoot ".build_state.json"
 $buildState = $null
@@ -41,7 +41,14 @@ if ($useCache) {
     foreach ($file in $vbaFiles) {
         $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace("\", "/")
         $metaProp = $buildState.Metadata.PSObject.Properties[$relPath]
-        if ($null -eq $metaProp -or $null -eq $metaProp.Value -or $null -eq $metaProp.Value.PSObject.Properties['Category']) {
+        if ($null -eq $metaProp -or $null -eq $metaProp.Value) {
+            $useCache = $false
+            break
+        }
+        $meta = $metaProp.Value
+        if ($null -eq $meta.PSObject.Properties['Category'] -or 
+            $meta.Length -ne $file.Length -or 
+            $meta.LastWriteTime -ne $file.LastWriteTime.ToFileTime().ToString()) {
             $useCache = $false
             break
         }
@@ -63,7 +70,7 @@ if ($useCache) {
         }
         $loc = $meta.Loc
         
-        $modules += [pscustomobject]@{
+        $modules.Add([pscustomobject]@{
             Name = $compName
             File = $file.Name
             RelPath = $relPath
@@ -71,13 +78,16 @@ if ($useCache) {
             Description = $description
             Dependencies = $dependencies
             Loc = $loc
-        }
+            UsedBy = [System.Collections.Generic.List[string]]::new()
+        })
     }
 } else {
     Write-Host "  Cache miss or incomplete: scanning VBA modules from disk." -ForegroundColor Yellow
     foreach ($file in $vbaFiles) {
-        # CPU Optimization: Read only the first 30 lines of each file since headers are at the top
-        $headerLines = [System.IO.File]::ReadLines($file.FullName) | Select-Object -First 30
+        # Optimize disk scanning by reading the file only once
+        $lines = [System.IO.File]::ReadAllLines($file.FullName)
+        $loc = $lines.Count
+        $headerLines = $lines[0..([Math]::Min(29, $loc - 1))]
         $content = $headerLines -join "`r`n"
         
         # Extract component name
@@ -106,19 +116,11 @@ if ($useCache) {
                 $dependencies = $depString.Split(",") | ForEach-Object { $_.Trim() }
             }
         }
-        
-        # Calculate LOC (Total lines of file)
-        $loc = 0
-        try {
-            $loc = [System.IO.File]::ReadAllLines($file.FullName).Count
-        } catch {
-            # Fallback
-        }
 
         # Calculate path relative to the project root
         $relPath = $file.FullName.Substring($projectRoot.Length + 1).Replace('\', '/')
 
-        $modules += [pscustomobject]@{
+        $modules.Add([pscustomobject]@{
             Name = $compName
             File = $file.Name
             RelPath = $relPath
@@ -126,19 +128,23 @@ if ($useCache) {
             Description = $description
             Dependencies = $dependencies
             Loc = $loc
-        }
+            UsedBy = [System.Collections.Generic.List[string]]::new()
+        })
     }
 }
 
-# Calculate Fan-In (Used By) coupling metrics
+# Create $moduleMap mapping Name -> PSCustomObject for fast O(1) lookups
+$moduleMap = @{}
 foreach ($mod in $modules) {
-    $mod | Add-Member -MemberType NoteProperty -Name "UsedBy" -Value @()
+    $moduleMap[$mod.Name] = $mod
 }
+
+# Calculate Fan-In (Used By) coupling metrics using hashtable lookups
 foreach ($mod in $modules) {
     foreach ($dep in $mod.Dependencies) {
-        $target = $modules | Where-Object { $_.Name -eq $dep }
+        $target = $moduleMap[$dep]
         if ($null -ne $target) {
-            $target.UsedBy += $mod.Name
+            $target.UsedBy.Add($mod.Name)
         }
     }
 }
@@ -154,7 +160,7 @@ $layerPrecedence = @{
 }
 
 # Audit layering rules violations (Ignore test modules)
-$violations = @()
+$violations = [System.Collections.Generic.List[PSCustomObject]]::new()
 foreach ($mod in $modules) {
     if ($mod.Name -like "Test_*") { continue }
     
@@ -162,7 +168,7 @@ foreach ($mod in $modules) {
     if ($null -eq $modLevel) { $modLevel = -1 }
     
     foreach ($dep in $mod.Dependencies) {
-        $depMod = $modules | Where-Object { $_.Name -eq $dep }
+        $depMod = $moduleMap[$dep]
         if ($null -ne $depMod) {
             $depLevel = $layerPrecedence[$depMod.Category]
             if ($null -eq $depLevel) { $depLevel = -1 }
@@ -172,14 +178,14 @@ foreach ($mod in $modules) {
                 if ($mod.Name -eq "Lib_HelpManifest" -or $mod.Name -eq "Lib_UdfRegistry") {
                     continue
                 }
-                $violations += [pscustomobject]@{
+                $violations.Add([pscustomobject]@{
                     Module = $mod.Name
                     ModulePath = $mod.RelPath
                     Category = $mod.Category
                     ViolatesWith = $depMod.Name
                     ViolatesWithPath = $depMod.RelPath
                     ViolatesWithCategory = $depMod.Category
-                }
+                })
             }
         }
     }
@@ -190,7 +196,7 @@ $categories = $modules | Group-Object Category | Sort-Object Name
 
 # Load and parse features.json for user actions command mapping
 $featuresJsonPath = Join-Path $projectRoot "features.json"
-$uiTriggers = @()
+$uiTriggers = [System.Collections.Generic.List[PSCustomObject]]::new()
 if (Test-Path $featuresJsonPath) {
     try {
         $featuresData = Get-Content $featuresJsonPath -Raw | ConvertFrom-Json
@@ -200,16 +206,16 @@ if (Test-Path $featuresJsonPath) {
                 if ([string]::IsNullOrEmpty($cmdName)) { continue }
                 
                 $cmdClass = "FeatCmd_" + $cmdName
-                $target = $modules | Where-Object { $_.Name -eq $cmdClass }
+                $target = $moduleMap[$cmdClass]
                 $classLink = if ($null -ne $target) { "**[$cmdClass]($($target.RelPath))**" } else { '`' + $cmdClass + '`' }
-                $uiTriggers += [pscustomobject]@{
+                $uiTriggers.Add([pscustomobject]@{
                     Type = "Ribbon Button"
                     ControlId = Get-SafeProperty $f "ControlId"
                     Label = Get-SafeProperty $f "Label"
                     TriggerMacro = Get-SafeProperty $f "Macro"
                     CommandClass = $classLink
                     Description = Get-SafeProperty $f "Screentip"
-                }
+                })
             }
         }
         if ($null -ne $featuresData.Hotkeys) {
@@ -218,16 +224,16 @@ if (Test-Path $featuresJsonPath) {
                 if ([string]::IsNullOrEmpty($cmdName)) { continue }
                 
                 $cmdClass = "FeatCmd_" + $cmdName
-                $target = $modules | Where-Object { $_.Name -eq $cmdClass }
+                $target = $moduleMap[$cmdClass]
                 $classLink = if ($null -ne $target) { "**[$cmdClass]($($target.RelPath))**" } else { '`' + $cmdClass + '`' }
-                $uiTriggers += [pscustomobject]@{
+                $uiTriggers.Add([pscustomobject]@{
                     Type = "Hotkey"
                     ControlId = Get-SafeProperty $h "Key"
                     Label = Get-SafeProperty $h "Description"
                     TriggerMacro = Get-SafeProperty $h "Macro"
                     CommandClass = $classLink
                     Description = "Key Combination: " + (Get-SafeProperty $h "Key")
-                }
+                })
             }
         }
     } catch {
@@ -322,7 +328,7 @@ $null = $md.AppendLine("    %% Dependency Connections")
 foreach ($mod in $modules) {
     foreach ($dep in $mod.Dependencies) {
         # Only draw link if dependency is a tracked module in our project
-        $target = $modules | Where-Object { $_.Name -eq $dep }
+        $target = $moduleMap[$dep]
         if ($null -ne $target) {
             $null = $md.AppendLine("    $($mod.Name) --> $dep")
         }
@@ -359,25 +365,25 @@ foreach ($cat in $categories) {
     $null = $md.AppendLine("| :--- | :---: | :--- | :--- | :--- |")
     foreach ($mod in ($cat.Group | Sort-Object Name)) {
         # Format outbound links
-        $depLinks = @()
+        $depLinks = [System.Collections.Generic.List[string]]::new()
         foreach ($d in $mod.Dependencies) {
-            $t = $modules | Where-Object { $_.Name -eq $d }
+            $t = $moduleMap[$d]
             if ($null -ne $t) {
-                $depLinks += "[$d]($($t.RelPath))"
+                $depLinks.Add("[$d]($($t.RelPath))")
             } else {
-                $depLinks += '`' + $d + '`'
+                $depLinks.Add('`' + $d + '`')
             }
         }
         $depText = if ($depLinks.Count -gt 0) { $depLinks -join ", " } else { "None" }
         
         # Format inbound links
-        $usedByLinks = @()
+        $usedByLinks = [System.Collections.Generic.List[string]]::new()
         foreach ($u in $mod.UsedBy) {
-            $t = $modules | Where-Object { $_.Name -eq $u }
+            $t = $moduleMap[$u]
             if ($null -ne $t) {
-                $usedByLinks += "[$u]($($t.RelPath))"
+                $usedByLinks.Add("[$u]($($t.RelPath))")
             } else {
-                $usedByLinks += '`' + $u + '`'
+                $usedByLinks.Add('`' + $u + '`')
             }
         }
         $usedByText = if ($usedByLinks.Count -gt 0) { $usedByLinks -join ", " } else { "None" }

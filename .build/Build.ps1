@@ -401,49 +401,38 @@ try {
             Write-Host "Updating modules..."
             
             if ($forceFullBuild) {
-                # Purge all components
-                $compsToRemoveList = @()
+                # Purge all components: collect names to prevent iterator modification exceptions
+                $compsToRemoveNames = @()
                 $componentsCollection = $vbaProject.VBComponents
                 foreach ($comp in $componentsCollection) {
                     if (($comp.Type -ge 1 -and $comp.Type -le 3) -and ($comp.Name -ne "ThisWorkbook")) {
-                        $compsToRemoveList += $comp
-                    } else {
-                        Release-ComObjectSafely $comp
+                        $compsToRemoveNames += $comp.Name
                     }
+                    Release-ComObjectSafely $comp
                 }
                 Release-ComObjectSafely $componentsCollection
                 $vbaSourceFiles = Get-ChildItem -Path $modulesDir -Include *.bas, *.cls, *.frm -Recurse
                 $filesToImport = @($vbaSourceFiles | ForEach-Object { $_.FullName })
-                $compsToRemove = $compsToRemoveList
+                $compsToRemove = $compsToRemoveNames
             } else {
-                # Incremental Mode: convert component names to VBComponent COM objects
-                $compsToRemoveList = @()
+                # Incremental Mode: $compsToRemove already contains string names. No conversion needed.
+            }
+
+            if ($compsToRemove.Count -gt 0) {
                 $componentsCollection = $vbaProject.VBComponents
                 foreach ($compName in $compsToRemove) {
                     try {
                         $comp = $componentsCollection.Item($compName)
                         if ($null -ne $comp) {
-                            $compsToRemoveList += $comp
+                            $componentsCollection.Remove($comp)
+                            Write-Host "  Removed component: $compName"
+                            Release-ComObjectSafely $comp
                         }
                     } catch {
-                        # Component doesn't exist
+                        throw "Failed to remove existing VBA component '$compName': $($_.Exception.Message). Please ensure Excel is not in break mode or busy."
                     }
                 }
                 Release-ComObjectSafely $componentsCollection
-                $compsToRemove = $compsToRemoveList
-            }
-
-            foreach ($comp in $compsToRemove) {
-                $compName = "unknown"
-                try {
-                    $compName = $comp.Name
-                    $vbaProject.VBComponents.Remove($comp)
-                    Write-Host "  Removed component: $compName"
-                } catch {
-                    throw "Failed to remove existing VBA component '$compName': $($_.Exception.Message). Please ensure Excel is not in break mode or busy."
-                } finally {
-                    Release-ComObjectSafely $comp
-                }
             }
 
             $tempImportDir = Join-Path ([System.IO.Path]::GetTempPath()) ("BeaverAddin-VbaImport-" + [System.Guid]::NewGuid().ToString("N"))

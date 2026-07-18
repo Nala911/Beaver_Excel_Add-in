@@ -11,7 +11,7 @@ Option Explicit
 
 ' @Module: ThisWorkbook
 ' @Category: Infrastructure
-' @Description: Workbook event bridge for add-in startup and shutdown hooks.
+' @Description: Workbook event bridge for Excel add-in startup and shutdown hooks.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: Infra_Hotkeys, Infra_Error
 

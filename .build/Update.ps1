@@ -284,7 +284,7 @@ try {
                     Write-Host ""
                     Write-Host "Running auto-generation of ARCHITECTURE.md..." -ForegroundColor Cyan
                     try {
-                        & pwsh -File $genDocsPath
+                        & $genDocsPath
                         Write-Host "  ARCHITECTURE.md regenerated successfully." -ForegroundColor Green
                     } catch {
                         Write-Warning "Failed to auto-regenerate ARCHITECTURE.md: $($_.Exception.Message)"
@@ -408,7 +408,7 @@ try {
             Write-Host ""
             Write-Host "Running auto-generation of ARCHITECTURE.md..." -ForegroundColor Cyan
             try {
-                & pwsh -File $genDocsPath
+                & $genDocsPath
                 Write-Host "  ARCHITECTURE.md regenerated successfully." -ForegroundColor Green
             } catch {
                 Write-Warning "Failed to auto-regenerate ARCHITECTURE.md: $($_.Exception.Message)"
