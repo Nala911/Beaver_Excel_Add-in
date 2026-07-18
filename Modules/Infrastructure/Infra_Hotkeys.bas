@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Infrastructure
 ' @Description: Central registry for all keyboard shortcuts, now loaded from config.json.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Config, Infra_Error, Lib_UdfRegistry, UI_HelpCenter
+' @Dependencies: Infra_Config, Infra_Error, Lib_UdfRegistry
 
 ' Returns a 2D array of all hotkey definitions from JSON.
 '   Column 1 = OnKey pattern  (e.g. "^+p")
@@ -111,7 +111,11 @@ Public Sub ShowHelpCenter()
     Dim tracker As Object: Set tracker = Infra_Error.Track("ShowHelpCenter")
     On Error GoTo ErrHandler
     
-    UI_HelpCenter.DisplayHelp
+    Dim uiHelpCenter As Object
+    Set uiHelpCenter = AppContainer.Resolve("IUIHelpCenter")
+    If Not uiHelpCenter Is Nothing Then
+        uiHelpCenter.DisplayHelp
+    End If
 
 CleanExit:
     Exit Sub

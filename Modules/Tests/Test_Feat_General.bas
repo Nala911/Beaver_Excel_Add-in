@@ -5,7 +5,7 @@ Option Explicit
 ' @Category: Library
 ' @Description: Integration tests for general framework features, spill calculations, and regression checks.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Test_Runner, AppContainer, Infra_Error, Infra_Undo, Udf_XFilter, Udf_XUnpivot, FeatCmd_CleanData, FeatCmd_ModifyData, FeatCmd_StaticSheetWorkbook, FeatCmd_UnmergeFill, FeatCmd_ForceNumber, FeatCmd_Duplicate
+' @Dependencies: Test_Runner, AppContainer, Infra_Error, Infra_Undo, Lib_XFilterFunction, Lib_XUnpivotFunction, FeatCmd_CleanData, FeatCmd_ModifyData, FeatCmd_StaticSheetWorkbook, FeatCmd_UnmergeFill, FeatCmd_ForceNumber, FeatCmd_Duplicate
 
 Public Sub Test_HelloWorld_Execution_And_Undo()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_HelloWorld_Execution_And_Undo")
@@ -123,36 +123,36 @@ Public Sub Test_XFilter_Features()
 
     ' 1. Test Case-Insensitive Intersection (Default: code_number omitted)
     Dim res1 As Variant
-    res1 = Udf_XFilter.XFilter(src, ref)
+    res1 = Lib_XFilterFunction.XFilter(src, ref)
     
     Test_Runner.AssertEqual UBound(res1, 1), 2, "XFilter Intersection count should be 2"
     Test_Runner.AssertEqual res1(1, 1), "Banana", "XFilter Intersection first match should be Banana"
     Test_Runner.AssertEqual res1(2, 1), "cherry", "XFilter Intersection second match should be cherry"
-
+ 
     ' 2. Test Case-Sensitive Intersection (case_sensitive = True)
     Dim res2 As Variant
-    res2 = Udf_XFilter.XFilter(src, ref, 1, , True)
+    res2 = Lib_XFilterFunction.XFilter(src, ref, 1, , True)
     Test_Runner.AssertEqual res2, "Not found", "Omitted empty should return 'Not found'"
-
+ 
     ' 3. Test if_empty parameter
     Dim res3 As Variant
-    res3 = Udf_XFilter.XFilter(src, ref, 1, "Empty Val", True)
+    res3 = Lib_XFilterFunction.XFilter(src, ref, 1, "Empty Val", True)
     Test_Runner.AssertEqual res3, "Empty Val", "Custom empty string should be returned"
-
+ 
     ' 4. Test Difference (code_number = 2) case-insensitive
     Dim res4 As Variant
-    res4 = Udf_XFilter.XFilter(src, ref, 2)
+    res4 = Lib_XFilterFunction.XFilter(src, ref, 2)
     Test_Runner.AssertEqual UBound(res4, 1), 2, "XFilter Difference count should be 2"
     Test_Runner.AssertEqual res4(1, 1), "Apple", "XFilter Difference first match should be Apple"
     Test_Runner.AssertEqual res4(2, 1), "DATE", "XFilter Difference second match should be DATE"
-
+ 
     ' 5. Test 1D array conversion and scalar values
     Dim scalarSrc As Variant
     scalarSrc = "Apple"
     Dim scalarRef As Variant
     scalarRef = "Apple"
     Dim res5 As Variant
-    res5 = Udf_XFilter.XFilter(scalarSrc, scalarRef, 1)
+    res5 = Lib_XFilterFunction.XFilter(scalarSrc, scalarRef, 1)
     Test_Runner.AssertEqual res5(1, 1), "Apple", "Scalar inputs should be handled correctly"
 
 CleanExit:
@@ -174,7 +174,7 @@ Public Sub Test_XUnpivot_Features()
 
     ' 1. Test Standard Unpivot (Default headers, skip_blanks = False)
     Dim res1 As Variant
-    res1 = Udf_XUnpivot.XUnpivot(wideData)
+    res1 = Lib_XUnpivotFunction.XUnpivot(wideData)
     
     Test_Runner.AssertEqual UBound(res1, 1), 7, "XUnpivot standard: output should have 7 rows"
     Test_Runner.AssertEqual UBound(res1, 2), 4, "XUnpivot standard: output should have 4 columns"
@@ -200,18 +200,18 @@ Public Sub Test_XUnpivot_Features()
     Test_Runner.AssertEqual res1(5, 2), "Bob", "XUnpivot standard: R5 C2 should be Bob"
     Test_Runner.AssertEqual res1(5, 3), "Jan", "XUnpivot standard: R5 C3 should be Jan"
     Test_Runner.AssertEqual res1(5, 4), 200, "XUnpivot standard: R5 C4 should be 200"
-
+ 
     ' 2. Test Custom Headers
     Dim res2 As Variant
-    res2 = Udf_XUnpivot.XUnpivot(wideData, "Month", "Sales")
+    res2 = Lib_XUnpivotFunction.XUnpivot(wideData, "Month", "Sales")
     Test_Runner.AssertEqual res2(1, 3), "Month", "XUnpivot custom headers: Attribute header should be Month"
     Test_Runner.AssertEqual res2(1, 4), "Sales", "XUnpivot custom headers: Value header should be Sales"
-
+ 
     ' 3. Test Skip Blanks
     wideData(3, 5) = ""
     wideData(3, 4) = Empty
     Dim res3 As Variant
-    res3 = Udf_XUnpivot.XUnpivot(wideData, , , True)
+    res3 = Lib_XUnpivotFunction.XUnpivot(wideData, , , True)
     Test_Runner.AssertEqual UBound(res3, 1), 5, "XUnpivot skip blanks: output should have 5 rows"
     
     Test_Runner.AssertEqual res3(2, 3), "Jan", "XUnpivot skip blanks: R2 Attribute should be Jan"
@@ -219,12 +219,12 @@ Public Sub Test_XUnpivot_Features()
     Test_Runner.AssertEqual res3(4, 3), "Mar", "XUnpivot skip blanks: R4 Attribute should be Mar"
     Test_Runner.AssertEqual res3(5, 1), 102, "XUnpivot skip blanks: R5 ID should be 102"
     Test_Runner.AssertEqual res3(5, 3), "Jan", "XUnpivot skip blanks: R5 Attribute should be Jan"
-
+ 
     ' 4. Test Single row boundary error
     Dim singleRow(1 To 1, 1 To 3) As Variant
     singleRow(1, 1) = "A": singleRow(1, 2) = "B": singleRow(1, 3) = "C"
     Dim res4 As Variant
-    res4 = Udf_XUnpivot.XUnpivot(singleRow)
+    res4 = Lib_XUnpivotFunction.XUnpivot(singleRow)
     Test_Runner.AssertTrue IsError(res4), "XUnpivot boundary: Single row should return error variant"
     
     ' 5. Test No Numeric Columns error
@@ -232,7 +232,7 @@ Public Sub Test_XUnpivot_Features()
     noNumeric(1, 1) = "ID": noNumeric(1, 2) = "Val1": noNumeric(1, 3) = "Val2"
     noNumeric(2, 1) = "101": noNumeric(2, 2) = "text1": noNumeric(2, 3) = "text2"
     Dim res5 As Variant
-    res5 = Udf_XUnpivot.XUnpivot(noNumeric)
+    res5 = Lib_XUnpivotFunction.XUnpivot(noNumeric)
     Test_Runner.AssertTrue IsError(res5), "XUnpivot boundary: No numeric columns should return error variant"
 
 CleanExit:

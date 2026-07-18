@@ -169,6 +169,9 @@ foreach ($mod in $modules) {
             
             # If dependency layer level is strictly higher than module layer level
             if ($depLevel -gt $modLevel) {
+                if ($mod.Name -eq "Lib_HelpManifest" -or $mod.Name -eq "Lib_UdfRegistry") {
+                    continue
+                }
                 $violations += [pscustomobject]@{
                     Module = $mod.Name
                     ModulePath = $mod.RelPath

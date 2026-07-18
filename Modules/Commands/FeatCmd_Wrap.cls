@@ -15,7 +15,7 @@ Implements ICommand
 ' @Category: Feature
 ' @Description: Wraps the current selection by either applying a typed pattern or reusing a wrapper formula from another cell.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: ICommand, Infra_CommandSupport, UI_Factory, Infra_Interaction, Infra_Undo, Infra_Error
+' @Dependencies: ICommand, Infra_CommandSupport, Infra_Interaction, Infra_Undo, Infra_Error
 
 Private Const PLACEHOLDER As String = "[value]"
 Private Const COMMAND_NAME As String = "Wrap"
@@ -49,7 +49,11 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
         If Not Infra_Interaction.Confirm("You have selected " & Format(rng.CountLarge, "#,##0") & " cells. This may take a moment to process. Continue?") Then GoTo CleanExit
     End If
 
-    wrapMode = UI_Factory.PromptForWrapMode(ctx)
+    Dim uiFactory As Object
+    Set uiFactory = AppContainer.Resolve("IUIFactory")
+    If uiFactory Is Nothing Then GoTo CleanExit
+
+    wrapMode = uiFactory.PromptForWrapMode(ctx)
     If wrapMode = 0 Then GoTo CleanExit
 
     Select Case wrapMode
@@ -78,7 +82,11 @@ Private Sub ExecuteWrapperCellMode(ByVal targetRange As Range)
     Dim constantCells As Range
     Dim totalErrors As Long
 
-    Set wrapperCell = UI_Factory.PromptForRelatedCell(targetRange.Cells(1, 1))
+    Dim uiFactory As Object
+    Set uiFactory = AppContainer.Resolve("IUIFactory")
+    If uiFactory Is Nothing Then GoTo CleanExit
+
+    Set wrapperCell = uiFactory.PromptForRelatedCell(targetRange.Cells(1, 1))
     If wrapperCell Is Nothing Then GoTo CleanExit
     Set wrapperCell = wrapperCell.Cells(1, 1)
 
@@ -138,7 +146,11 @@ Private Sub ExecuteTypedPatternMode(ByVal ctx As ActionContext, ByVal rng As Ran
     Dim userPattern As String
     Dim totalErrors As Long
 
-    userPattern = UI_Factory.PromptForWrapFormulaPattern(ctx, PLACEHOLDER)
+    Dim uiFactory As Object
+    Set uiFactory = AppContainer.Resolve("IUIFactory")
+    If uiFactory Is Nothing Then GoTo CleanExit
+
+    userPattern = uiFactory.PromptForWrapFormulaPattern(ctx, PLACEHOLDER)
     If userPattern = vbNullString Then GoTo CleanExit
 
     If Not Infra_Undo.SaveStateOrConfirm(rng, COMMAND_NAME, UndoCaptureFormulaOnly) Then GoTo CleanExit

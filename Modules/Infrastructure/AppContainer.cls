@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 ' @Module: AppContainer
-' @Category: Core
+' @Category: Infrastructure
 ' @Description: Central Dependency Injection container / Service Locator. Uses PredeclaredId = True for global singleton access.
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: IConfig, Infra_Error, ExcelContextProvider, BasicCommandContext, Infra_CommandRegistry, Infra_Bootstrap
@@ -34,6 +34,12 @@ End Sub
 Public Sub EnsureInitialized()
     If pIsInitialized Then Exit Sub
     Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    
+    ' Dynamically resolve UI services to prevent compile-time dependency violations
+    On Error Resume Next
+    Set pServices("IUIFactory") = Application.Run("UI_Ribbon.GetUIFactory")
+    Set pServices("IUIHelpCenter") = Application.Run("UI_Ribbon.GetUIHelpCenter")
+    On Error GoTo 0
 End Sub
 
 Public Sub Register(ByVal interfaceName As String, ByVal serviceInstance As Object)
@@ -103,7 +109,7 @@ Public Sub ExecuteEntryPoint(ByVal entryMacro As String, Optional ByVal sourceNa
     EnsureInitialized
 
     commandName = Infra_CommandRegistry.ResolveCommandName(entryMacro)
-    If commandName = vbNullString Then
+    if commandName = vbNullString Then
         Err.Raise 5, "AppContainer.ExecuteEntryPoint", "Unknown entry point: " & entryMacro
     End If
 

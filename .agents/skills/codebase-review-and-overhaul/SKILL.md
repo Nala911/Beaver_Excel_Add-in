@@ -3,17 +3,17 @@ name: Codebase Review and Overhaul
 description: Empowering agents to fearlessly overhaul, unify, optimize, and modernize the VBA codebase.
 ---
 
-# Codebase Review and Overhaul Guidelines
+# Codebase Review and Overhaul
 
-Use this skill when auditing, reviewing, or refactoring the codebase.
+## 🎯 Purpose & Scope
+This skill provides the authorization and mandate to perform high-level codebase reviews, structural overhauls, and architectural modernization. It focuses on resolving technical debt, improving maintainability, and ensuring optimal performance.
 
-## 🚀 The Overhaul Mandate
-* **Be Fearless**: Proactively suggest and implement high-level architectural changes, structural overhauls, and refactorings to elevate code quality.
-* **Unification & Centralization**: Consolidate fragmented, procedural macros into centralized architectures (e.g., command pattern / enums) to eliminate redundancies.
-* **Modularization & Management**: Drive strict modularization, organized file structuring, and clean code management across layers (UI, Feature, Infra, Lib, Core).
-* **Self-Sustaining Robustness**: Establish a resilient, decoupled architecture that makes adding new features clean and low-risk.
-* **Speed & CPU Optimization**: Prioritize lightning-fast execution speed and minimize CPU load by toggling application states and using block-array memory operations.
+## 🚀 High-Level Directions
+* **Fearless Modernization**: Refactor and restructure layers, modules, and paradigms to achieve the cleanest design. Do not be limited by current patterns if they are suboptimal.
+* **Centralization & Decoupling**: Consolidate redundant logic and establish clean boundaries between features, UI, infrastructure, and core modules.
+* **Performance Focus**: Optimize execution times and minimize system overhead across all critical paths.
 
-## 📋 Execution Plan
-1. **Identify Improvements**: Check [ARCHITECTURE.md](file:///c:/Users/fazil_uxry2im/Documents/Beaver/Excel Add-in/ARCHITECTURE.md) to inspect current layers and module boundaries, then audit codebase structures and performance profiles.
-2. **Propose and Implement**: Design the target state clearly, then implement the clean, modular, and optimized changes.
+## 📂 Focus Areas
+* **Architecture Map**: Reorganizing module layers and dependencies.
+* **Core Logic & UI separation**: Keeping presentation decoupled from business rules.
+* **Shared Services**: Centralizing error handling, logging, state management, and helper libraries.

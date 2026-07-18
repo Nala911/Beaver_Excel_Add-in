@@ -4,50 +4,29 @@ VBA Excel Add-in for advanced formatting, cleanup, and reporting.
 
 ---
 
-## 📂 Project Structure & Workflow
-- **Rebuilding & Testing**: Run `pwsh -File .\Update.ps1`.
-- **Architecture Map**: Automatically regenerated on successful build/test execution by `Update.ps1` when changes are detected. Can also be manually forced with `pwsh -File .\Update.ps1 -GenerateDocs` or `pwsh -File .build\GenerateArchitectureMap.ps1`.
-- **Architecture Reference**: Check [ARCHITECTURE.md](file:///c:/Users/fazil_uxry2im/Documents/Beaver/Excel Add-in/ARCHITECTURE.md) for module layering, dependencies, and mapping enums before any refactoring.
-- **Source Control**: Only `.bas`, `.cls`, `.frm`, and the auto-generated `ARCHITECTURE.md` are tracked.
-
-### 🛠️ Developer & Agent Command-Line Controls
-Run `Update.ps1` at the root with these agent-centric switches for faster cycles:
-- `pwsh -File .\Update.ps1 -Status` — Get repository diagnostics, module count, and lint health report.
-- `pwsh -File .\Update.ps1 -LintOnly [-AutoFix]` — Run quick syntax and style validation (bypassing Excel entirely).
-- `pwsh -File .\Update.ps1 -TestCategory UI|Feature|Infrastructure|Core` — Test only a specific layer of code.
-- `pwsh -File .\Update.ps1 -GenerateDocs` — Force regeneration of `ARCHITECTURE.md` Mermaid map.
-- `pwsh -File .\Update.ps1 -SkipDocs` — Skip documentation auto-generation.
+## 🚀 Architectural Vision & Mandate
+- **Fearless Overhauls**: You are fully empowered and expected to perform high-level architectural changes, module refactoring, and codebase modernization. Do not hesitate to restructure code or introduce cleaner patterns (e.g., centralized command dispatch, decoupling layers) when it improves long-term quality or performance.
+- **Continuous Improvement**: Proactively look for opportunities to unify fragmented macros, optimize execution speed (using application state toggles and block-array operations), and modularize functionality.
 
 ---
 
-## 📏 Development & Linter Rules (Verified by `.build/Linter.ps1`)
+## 📂 Workflow
+- **Build & Test**: Run `pwsh -File .\Update.ps1` to rebuild, validate syntax/style, run test suites, and auto-update documentation.
+- **Controls**: Use parameters on `Update.ps1` (like `-Status`, `-LintOnly`, `-TestCategory`) to speed up cycles.
 
-### 1. Mandatory Headers
-- Must start with `Option Explicit` followed by:
-  ```vba
-  ' @Module: ModuleName
-  ' @Category: Core | Infrastructure | Feature | Library | UI
-  ' @Description: Description of the module.
-  ```
+---
 
-### 2. Context Tracking & Error Handling
-- Public procedures (except events/infra/libs) and commands must track context:
-  ```vba
-  Public Sub ProcedureName()
-      Dim tracker As Object: Set tracker = Infra_Error.Track("ProcedureName")
-      On Error GoTo ErrHandler
-      ' Implementation here
-  CleanExit:
-      Exit Sub
-  ErrHandler:
-      Infra_Error.HandleError "ProcedureName", Err
-      Resume CleanExit
-  End Sub
-  ```
+## 📏 Important Rules
 
-### 3. Safety & Design Rules
-- **Range Formulas**: Use `Range.Formula2` instead of `Range.Formula`.
-- **Direct Conversions**: Do not call `CStr`, `CLng`, etc. directly on Range properties (e.g., `NumberFormat`, `Font.Name`) without checking `IsNull` first.
-- **Loop Deletion**: Iterate backwards when deleting from collections (`For i = count To 1 Step -1`).
-- **Explicit References**: Qualify all Excel globals (`Range`, `Cells`, etc.) with a sheet variable (e.g., `ws.Range`).
-- **Conventions**: camelCase for local variables; PascalCase/Snake_Case for public APIs; prefixes: `FeatCmd_` (Features), `Infra_` (Infrastructure), `UI_` (UI), `Udf_`/`Lib_` (Libraries), `Test_` (Tests).
+1. **Safety & Correctness**:
+   - **Option Explicit**: Every module must start with `Option Explicit`.
+   - **Explicit Sheet Context**: Always qualify Excel global calls (e.g. `Range`, `Cells`) with a worksheet reference (e.g. `ws.Range`) to prevent unexpected sheet behavior.
+   - **Collection Deletion**: Iterate backward (`Step -1`) when deleting items from a collection in a loop.
+   - **Type Safety**: Do not perform direct type conversions (e.g., `CStr`, `CLng`) on object/range properties (like `NumberFormat` or `Font.Name`) without checking if the property is `Null` first (e.g., mixed selections return `Null`).
+
+2. **Error & Context Tracking**:
+   - Wrap entrypoints and public procedures in structured error handling using the project's error tracker (`Infra_Error`) to ensure application stability and diagnostics.
+
+3. **Style & Structure**:
+   - Maintain a clear layered architecture: UI, Feature, Infrastructure, Library, and Core.
+   - Use consistent naming prefixes (`FeatCmd_` for features, `Infra_` for infrastructure, `UI_` for user interface, `Udf_`/`Lib_` for library helpers, `Test_` for tests).

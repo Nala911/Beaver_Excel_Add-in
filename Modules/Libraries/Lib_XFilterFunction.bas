@@ -1,11 +1,11 @@
-Attribute VB_Name = "Udf_XFilter"
+Attribute VB_Name = "Lib_XFilterFunction"
 Option Explicit
 
-' @Module: Udf_XFilter
+' @Module: Lib_XFilterFunction
 ' @Category: Library
 ' @Description: UDF for advanced set filtering (Intersection, Difference) between ranges.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Error, Infra_ValueConversion
+' @Dependencies: Lib_ValueConversionFunction
 
 ' Filters Range_A based on existence (or non-existence) in Range_B.
 ' Acts like a set operation (INTERSECTION or DIFFERENCE).
@@ -22,7 +22,6 @@ Option Explicit
 ' RETURNS: A dynamic array that spills into the sheet.
 ' ==============================================================================
 Public Function XFilter(ByVal Range_A As Variant, ByVal Range_B As Variant, Optional ByVal code_number As Integer = 1, Optional ByVal if_empty As Variant, Optional ByVal case_sensitive As Boolean = False) As Variant
-    Dim tracker As Object: Set tracker = Infra_Error.Track("XFilter")
     On Error GoTo ErrHandler
     
     Dim arrA As Variant, arrB As Variant
@@ -33,8 +32,8 @@ Public Function XFilter(ByVal Range_A As Variant, ByVal Range_B As Variant, Opti
     Dim valA As Variant, valB As Variant
     
     ' --- Optimization: Read ranges into memory arrays ---
-    arrA = Infra_ValueConversion.Ensure2DArray(Range_A)
-    arrB = Infra_ValueConversion.Ensure2DArray(Range_B)
+    arrA = Lib_ValueConversionFunction.Ensure2DArray(Range_A)
+    arrB = Lib_ValueConversionFunction.Ensure2DArray(Range_B)
     
     ' 2. Use a Dictionary for O(1) lookup speed (Late Bound, reused statically to prevent CPU overhead)
     Static staticDict As Object
@@ -114,9 +113,5 @@ CleanExit:
     Exit Function
  
 ErrHandler:
-    Infra_Error.HandleError "XFilter", Err
     XFilter = CVErr(xlErrValue) ' #VALUE! on general error
 End Function
-
-
-

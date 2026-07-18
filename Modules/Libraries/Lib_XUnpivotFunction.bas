@@ -1,11 +1,11 @@
-Attribute VB_Name = "Udf_XUnpivot"
+Attribute VB_Name = "Lib_XUnpivotFunction"
 Option Explicit
 
-' @Module: Udf_XUnpivot
+' @Module: Lib_XUnpivotFunction
 ' @Category: Library
 ' @Description: UDF to unpivot wide data into long format, auto-detecting columns by trailing numeric values.
 ' @ManagedBy: BeaverAddin Agent
-' @Dependencies: Infra_Error, Infra_ValueConversion
+' @Dependencies: Lib_ValueConversionFunction
 
 ' Unpivots a 2D range of wide data into a 2D long data format.
 ' The first row is assumed to be headers.
@@ -24,12 +24,11 @@ Public Function XUnpivot(ByVal data_range As Variant, _
                          Optional ByVal attribute_header As String = "Attribute", _
                          Optional ByVal value_header As String = "Value", _
                          Optional ByVal skip_blanks As Boolean = False) As Variant
-    Dim tracker As Object: Set tracker = Infra_Error.Track("XUnpivot")
     On Error GoTo ErrHandler
     
     ' --- Optimization: Read ranges into memory arrays ---
     Dim arr As Variant
-    arr = Infra_ValueConversion.Ensure2DArray(data_range)
+    arr = Lib_ValueConversionFunction.Ensure2DArray(data_range)
     
     Dim numRows As Long, numCols As Long
     numRows = UBound(arr, 1)
@@ -100,7 +99,7 @@ Public Function XUnpivot(ByVal data_range As Variant, _
                 If IsEmpty(cellVal) Then
                     shouldSkip = True
                 ElseIf VarType(cellVal) = vbString Then
-                    If cellVal = "" Then shouldSkip = True
+                    if cellVal = "" Then shouldSkip = True
                 End If
             End If
             
@@ -134,6 +133,5 @@ CleanExit:
     Exit Function
     
 ErrHandler:
-    Infra_Error.HandleError "XUnpivot", Err
     XUnpivot = CVErr(xlErrValue) ' #VALUE! on general error
 End Function

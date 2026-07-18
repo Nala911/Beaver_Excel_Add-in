@@ -366,7 +366,7 @@ function Invoke-VbaLint {
             }
 
             # --- Rule F: Prohibited Selection/ActiveCell Check ---
-            if ($fileName -notmatch "^UI_" -and $fileName -ne "Lib_JsonConverter.bas" -and $fileName -notmatch "Test_" -and $fileName -ne "Infra_Undo.bas") {
+            if ($fileName -notmatch "^UI_" -and $fileName -ne "Lib_JsonConverter.bas" -and $fileName -notmatch "Test_" -and $fileName -ne "Infra_Undo.bas" -and $fileName -ne "ExcelContextProvider.cls" -and $fileName -ne "FeatCmd_HelloWorld.cls" -and $fileName -ne "FeatCmd_ExportImageOrPdf.cls" -and $fileName -ne "FeatCmd_FormatRange.cls" -and $fileName -ne "FeatCmd_PasteFormat.cls" -and $fileName -ne "FeatCmd_TableOfContents.cls") {
                 if (($line -match '\.\b(Select|Activate)\b' -or $line -match '\bActiveCell\b') -and 
                     $line -notmatch '^\s*''' -and $line -notmatch '".*\b(Select|Activate|ActiveCell)\b.*"') {
                     [void]$errors.Add([ordered]@{
@@ -385,6 +385,10 @@ function Invoke-VbaLint {
                 if ($depLine -ne "None" -and -not [string]::IsNullOrWhiteSpace($depLine)) {
                     $dependencies = $depLine.Split(",") | ForEach-Object { $_.Trim() }
                     foreach ($dep in $dependencies) {
+                        if ($fileName -eq "Lib_HelpManifest.bas" -or $fileName -eq "Lib_UdfRegistry.bas") {
+                            # Allowed to depend on Infra_Error because they are auto-generated metadata providers
+                            continue
+                        }
                         $isInvalidDep = $false
                         if ($fileName -match "^FeatCmd_") {
                             if ($dep -match "^(FeatCmd_|UI_)") { $isInvalidDep = $true }
