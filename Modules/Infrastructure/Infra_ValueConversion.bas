@@ -538,4 +538,44 @@ Public Function GetSystemDateFormatPattern() As String
     GetSystemDateFormatPattern = cachedPattern
 End Function
 
+' High-performance native VBA string space collapse (removes leading/trailing spaces and collapses internal multi-spaces without COM calls)
+Public Function TrimSpacesVBA(ByRef text As String) As String
+    If text = vbNullString Then Exit Function
+    Dim s As String
+    s = Trim$(text)
+    Do While InStr(1, s, "  ") > 0
+        s = Replace(s, "  ", " ")
+    Loop
+    TrimSpacesVBA = s
+End Function
+
+' High-performance native VBA non-printable character stripper (ASCII 0..31 without COM calls)
+Public Function CleanNonPrintablesVBA(ByRef text As String) As String
+    If text = vbNullString Then Exit Function
+    Dim bytes() As Byte
+    bytes = text
+    Dim i As Long, code As Integer
+    Dim hasControl As Boolean
+    For i = 0 To UBound(bytes) Step 2
+        code = bytes(i) + (bytes(i + 1) * 256)
+        If code >= 0 And code <= 31 Then
+            hasControl = True
+            Exit For
+        End If
+    Next i
+    If Not hasControl Then
+        CleanNonPrintablesVBA = text
+        Exit Function
+    End If
+    Dim sb As String
+    sb = text
+    For i = 0 To 31
+        If InStr(1, sb, Chr$(i)) > 0 Then
+            sb = Replace(sb, Chr$(i), vbNullString)
+        End If
+    Next i
+    CleanNonPrintablesVBA = sb
+End Function
+
+
 

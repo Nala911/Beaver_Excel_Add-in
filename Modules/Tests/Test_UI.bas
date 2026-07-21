@@ -144,7 +144,16 @@ Public Sub Test_UdfRegistry_And_HelpCenter()
     Test_Runner.AssertEqual meta("Category"), "User Defined", "XFilter category should be User Defined"
     Test_Runner.AssertTrue IsArray(meta("ArgumentDescriptions")), "XFilter argument descriptions should be an array"
 
-    ' 2. Verify ShowHelpCenter runs without error in headless mode (display bypassed)
+    ' 2. Verify dynamic UI service resolution
+    Dim uiFactory As Object
+    Set uiFactory = AppContainer.Resolve("IUIFactory")
+    Test_Runner.AssertTrue Not uiFactory Is Nothing, "AppContainer should resolve IUIFactory"
+
+    Dim uiHelpCenter As Object
+    Set uiHelpCenter = AppContainer.Resolve("IUIHelpCenter")
+    Test_Runner.AssertTrue Not uiHelpCenter Is Nothing, "AppContainer should resolve IUIHelpCenter"
+
+    ' 3. Verify ShowHelpCenter runs without error in headless mode (display bypassed)
     Infra_Hotkeys.ShowHelpCenter
     
     ' Assert that we completed without error

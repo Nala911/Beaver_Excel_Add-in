@@ -29,17 +29,25 @@ Public Sub Initialize(ByVal cfg As IConfig, ByVal errTrk As Infra_Error, ByVal c
     Set pServices("IErrorTracker") = errTrk
     Set pServices("ExcelContextProvider") = contextProvider
     pIsInitialized = True
+
+    ' Dynamically resolve UI services to prevent compile-time dependency violations
+    On Error Resume Next
+    Application.Run "EnsureUIServicesRegistered"
+    If Not pServices.Exists("IUIFactory") Then
+        Application.Run "UI_Ribbon.EnsureUIServicesRegistered"
+    End If
+    If Not pServices.Exists("IUIFactory") Then
+        Application.Run "'" & ThisWorkbook.Name & "'!EnsureUIServicesRegistered"
+    End If
+    If Not pServices.Exists("IUIFactory") Then
+        Application.Run "'" & ThisWorkbook.Name & "'!UI_Ribbon.EnsureUIServicesRegistered"
+    End If
+    On Error GoTo 0
 End Sub
 
 Public Sub EnsureInitialized()
     If pIsInitialized Then Exit Sub
     Initialize Infra_Config, Infra_Error, ExcelContextProvider
-    
-    ' Dynamically resolve UI services to prevent compile-time dependency violations
-    On Error Resume Next
-    Set pServices("IUIFactory") = Application.Run("UI_Ribbon.GetUIFactory")
-    Set pServices("IUIHelpCenter") = Application.Run("UI_Ribbon.GetUIHelpCenter")
-    On Error GoTo 0
 End Sub
 
 Public Sub Register(ByVal interfaceName As String, ByVal serviceInstance As Object)

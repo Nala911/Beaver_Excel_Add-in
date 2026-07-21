@@ -461,11 +461,11 @@ try {
             }
 
             $thisWorkbookChanged = ($changedFiles -contains "ThisWorkbook.cls")
-            if ((Test-Path $desktopThisWorkbookCls) -and ($forceFullBuild -or $thisWorkbookChanged)) {
+            if ((Test-Path $diskThisWorkbookCls) -and ($forceFullBuild -or $thisWorkbookChanged)) {
                 Write-Host "  Updating ThisWorkbook..."
                 $twCode = $vbaProject.VBComponents.Item("ThisWorkbook").CodeModule
                 if ($twCode.CountOfLines -gt 0) { $twCode.DeleteLines(1, $twCode.CountOfLines) }
-                $lines = Get-Content $desktopThisWorkbookCls | Where-Object {
+                $lines = Get-Content $diskThisWorkbookCls | Where-Object {
                     $_ -notmatch "^VERSION\s+\d+\.\d+" -and
                     $_ -notmatch "^BEGIN\s*$" -and
                     $_ -notmatch "^\s+MultiUse\s*=" -and
@@ -540,8 +540,8 @@ try {
 
                                         $diskFile = $null
                                         if ($modName -eq "ThisWorkbook") {
-                                            if (Test-Path $desktopThisWorkbookCls) {
-                                                $diskFile = Get-Item $desktopThisWorkbookCls
+                                            if (Test-Path $diskThisWorkbookCls) {
+                                                $diskFile = Get-Item $diskThisWorkbookCls
                                             }
                                         } else {
                                             $diskFile = Get-ChildItem -Path $modulesDir -Recurse | Where-Object { $_.BaseName -eq $modName -and $_.Extension -match "\.(bas|cls|frm)$" } | Select-Object -First 1
@@ -725,15 +725,6 @@ try {
     Write-StageSummary
     Save-BuildLog -Status "success"
 
-    # Sync compiled workbook to Desktop
-    $desktopExcelPath = "C:\Users\fazil_uxry2im\Desktop\Beaver Add-in.xlsm"
-    Write-Host "Syncing compiled workbook to Desktop..." -ForegroundColor Cyan
-    try {
-        Copy-Item -Path $excelPath -Destination $desktopExcelPath -Force
-        Write-Host "  Successfully copied compiled workbook to Desktop: $desktopExcelPath" -ForegroundColor Green
-    } catch {
-        Write-Warning "  Could not copy compiled workbook to Desktop (it may be open/locked by Excel): $($_.Exception.Message)"
-    }
 } catch {
     Stop-Script $_.Exception.Message
 } finally {

@@ -434,18 +434,12 @@ Private Function CleanTextValue(ByVal rawValue As Variant, ByVal request As Clea
         End If
     End If
 
-    ' --- 4. Application.Clean & Application.Trim ---
-    Dim doTrim As Boolean
-    Dim doClean As Boolean
-    If request.CleanTrimSpaces Then doTrim = NeedsTrim(textValue)
-    If request.CleanNonPrintables Then doClean = NeedsClean(textValue)
-    
-    If doTrim And doClean Then
-        textValue = Application.Trim(Application.Clean(textValue))
-    ElseIf doTrim Then
-        textValue = Application.Trim(textValue)
-    ElseIf doClean Then
-        textValue = Application.Clean(textValue)
+    ' --- 4. Clean Non-Printable & Trim Spaces via native VBA ---
+    If request.CleanNonPrintables And NeedsClean(textValue) Then
+        textValue = Infra_ValueConversion.CleanNonPrintablesVBA(textValue)
+    End If
+    If request.CleanTrimSpaces And NeedsTrim(textValue) Then
+        textValue = Infra_ValueConversion.TrimSpacesVBA(textValue)
     End If
 
     ' --- 5. Restore Line Breaks ---

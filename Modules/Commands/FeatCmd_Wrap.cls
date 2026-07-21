@@ -230,22 +230,22 @@ Private Sub ApplyWrapPatternToRange(ByVal targetCells As Range, ByVal userPatter
             area.Formula2 = formulas
             If Err.Number <> 0 Then
                 Err.Clear
+                On Error Resume Next
                 For Each cell In area.Cells
                     If Not IsEmpty(cell.Value) Then
                         oldContent = GetWrappedContent(cell.Formula2, VarType(cell.Value) = vbString, isFormulaRange)
                         newContent = Replace(userPattern, PLACEHOLDER, oldContent, , , vbTextCompare)
                         If Left$(newContent, 1) <> "=" Then newContent = "=" & newContent
 
-                        On Error Resume Next
                         cell.Formula2 = newContent
                         If Err.Number <> 0 Then
                             cell.Interior.Color = vbYellow
                             errorCount = errorCount + 1
                             Err.Clear
                         End If
-                        On Error GoTo ErrHandler
                     End If
                 Next cell
+                On Error GoTo ErrHandler
             End If
             On Error GoTo ErrHandler
         End If

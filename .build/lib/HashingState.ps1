@@ -154,11 +154,19 @@ function Save-BuildState {
         if ($null -ne $cachedMeta) {
             # Lint status from global cache if updated this session, otherwise preserve old
             if ($null -ne $global:BeaverLintStatusCache -and $global:BeaverLintStatusCache.ContainsKey($relPath)) {
-                $cachedMeta.LintPassed = $global:BeaverLintStatusCache[$relPath]
+                if ($cachedMeta.PSObject.Properties.Name -contains "LintPassed") {
+                    $cachedMeta.LintPassed = $global:BeaverLintStatusCache[$relPath]
+                } else {
+                    $cachedMeta | Add-Member -NotePropertyName "LintPassed" -NotePropertyValue $global:BeaverLintStatusCache[$relPath] -Force
+                }
             }
             # Test manifest from global cache if updated this session
             if ($null -ne $global:BeaverTestManifestCache -and $global:BeaverTestManifestCache.ContainsKey($relPath)) {
-                $cachedMeta.Tests = $global:BeaverTestManifestCache[$relPath]
+                if ($cachedMeta.PSObject.Properties.Name -contains "Tests") {
+                    $cachedMeta.Tests = $global:BeaverTestManifestCache[$relPath]
+                } else {
+                    $cachedMeta | Add-Member -NotePropertyName "Tests" -NotePropertyValue $global:BeaverTestManifestCache[$relPath] -Force
+                }
             }
             $metadata[$relPath] = $cachedMeta
             continue
@@ -373,8 +381,8 @@ function Get-SourceFileHashes {
     $featureManifestPathVar = Get-Variable -Name "featureManifestPath" -ErrorAction SilentlyContinue
     $resolvedFeatureManifestPath = if ($null -ne $featureManifestPathVar) { $featureManifestPathVar.Value } else { Join-Path $resolvedProjectRoot "features.json" }
 
-    $desktopThisWorkbookClsVar = Get-Variable -Name "desktopThisWorkbookCls" -ErrorAction SilentlyContinue
-    $resolvedThisWorkbook = if ($null -ne $desktopThisWorkbookClsVar) { $desktopThisWorkbookClsVar.Value } else { Join-Path $resolvedProjectRoot "ThisWorkbook.cls" }
+    $diskThisWorkbookClsVar = Get-Variable -Name "diskThisWorkbookCls" -ErrorAction SilentlyContinue
+    $resolvedThisWorkbook = if ($null -ne $diskThisWorkbookClsVar) { $diskThisWorkbookClsVar.Value } else { Join-Path $resolvedProjectRoot "ThisWorkbook.cls" }
 
     $modulesDirVar = Get-Variable -Name "modulesDir" -ErrorAction SilentlyContinue
     $resolvedModulesDir = if ($null -ne $modulesDirVar) { $modulesDirVar.Value } else { Join-Path $resolvedProjectRoot "Modules" }

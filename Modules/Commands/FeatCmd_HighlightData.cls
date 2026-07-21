@@ -202,12 +202,15 @@ Private Sub HighlightInconsistentFormulasInArea(ByVal area As Range)
     Dim addrList As String
     Dim cellAddr As String
     
+    On Error Resume Next
     For Each cell In formulaCells.Cells
         Dim isInc As Boolean
         isInc = False
-        On Error Resume Next
         isInc = cell.Errors(xlInconsistentFormula).Value
-        On Error GoTo 0
+        If Err.Number <> 0 Then
+            isInc = False
+            Err.Clear
+        End If
         
         If isInc Then
             cellAddr = Infra_CommandSupport.GetA1Address(cell.Row, cell.Column)
@@ -221,6 +224,7 @@ Private Sub HighlightInconsistentFormulasInArea(ByVal area As Range)
             End If
         End If
     Next cell
+    On Error GoTo 0
     
     Set unionRange = Infra_CommandSupport.AccumulateUnion(unionRange, area.Parent, addrList, "", True)
     If Not unionRange Is Nothing Then

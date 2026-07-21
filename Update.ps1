@@ -20,6 +20,8 @@ param(
     [switch]$LintOnly,
     [switch]$GenerateDocs,
     [switch]$SkipDocs,
+    [switch]$Fast,
+    [switch]$Quick,
     [string]$TestCategory,
     [switch]$Status,
     [string[]]$File

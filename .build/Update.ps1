@@ -22,6 +22,8 @@ param(
     [switch]$LintOnly,
     [switch]$GenerateDocs,
     [switch]$SkipDocs,
+    [switch]$Fast,
+    [switch]$Quick,
     [string]$TestCategory,
     [switch]$Status,
     [string[]]$File
@@ -34,6 +36,10 @@ $ErrorActionPreference = "Stop"
 
 # Enable orchestrator mode to share Excel session and hashes across stages
 $global:BeaverOrchestratorActive = $true
+if ($Fast -or $Quick) {
+    $KeepAlive = $true
+    $SkipDocs = $true
+}
 $global:BeaverKeepAliveActive = $KeepAlive
 $global:BeaverFormatJson = ($Format -eq "Json")
 $global:BeaverSourceHashes = $null
@@ -400,8 +406,9 @@ try {
         }
     }
 
-    # Auto-generate ARCHITECTURE.md if changes occurred or if requested, and not skipped
-    $shouldGenerateDocs = $GenerateDocs -or ($hasAnyChanges -and -not $SkipDocs)
+    # Auto-generate ARCHITECTURE.md only on structural changes (new/deleted files, manifest structure change) or if explicitly requested via -GenerateDocs
+    $isStructuralChange = $manifestStructureChanged -or (@($deletedFiles).Count -gt 0)
+    $shouldGenerateDocs = ($GenerateDocs -or ($isStructuralChange -and -not $SkipDocs)) -and -not $Fast -and -not $Quick
     if ($shouldGenerateDocs) {
         $genDocsPath = Join-Path $PSScriptRoot "GenerateArchitectureMap.ps1"
         if (Test-Path $genDocsPath) {

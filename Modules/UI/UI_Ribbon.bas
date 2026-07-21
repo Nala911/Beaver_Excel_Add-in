@@ -31,6 +31,7 @@ Public Sub Ribbon_OnAction(ByVal control As Object)
     Dim tracker As Object: Set tracker = Infra_Error.Track("Ribbon_OnAction")
     On Error GoTo ErrHandler
 
+    EnsureUIServicesRegistered
     AppContainer.ExecuteEntryPoint control.Id, control.Id, "Ribbon"
 
 CleanExit:
@@ -39,3 +40,43 @@ ErrHandler:
     Infra_Error.HandleError "Ribbon_OnAction", Err
     Resume CleanExit
 End Sub
+
+Public Sub EnsureUIServicesRegistered()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("EnsureUIServicesRegistered")
+    On Error GoTo ErrHandler
+
+    AppContainer.Register "IUIFactory", UI_Factory
+    AppContainer.Register "IUIHelpCenter", UI_HelpCenter
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "EnsureUIServicesRegistered", Err
+    Resume CleanExit
+End Sub
+
+Public Function GetUIFactory() As Object
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetUIFactory")
+    On Error GoTo ErrHandler
+
+    Set GetUIFactory = UI_Factory
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "GetUIFactory", Err
+    Resume CleanExit
+End Function
+
+Public Function GetUIHelpCenter() As Object
+    Dim tracker As Object: Set tracker = Infra_Error.Track("GetUIHelpCenter")
+    On Error GoTo ErrHandler
+
+    Set GetUIHelpCenter = UI_HelpCenter
+
+CleanExit:
+    Exit Function
+ErrHandler:
+    Infra_Error.HandleError "GetUIHelpCenter", Err
+    Resume CleanExit
+End Function

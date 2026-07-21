@@ -1,129 +1,814 @@
 ﻿{
-  "LastBuildTime": "2026-07-18T16:15:08+05:30",
+  "LastBuildTime": "2026-07-21T15:40:30+05:30",
   "Files": {
-    "Modules/Infrastructure/Infra_ValueConversion.bas": "57B15785FE37F30808961512CEA1856C",
-    "Modules/Tests/Test_Feat_General.bas": "C9C5B7936B1176B269BB56A617BA910C",
-    "Modules/Infrastructure/Infra_FilterAppState.cls": "894349E6CDD80DEF2C536E88945E8297",
-    "Modules/UI/UI_DialogWrap.bas": "DBD323B0142D0D970F2056BBF3F9D0F8",
-    "Modules/Infrastructure/Infra_HotkeyDefinition.cls": "052D361762C7D23CA866E03A49574DEC",
-    "Modules/Libraries/Lib_HelpManifest.bas": "1D8771116BF1854A1A340DA4439E98EF",
-    "Modules/Commands/FeatCmd_ApplyDefaultFormat.cls": "C2E1874E5F41BB8B555DF24B8CCAC218",
+    "Modules/Tests/Test_Feat_HighlightData.bas": "BA9A4F8309C3E6000FB9D608EFC2E168",
+    "Modules/UI/UI_Ribbon.bas": "AD27C21738A8F1FC6A396A9B2EE94FC9",
     "Modules/UI/UI_HelpCenter.frm": "D7323F363D5DB815FF32E3B3A2B31529",
-    "Modules/Core/ExcelContextProvider.cls": "DD488D81083C1C47EDD5B6CFCA833CB8",
-    "Modules/Commands/FeatCmd_HelloWorld.cls": "85137BEBE0BE9855797F7FB70A2A0FA3",
-    "Modules/Core/ICommand.cls": "3D2B8923254E50E25C23326006C21965",
-    "Modules/Core/ICommandContext.cls": "9A262EA3F8284EA7C8B0060A0815376B",
-    "Modules/Infrastructure/Infra_Error.cls": "9B37966B9060861CA62345F0B25D8468",
-    "Modules/Core/Enums.bas": "DDC62E0B817C2DA5222CC46C88F54FBB",
-    "Modules/UI/UI_DialogSheet.bas": "D558C338505982DF7A319086382E1946",
-    "Modules/Commands/FeatCmd_CreateSheet.cls": "E0B37BC8D005D53D90FCEF73F1413875",
-    "Modules/Core/CommandInvoker.cls": "A545DC5898304AD3A1E668EBAC653832",
-    "Modules/Commands/FeatCmd_FormatRange.cls": "2E75B59F2BF7B2E2817E3B8D44656EFA",
-    "Modules/UI/UI_DialogModifyData.bas": "F9038B4E923EEFEAD61EBCC9EF07BDF1",
-    "Modules/UI/UI_OptionPicker.frm": "BBDADED23D9CF062220D822BA888B741",
-    "Modules/Commands/FeatCmd_CreateNamedRanges.cls": "FDBDD6AA16486A9FE7B873DB4E357999",
-    "Modules/Core/IConfig.cls": "DF54A092B7DE5F13456FD6B61FF49882",
-    "Modules/UI/UI_HelpCenter.frx": "A176677B3FBE5632930E8A8C16618375",
-    "Modules/Commands/FeatCmd_ExportImageOrPdf.cls": "C2E43E0C8680135C09D79A36F4D29856",
-    "Modules/Infrastructure/AppContainer.cls": "17D53840AA24727133230DF5D51BE44C",
-    "Modules/Commands/FeatCmd_StaticSheetWorkbook.cls": "29CBA9DBFE58D8E6069895E6751A0033",
-    "Modules/Libraries/Lib_XUnpivotFunction.bas": "E52F28A821C8BF056FFA4AF4ABCCA843",
+    "Modules/Tests/Test_Feat_FinancialModelling.bas": "8B293B00503EF791E6F1473DE73E8F43",
+    "Modules/Infrastructure/Infra_Config.cls": "72523167934B2A4A1C9A47D8C97EFACE",
+    "Modules/Commands/FeatCmd_UnmergeFill.cls": "ADBE9627980DF9498C344AF15158AB54",
     "Modules/Tests/Test_CommandInfrastructure.bas": "07ED9E63E711193A474492368B7757D0",
-    "Modules/Infrastructure/Infra_ContextTracker.cls": "6BC83D9901EE8F7341331F6CBC36A366",
-    "Modules/Commands/FeatCmd_PasteFormat.cls": "D0CEBEABE3B3AC42D0F14A604C7AFFCD",
-    "Modules/Core/ModifyDataRequest.cls": "65612B2A2F182D01633C4613CF0C05A6",
-    "Modules/Infrastructure/Infra_TestResult.cls": "A2DC4FA6BB0CEC5B9F49BCF85E9E6F5E",
-    "Modules/Core/CleanDataRequest.cls": "50A306AA00B03B554DAA8E75905F9964",
-    "Modules/Core/CommandExecutionPolicy.cls": "1387D9EC09FF638D2E120290E95EB11D",
-    "Modules/Commands/FeatCmd_Delete.cls": "5935CEC15D096E6076D59C084EB3A9D5",
-    "Modules/Infrastructure/Infra_Progress.bas": "6083B988429D7AF9FE0B7CC50DEDBF32",
-    "Modules/Libraries/Lib_JsonConverter.bas": "A922476BD53817D6A42A0AE6391B81CA",
-    "Modules/Tests/Test_Feat_Editing.bas": "286A2CDF5673DFF797AB43476190EED6",
-    "Modules/Infrastructure/Infra_Bootstrap.bas": "8589D9DCB2DF25795ED7850B7A0179EB",
-    "features.json": "73D555F2994DA1B26096D28B905E77F3",
-    "Modules/UI/UI_Ribbon.bas": "E56764E304738C7297AE68D6C5E361AE",
-    "Modules/Infrastructure/Infra_AppState.bas": "32FE4AD69B8B65160222CAA668E92A76",
-    "Modules/Commands/FeatCmd_FinancialModelling.cls": "AE023E31714A0740FF8221874AC7348C",
-    "Modules/Commands/FeatCmd_ApplyCustomNumberFormat.cls": "96DA7C8035006D12241A8EC774489287",
-    "Modules/UI/UI_DialogCleanData.bas": "E33AE87F16C76102318DEE322C314550",
-    "Modules/Commands/FeatCmd_Duplicate.cls": "A6FE0628B2298C892A6AAEB62C957BD6",
-    "Modules/Commands/FeatCmd_TableOfContents.cls": "6C20B45E7677E34267AD8158EADBD9CF",
-    "Modules/Tests/Test_Feat_Formatting.bas": "323F495B8CBF1270B308434C34B8B084",
-    "Modules/UI/UI_Factory.cls": "63F87109EC369B9D013DD0B4D1A4F0B8",
-    "Modules/UI/UI_DialogHighlightData.bas": "C3B66FD820593C9F1840424CDBABB8C9",
-    "Modules/Tests/Test_Feat_CreateNamedRanges.bas": "F1CA6BBE640AF7DC759C87C73878548E",
-    "Modules/Libraries/Lib_XFilterFunction.bas": "89CF99F4E408D6D43E7C19A900AD62F7",
-    "Modules/Commands/FeatCmd_HighlightData.cls": "9944AC6735F96B5B9730D238E23BFE68",
-    "Modules/Commands/FeatCmd_Backspace.cls": "27005F659F9699D49B8D997A8B22F31E",
-    "Modules/Infrastructure/Infra_CommandRegistry.bas": "65F5583B4BB5FCA98D8E15EBC527B612",
-    "Modules/UI/UI_DialogShared.bas": "FF75A6395C1D6E42FF5DE49DF5729878",
-    "Modules/Infrastructure/Infra_ProgressState.cls": "480E811A2C6ABECB9BCEC92EE66AE393",
-    "Modules/Tests/Test_Manifest.bas": "CCFB72C8C2CF34116FE927B3ED7CF017",
-    "Modules/Core/ScopedRequest.cls": "EED4906901BCE9DE746E9371E4F31083",
+    "Modules/Commands/FeatCmd_MakePermanent.cls": "EF8871BD0950C86B0DA8D111FAD7A1F2",
     "Modules/Core/IRequest.cls": "693BE200D09F656A8286C4B3E06B3F40",
-    "Modules/Libraries/Lib_UdfRegistry.bas": "54F39F07EB32115275602A38828CDEDB",
+    "Modules/Core/ScopedRequest.cls": "EED4906901BCE9DE746E9371E4F31083",
+    "Modules/Libraries/Lib_JsonConverter.bas": "A922476BD53817D6A42A0AE6391B81CA",
+    "Modules/Libraries/Lib_XUnpivotFunction.bas": "E52F28A821C8BF056FFA4AF4ABCCA843",
+    "Modules/UI/UI_DialogCleanData.bas": "E33AE87F16C76102318DEE322C314550",
+    "Modules/UI/UI_OptionPicker.frm": "BBDADED23D9CF062220D822BA888B741",
+    "Modules/Infrastructure/Infra_Diagnostics.bas": "727DE2BA9CCE458490CD21261E30F574",
+    "Modules/Infrastructure/Infra_ProgressState.cls": "480E811A2C6ABECB9BCEC92EE66AE393",
+    "Modules/Core/ICommandContext.cls": "9A262EA3F8284EA7C8B0060A0815376B",
+    "Modules/Infrastructure/Infra_ErrorContext.cls": "92DCB96B341C7BE9D2489A8F6AB4E3F3",
+    "Modules/Commands/FeatCmd_HelloWorld.cls": "85137BEBE0BE9855797F7FB70A2A0FA3",
     "Modules/Commands/FeatCmd_FillDown.cls": "9482F08E9A669E28764D40ABE25F0D1C",
-    "Modules/UI/UI_DialogExport.bas": "979697966DA5AEED20AA59DBBF2E886F",
-    "Modules/UI/UI_OptionPicker.frx": "EDFA1403A1D17A73AACAA0EFC60BF25F",
-    "Modules/Core/ActionContext.cls": "3C07585B62D4CF9B55B5A781E080337D",
-    "Modules/Tests/Test_Feat_ModifyData.bas": "39ECBF5591CAA70FA2D7988197FF26B2",
+    "Modules/Commands/FeatCmd_ExportImageOrPdf.cls": "C2E43E0C8680135C09D79A36F4D29856",
+    "Modules/UI/UI_Hotkeys.bas": "33E76CCD500C5958390077CB25C6C677",
+    "Modules/Infrastructure/Infra_Bootstrap.bas": "8589D9DCB2DF25795ED7850B7A0179EB",
+    "ThisWorkbook.cls": "1322ADF3AD504683054ADED21FE7D42A",
+    "Modules/Core/ICommand.cls": "3D2B8923254E50E25C23326006C21965",
+    "Modules/Core/ExcelContextProvider.cls": "DD488D81083C1C47EDD5B6CFCA833CB8",
+    "Modules/Tests/Test_UI.bas": "7B116E491DC13C23473EB6025BE9B64F",
     "Modules/Commands/FeatCmd_ForceNumber.cls": "BC73D9A41A7339BF7CDFC4F8548E4948",
     "Modules/Infrastructure/Infra_BatchProcessor.cls": "4088C503B26E70D7C1CE9850CAB510EB",
-    "Modules/Infrastructure/Infra_CommandSupport.bas": "E8371970308182C07F33F12BD68444B9",
-    "Modules/Core/ICommandFilter.cls": "43093FABB8A9E47C649FF1846851173E",
-    "Modules/Infrastructure/Infra_ConfigModel.cls": "10FFE22740C5E669962D7C80B23E8881",
-    "Modules/Infrastructure/Infra_Interaction.bas": "8FFF29C5196B35B549D3501115F05B5F",
-    "Modules/Core/IBatchProcessor.cls": "5919DFE3D5404792B29CD5449B73DBB4",
-    "Modules/Commands/FeatCmd_FillRight.cls": "C6AD0F11A76A7CFF4B2FD9AFDB060159",
-    "Modules/Tests/Test_Runner.bas": "31691865E2CAE2342A21CD6A9908ACCC",
-    "Modules/UI/UI_Hotkeys.bas": "33E76CCD500C5958390077CB25C6C677",
-    "Modules/Infrastructure/Infra_Undo.bas": "3B212995B5D9F91B1D9AFE1310F90565",
-    "Modules/Commands/FeatCmd_ShowHelpCenter.cls": "E2EAB58CEEA244F2E9A12081D102B249",
-    "Modules/Infrastructure/Infra_Config.cls": "72523167934B2A4A1C9A47D8C97EFACE",
-    "Modules/Tests/Test_Feat_BreakLinks.bas": "00A0AB4B9FAA959C83DAAB55294386A6",
-    "ThisWorkbook.cls": "1322ADF3AD504683054ADED21FE7D42A",
-    "Modules/Commands/FeatCmd_ModifyData.cls": "41B8DD0110D8540C43FAC9F866888B47",
-    "Modules/Core/ICellTransformer.cls": "1349B9752122A05DAEF98AC9257EDDF8",
-    "Modules/Infrastructure/Infra_Hotkeys.bas": "AF2DEEE862D3A16216294D38BC9A764E",
-    "Modules/Tests/Test_Feat_CleanData.bas": "F2D30AE9CE44D949D681DCB566611B0E",
-    "Modules/Commands/FeatCmd_MakePermanent.cls": "EF8871BD0950C86B0DA8D111FAD7A1F2",
-    "Modules/Core/CommandValidationResult.cls": "DF199B8DB0FEEEC746B6DE9283B7B261",
-    "Modules/Tests/Test_Feat_HighlightData.bas": "BA9A4F8309C3E6000FB9D608EFC2E168",
-    "Modules/Libraries/Lib_ValueConversionFunction.bas": "A877034027D69814481B578370BE3589",
-    "Modules/Core/BasicCommandContext.cls": "C6F395FD040A10C3F201EA72DD3DB970",
-    "Modules/Tests/Test_Feat_Wrap.bas": "3AE6BE6162AEFAF525C44274BCC8D39B",
-    "Modules/Tests/Test_Feat_FinancialModelling.bas": "8B293B00503EF791E6F1473DE73E8F43",
-    "Modules/Infrastructure/Infra_Diagnostics.bas": "727DE2BA9CCE458490CD21261E30F574",
-    "Modules/Tests/Test_UI.bas": "3460102E98D145A11831B1D408149DCB",
-    "Modules/Tests/Test_Feat_Workbook.bas": "21333915321A2BC8CFA2C753D0FF6D9D",
-    "Modules/Infrastructure/Infra_Cache.cls": "EA946128DD32BF002BB1341494B19659",
-    "Modules/Core/ExportRequest.cls": "E05C9492606BE7903B93B39F5D679AAD",
-    "Modules/Commands/FeatCmd_Wrap.cls": "6AB41818AC7FEE929D9994D0170660E0",
-    "Modules/Infrastructure/Infra_AppStateGuard.cls": "88E21E1E56B46F3F8811C8AD76F12C60",
-    "Modules/Commands/FeatCmd_BreakExternalLinks.cls": "975B7AC1F0ABB72CDED61470D98A70AF",
-    "Modules/Infrastructure/Infra_ErrorContext.cls": "92DCB96B341C7BE9D2489A8F6AB4E3F3",
-    "Modules/Commands/FeatCmd_CleanData.cls": "F66AD1DA8643072C0A5B93422F296759",
-    "Modules/Core/HighlightDataRequest.cls": "E1A95A052F96D15BA87E9CC2D2A6451D",
-    "Modules/Infrastructure/Infra_OperationContext.cls": "E5B0765F79B17B715CDE0D520940BF1D",
-    "Modules/Commands/FeatCmd_UnmergeFill.cls": "ADBE9627980DF9498C344AF15158AB54",
+    "Modules/Libraries/Lib_UdfRegistry.bas": "54F39F07EB32115275602A38828CDEDB",
+    "Modules/Commands/FeatCmd_HighlightData.cls": "4213652FA3EC330B9F178B54AF84C6B7",
+    "Modules/Infrastructure/Infra_ContextTracker.cls": "6BC83D9901EE8F7341331F6CBC36A366",
+    "Modules/Core/Enums.bas": "DDC62E0B817C2DA5222CC46C88F54FBB",
     "Modules/Commands/FeatCmd_FilterByCell.cls": "F5B6F2E4A04FC327CAB61E8E4E0C2489",
-    "Modules/Infrastructure/Infra_PageSetupBackup.cls": "D6BF708BA5612F5C6481BF38F56DB80B"
+    "Modules/Infrastructure/Infra_PageSetupBackup.cls": "D6BF708BA5612F5C6481BF38F56DB80B",
+    "Modules/Commands/FeatCmd_FillRight.cls": "C6AD0F11A76A7CFF4B2FD9AFDB060159",
+    "Modules/Infrastructure/Infra_HotkeyDefinition.cls": "052D361762C7D23CA866E03A49574DEC",
+    "Modules/Tests/Test_Feat_General.bas": "C9C5B7936B1176B269BB56A617BA910C",
+    "Modules/UI/UI_DialogHighlightData.bas": "C3B66FD820593C9F1840424CDBABB8C9",
+    "Modules/Commands/FeatCmd_FinancialModelling.cls": "AE023E31714A0740FF8221874AC7348C",
+    "Modules/Infrastructure/Infra_ConfigModel.cls": "10FFE22740C5E669962D7C80B23E8881",
+    "Modules/Libraries/Lib_ValueConversionFunction.bas": "A877034027D69814481B578370BE3589",
+    "Modules/Infrastructure/Infra_Hotkeys.bas": "AF2DEEE862D3A16216294D38BC9A764E",
+    "Modules/Commands/FeatCmd_Duplicate.cls": "A6FE0628B2298C892A6AAEB62C957BD6",
+    "Modules/Libraries/Lib_XFilterFunction.bas": "89CF99F4E408D6D43E7C19A900AD62F7",
+    "Modules/Tests/Test_Feat_ModifyData.bas": "39ECBF5591CAA70FA2D7988197FF26B2",
+    "Modules/Commands/FeatCmd_PasteFormat.cls": "D0CEBEABE3B3AC42D0F14A604C7AFFCD",
+    "Modules/Tests/Test_Runner.bas": "31691865E2CAE2342A21CD6A9908ACCC",
+    "Modules/UI/UI_Factory.cls": "63F87109EC369B9D013DD0B4D1A4F0B8",
+    "Modules/Infrastructure/Infra_AppStateGuard.cls": "88E21E1E56B46F3F8811C8AD76F12C60",
+    "Modules/Core/CleanDataRequest.cls": "50A306AA00B03B554DAA8E75905F9964",
+    "Modules/Infrastructure/Infra_AppState.bas": "32FE4AD69B8B65160222CAA668E92A76",
+    "Modules/Infrastructure/Infra_FilterAppState.cls": "894349E6CDD80DEF2C536E88945E8297",
+    "Modules/Core/IConfig.cls": "DF54A092B7DE5F13456FD6B61FF49882",
+    "Modules/Commands/FeatCmd_ShowHelpCenter.cls": "E2EAB58CEEA244F2E9A12081D102B249",
+    "Modules/Core/CommandValidationResult.cls": "DF199B8DB0FEEEC746B6DE9283B7B261",
+    "Modules/Core/CommandExecutionPolicy.cls": "1387D9EC09FF638D2E120290E95EB11D",
+    "Modules/UI/UI_DialogExport.bas": "979697966DA5AEED20AA59DBBF2E886F",
+    "Modules/Commands/FeatCmd_ApplyCustomNumberFormat.cls": "96DA7C8035006D12241A8EC774489287",
+    "Modules/Infrastructure/Infra_Progress.bas": "6083B988429D7AF9FE0B7CC50DEDBF32",
+    "Modules/UI/UI_DialogModifyData.bas": "F9038B4E923EEFEAD61EBCC9EF07BDF1",
+    "Modules/Commands/FeatCmd_ApplyDefaultFormat.cls": "C2E1874E5F41BB8B555DF24B8CCAC218",
+    "Modules/Commands/FeatCmd_BreakExternalLinks.cls": "975B7AC1F0ABB72CDED61470D98A70AF",
+    "Modules/Commands/FeatCmd_Backspace.cls": "27005F659F9699D49B8D997A8B22F31E",
+    "Modules/Commands/FeatCmd_TableOfContents.cls": "6C20B45E7677E34267AD8158EADBD9CF",
+    "Modules/Core/ExportRequest.cls": "E05C9492606BE7903B93B39F5D679AAD",
+    "Modules/Infrastructure/Infra_Cache.cls": "EA946128DD32BF002BB1341494B19659",
+    "Modules/Commands/FeatCmd_Delete.cls": "5935CEC15D096E6076D59C084EB3A9D5",
+    "Modules/Tests/Test_Manifest.bas": "CCFB72C8C2CF34116FE927B3ED7CF017",
+    "Modules/Infrastructure/Infra_ValueConversion.bas": "FEBB6ABAEA72F6282F17A0F944467856",
+    "Modules/Core/ICellTransformer.cls": "1349B9752122A05DAEF98AC9257EDDF8",
+    "Modules/Infrastructure/Infra_Error.cls": "9B37966B9060861CA62345F0B25D8468",
+    "Modules/Libraries/Lib_HelpManifest.bas": "1D8771116BF1854A1A340DA4439E98EF",
+    "Modules/Infrastructure/Infra_OperationContext.cls": "E5B0765F79B17B715CDE0D520940BF1D",
+    "Modules/Core/IBatchProcessor.cls": "5919DFE3D5404792B29CD5449B73DBB4",
+    "Modules/Infrastructure/AppContainer.cls": "0D429FE96CAB307F389A576A22B748CC",
+    "Modules/Core/ModifyDataRequest.cls": "65612B2A2F182D01633C4613CF0C05A6",
+    "Modules/Commands/FeatCmd_FormatRange.cls": "2E75B59F2BF7B2E2817E3B8D44656EFA",
+    "features.json": "73D555F2994DA1B26096D28B905E77F3",
+    "Modules/Core/CommandInvoker.cls": "A545DC5898304AD3A1E668EBAC653832",
+    "Modules/Tests/Test_Feat_CreateNamedRanges.bas": "F1CA6BBE640AF7DC759C87C73878548E",
+    "Modules/Infrastructure/Infra_Interaction.bas": "8FFF29C5196B35B549D3501115F05B5F",
+    "Modules/Commands/FeatCmd_StaticSheetWorkbook.cls": "29CBA9DBFE58D8E6069895E6751A0033",
+    "Modules/Infrastructure/Infra_CommandRegistry.bas": "65F5583B4BB5FCA98D8E15EBC527B612",
+    "Modules/Tests/Test_Feat_Workbook.bas": "21333915321A2BC8CFA2C753D0FF6D9D",
+    "Modules/Tests/Test_Feat_CleanData.bas": "F2D30AE9CE44D949D681DCB566611B0E",
+    "Modules/UI/UI_DialogShared.bas": "FF75A6395C1D6E42FF5DE49DF5729878",
+    "Modules/Infrastructure/Infra_TestResult.cls": "A2DC4FA6BB0CEC5B9F49BCF85E9E6F5E",
+    "Modules/Commands/FeatCmd_CleanData.cls": "72E5F75DAFD3DD875EE1504A04368942",
+    "Modules/Commands/FeatCmd_CreateNamedRanges.cls": "FDBDD6AA16486A9FE7B873DB4E357999",
+    "Modules/Infrastructure/Infra_Undo.bas": "3B212995B5D9F91B1D9AFE1310F90565",
+    "Modules/Core/ICommandFilter.cls": "43093FABB8A9E47C649FF1846851173E",
+    "Modules/Commands/FeatCmd_Wrap.cls": "3B77EFF77B31F9EFB07DCBF2F6545146",
+    "Modules/Infrastructure/Infra_CommandSupport.bas": "77A7F730869A788D71816348FA89634A",
+    "Modules/Tests/Test_Feat_BreakLinks.bas": "00A0AB4B9FAA959C83DAAB55294386A6",
+    "Modules/Commands/FeatCmd_ModifyData.cls": "41B8DD0110D8540C43FAC9F866888B47",
+    "Modules/Core/HighlightDataRequest.cls": "E1A95A052F96D15BA87E9CC2D2A6451D",
+    "Modules/Commands/FeatCmd_CreateSheet.cls": "E0B37BC8D005D53D90FCEF73F1413875",
+    "Modules/Tests/Test_Feat_Editing.bas": "286A2CDF5673DFF797AB43476190EED6",
+    "Modules/Tests/Test_Feat_Wrap.bas": "3AE6BE6162AEFAF525C44274BCC8D39B",
+    "Modules/Tests/Test_Feat_Formatting.bas": "323F495B8CBF1270B308434C34B8B084",
+    "Modules/UI/UI_HelpCenter.frx": "A176677B3FBE5632930E8A8C16618375",
+    "Modules/UI/UI_DialogWrap.bas": "DBD323B0142D0D970F2056BBF3F9D0F8",
+    "Modules/Core/BasicCommandContext.cls": "C6F395FD040A10C3F201EA72DD3DB970",
+    "Modules/UI/UI_DialogSheet.bas": "D558C338505982DF7A319086382E1946",
+    "Modules/UI/UI_OptionPicker.frx": "EDFA1403A1D17A73AACAA0EFC60BF25F",
+    "Modules/Core/ActionContext.cls": "3C07585B62D4CF9B55B5A781E080337D"
   },
   "Metadata": {
-    "Modules/Infrastructure/Infra_ValueConversion.bas": {
-      "Length": 19821,
-      "LastWriteTime": "134288435707424281",
+    "Modules/Tests/Test_Feat_HighlightData.bas": {
+      "Length": 18028,
+      "LastWriteTime": "134285690749769425",
+      "Tests": [
+        "Test_HighlightData_InconsistentFormulasAndDuplicates",
+        "Test_HighlightData_FormulaLimitSafety",
+        "Test_HighlightData_Errors",
+        "Test_HighlightData_HardcodedValues",
+        "Test_HighlightData_DataValidations",
+        "Test_HighlightData_ConditionalFormatting",
+        "Test_HighlightData_ClearHighlights",
+        "Test_HighlightData_NamedRanges"
+      ],
+      "Dependencies": [
+        "Test_Runner",
+        "AppContainer",
+        "Infra_Error",
+        "Infra_Undo",
+        "FeatCmd_HighlightData",
+        "HighlightDataRequest"
+      ],
+      "TestDependencies": {
+        "Test_HighlightData_NamedRanges": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "HighlightDataRequest",
+          "FeatCmd_HighlightData",
+          "Test_Runner",
+          "Infra_Config"
+        ],
+        "Test_HighlightData_Errors": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "HighlightDataRequest",
+          "FeatCmd_HighlightData",
+          "Test_Runner",
+          "Infra_Config"
+        ],
+        "Test_HighlightData_DataValidations": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "HighlightDataRequest",
+          "FeatCmd_HighlightData",
+          "Test_Runner",
+          "Infra_Config"
+        ],
+        "Test_HighlightData_ConditionalFormatting": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "HighlightDataRequest",
+          "FeatCmd_HighlightData",
+          "Test_Runner",
+          "Infra_Config"
+        ],
+        "Test_HighlightData_InconsistentFormulasAndDuplicates": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "FeatCmd_HighlightData",
+          "Infra_Config",
+          "Test_Runner"
+        ],
+        "Test_HighlightData_ClearHighlights": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "Infra_Config",
+          "Test_Runner",
+          "FeatCmd_HighlightData"
+        ],
+        "Test_HighlightData_FormulaLimitSafety": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "FeatCmd_HighlightData",
+          "Test_Runner"
+        ],
+        "Test_HighlightData_HardcodedValues": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "FeatCmd_HighlightData",
+          "Test_Runner",
+          "ThisWorkbook",
+          "HighlightDataRequest",
+          "Infra_Config"
+        ]
+      },
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Integration tests for data highlighting features.",
+      "Name": "Test_Feat_HighlightData",
+      "Loc": 448
+    },
+    "Modules/UI/UI_Ribbon.bas": {
+      "Length": 2324,
+      "LastWriteTime": "134290972887745353",
       "Tests": [],
       "Dependencies": [
+        "AppContainer",
+        "Infra_Config",
+        "Infra_Error"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "UI",
+      "Description": "Generated Ribbon callbacks for the Beaver Add-in.",
+      "Name": "UI_Ribbon",
+      "Loc": 82
+    },
+    "Modules/UI/UI_HelpCenter.frm": {
+      "Length": 13330,
+      "LastWriteTime": "134274073158412700",
+      "Dependencies": [
+        "Infra_Hotkeys",
+        "Lib_UdfRegistry",
+        "Infra_Config",
+        "Infra_Error"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "UI",
+      "Description": "Custom scrollable Help Center dialog displaying Beaver features, hotkeys, and diagnostics.",
+      "Name": "UI_HelpCenter",
+      "Loc": 414
+    },
+    "Modules/Tests/Test_Feat_FinancialModelling.bas": {
+      "Length": 3439,
+      "LastWriteTime": "134280994146837320",
+      "Tests": [
+        "Test_FinancialModelling_Execution"
+      ],
+      "Dependencies": [
+        "Test_Runner",
+        "AppContainer",
         "Infra_Error",
-        "Lib_ValueConversionFunction"
+        "FeatCmd_FinancialModelling"
+      ],
+      "TestDependencies": {
+        "Test_FinancialModelling_Execution": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "ICommandContext",
+          "ActionContext",
+          "ICommand",
+          "Test_Runner"
+        ]
+      },
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Unit tests for financial model coloring auto-formatter.",
+      "Name": "Test_Feat_FinancialModelling",
+      "Loc": 94
+    },
+    "Modules/Infrastructure/Infra_Config.cls": {
+      "Length": 15899,
+      "LastWriteTime": "134288213610085719",
+      "Dependencies": [
+        "Lib_JsonConverter",
+        "Infra_ConfigModel",
+        "Infra_HotkeyDefinition",
+        "Infra_Error",
+        "Infra_Diagnostics"
       ],
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "Infrastructure",
-      "Description": "Shared helpers for converting selections, formulas, and spill ranges to static values.",
-      "Name": "Infra_ValueConversion",
-      "Loc": 541
+      "Description": "Central registry for all shared constants, now loaded from config.json.",
+      "Name": "Infra_Config",
+      "Loc": 445
+    },
+    "Modules/Commands/FeatCmd_UnmergeFill.cls": {
+      "Length": 5044,
+      "LastWriteTime": "134270454764531960",
+      "Dependencies": [
+        "ICommand",
+        "ActionContext",
+        "Infra_Error",
+        "Infra_Undo",
+        "Infra_Progress",
+        "Infra_Interaction",
+        "Infra_Config"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Unmerges cells and fills the top-left value across the unmerged area.",
+      "Name": "FeatCmd_UnmergeFill",
+      "Loc": 161
+    },
+    "Modules/Tests/Test_CommandInfrastructure.bas": {
+      "Length": 6045,
+      "LastWriteTime": "134274073937973045",
+      "Tests": [
+        "Test_CommandRegistryResolvesRibbonEntries",
+        "Test_CommandRegistryResolvesHotkeyEntries",
+        "Test_CommandContextIncludesMetadataAndActionContext",
+        "Test_CommandRegistryCreatesKnownCommands",
+        "Test_DiagnosticsEscapeJson",
+        "Test_DiagnosticsLogsJSON"
+      ],
+      "Dependencies": [
+        "Test_Runner",
+        "Infra_CommandRegistry",
+        "AppContainer",
+        "Infra_Error"
+      ],
+      "TestDependencies": {
+        "Test_DiagnosticsLogsJSON": [
+          "Infra_Error",
+          "Infra_Diagnostics"
+        ],
+        "Test_CommandContextIncludesMetadataAndActionContext": [
+          "Infra_Error",
+          "ICommandContext",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "UI_Hotkeys",
+          "FeatCmd_FormatRange",
+          "ActionContext"
+        ],
+        "Test_CommandRegistryResolvesHotkeyEntries": [
+          "Infra_Error",
+          "Infra_CommandRegistry",
+          "UI_Hotkeys",
+          "FeatCmd_FormatRange",
+          "FeatCmd_Delete"
+        ],
+        "Test_DiagnosticsEscapeJson": [
+          "Infra_Error",
+          "Infra_Diagnostics"
+        ],
+        "Test_CommandRegistryCreatesKnownCommands": [
+          "Infra_Error",
+          "Infra_CommandRegistry",
+          "FeatCmd_FormatRange",
+          "FeatCmd_ShowHelpCenter"
+        ],
+        "Test_CommandRegistryResolvesRibbonEntries": [
+          "Infra_Error",
+          "Infra_CommandRegistry",
+          "UI_Ribbon",
+          "FeatCmd_ShowHelpCenter"
+        ]
+      },
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Tests for manifest-driven command resolution and typed command context capture.",
+      "Name": "Test_CommandInfrastructure",
+      "Loc": 150
+    },
+    "Modules/Commands/FeatCmd_MakePermanent.cls": {
+      "Length": 1913,
+      "LastWriteTime": "134270454764271336",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Converts selection to values.",
+      "Name": "FeatCmd_MakePermanent",
+      "Loc": 57
+    },
+    "Modules/Core/IRequest.cls": {
+      "Length": 544,
+      "LastWriteTime": "134270454764825686",
+      "Dependencies": [
+        "ActionContext",
+        "TargetScope"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Interface for all typed request objects in the command pipeline.",
+      "Name": "IRequest",
+      "Loc": 22
+    },
+    "Modules/Core/ScopedRequest.cls": {
+      "Length": 752,
+      "LastWriteTime": "134270453450210995",
+      "Dependencies": [
+        "ActionContext",
+        "TargetScope"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Typed request describing the target scope and action context for a scoped command execution.",
+      "Name": "ScopedRequest",
+      "Loc": 29
+    },
+    "Modules/Libraries/Lib_JsonConverter.bas": {
+      "Length": 10793,
+      "LastWriteTime": "134182565901641108",
+      "Tests": [],
+      "Dependencies": "Microsoft Scripting Runtime",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Standard JSON parser for VBA. Requires reference to \"Microsoft Scripting Runtime\".",
+      "Name": "Lib_JsonConverter",
+      "Loc": 239
+    },
+    "Modules/Libraries/Lib_XUnpivotFunction.bas": {
+      "Length": 4724,
+      "LastWriteTime": "134288436329399618",
+      "Tests": [],
+      "Dependencies": "Lib_ValueConversionFunction",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "UDF to unpivot wide data into long format, auto-detecting columns by trailing numeric values.",
+      "Name": "Lib_XUnpivotFunction",
+      "Loc": 137
+    },
+    "Modules/UI/UI_DialogCleanData.bas": {
+      "Length": 5941,
+      "LastWriteTime": "134274068093386912",
+      "Tests": [],
+      "Dependencies": [
+        "Infra_Error",
+        "Infra_Interaction",
+        "ActionContext",
+        "CleanDataRequest",
+        "UI_DialogShared"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "UI",
+      "Description": "Option selection dialog for text and formatting cleanup (Clean Data).",
+      "Name": "UI_DialogCleanData",
+      "Loc": 149
+    },
+    "Modules/UI/UI_OptionPicker.frm": {
+      "Length": 21704,
+      "LastWriteTime": "134270428052579050",
+      "Dependencies": "Infra_Error",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "UI",
+      "Description": "Dedicated option-picker form reused by interactive command dialogs.",
+      "Name": "UI_OptionPicker",
+      "Loc": 711
+    },
+    "Modules/Infrastructure/Infra_Diagnostics.bas": {
+      "Length": 3987,
+      "LastWriteTime": "134274086919771730",
+      "Tests": [],
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Structured diagnostics logging for operations, warnings, and failures.",
+      "Name": "Infra_Diagnostics",
+      "Loc": 118
+    },
+    "Modules/Infrastructure/Infra_ProgressState.cls": {
+      "Length": 567,
+      "LastWriteTime": "134188138472161201",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Mutable progress session state for Infra_Progress.",
+      "Name": "Infra_ProgressState",
+      "Loc": 22
+    },
+    "Modules/Core/ICommandContext.cls": {
+      "Length": 677,
+      "LastWriteTime": "134274915918611490",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Provides runtime context to commands (e.g., Ribbon state, arguments).",
+      "Name": "ICommandContext",
+      "Loc": 29
+    },
+    "Modules/Infrastructure/Infra_ErrorContext.cls": {
+      "Length": 1197,
+      "LastWriteTime": "134188180630716932",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Structured payload describing a single runtime error instance.",
+      "Name": "Infra_ErrorContext",
+      "Loc": 38
+    },
+    "Modules/Commands/FeatCmd_HelloWorld.cls": {
+      "Length": 2199,
+      "LastWriteTime": "134286134569814600",
+      "Dependencies": [
+        "ICommand",
+        "ICommandContext",
+        "Infra_Error",
+        "Infra_CommandSupport",
+        "Infra_Undo"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Puts Hello World in the active cell of the active worksheet.",
+      "Name": "FeatCmd_HelloWorld",
+      "Loc": 69
+    },
+    "Modules/Commands/FeatCmd_FillDown.cls": {
+      "Length": 9350,
+      "LastWriteTime": "134285701693720729",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Intelligent fill-down functionality that respects tables and filtered data.",
+      "Name": "FeatCmd_FillDown",
+      "Loc": 254
+    },
+    "Modules/Commands/FeatCmd_ExportImageOrPdf.cls": {
+      "Length": 15160,
+      "LastWriteTime": "134270454764024428",
+      "Dependencies": "Infra_PageSetupBackup",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Exports selected range as a PNG image or high-quality PDF.",
+      "Name": "FeatCmd_ExportImageOrPdf",
+      "Loc": 463
+    },
+    "Modules/UI/UI_Hotkeys.bas": {
+      "Length": 4543,
+      "LastWriteTime": "134284151822618669",
+      "Tests": [],
+      "Dependencies": [
+        "AppContainer",
+        "Infra_Error"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "UI",
+      "Description": "Generated hotkey wrappers that route through the command pipeline.",
+      "Name": "UI_Hotkeys",
+      "Loc": 151
+    },
+    "Modules/Infrastructure/Infra_Bootstrap.bas": {
+      "Length": 1980,
+      "LastWriteTime": "134270267750580594",
+      "Tests": [],
+      "Dependencies": [
+        "AppContainer",
+        "Infra_Config",
+        "Infra_Error",
+        "Infra_Hotkeys",
+        "ExcelContextProvider",
+        "Lib_UdfRegistry"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Centralized startup and shutdown workflow for the add-in host.",
+      "Name": "Infra_Bootstrap",
+      "Loc": 78
+    },
+    "ThisWorkbook.cls": {
+      "Length": 1509,
+      "LastWriteTime": "134288450182185399",
+      "Dependencies": [
+        "Infra_Hotkeys",
+        "Infra_Error"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Workbook event bridge for Excel add-in startup and shutdown hooks.",
+      "Name": "ThisWorkbook",
+      "Loc": 52
+    },
+    "Modules/Core/ICommand.cls": {
+      "Length": 590,
+      "LastWriteTime": "134274915872261786",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Standard command pattern interface for all features.",
+      "Name": "ICommand",
+      "Loc": 23
+    },
+    "Modules/Core/ExcelContextProvider.cls": {
+      "Length": 2672,
+      "LastWriteTime": "134274915724112867",
+      "Dependencies": "ActionContext",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Captures and evaluates the current Excel workbook, sheet, window, and selection context.",
+      "Name": "ExcelContextProvider",
+      "Loc": 90
+    },
+    "Modules/Tests/Test_UI.bas": {
+      "Length": 11671,
+      "LastWriteTime": "134290970468111866",
+      "Tests": [
+        "Test_UI_OptionPicker_DynamicLayout",
+        "Test_UI_OptionPicker_KeyboardNavigation",
+        "Test_UdfRegistry_And_HelpCenter",
+        "Test_CommandResolution_NewMenus"
+      ],
+      "Dependencies": [
+        "Test_Runner",
+        "AppContainer",
+        "Infra_Error",
+        "Infra_Hotkeys",
+        "Lib_UdfRegistry"
+      ],
+      "TestDependencies": {
+        "Test_CommandResolution_NewMenus": [
+          "Infra_Error",
+          "ICommand",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "FeatCmd_ShowHelpCenter",
+          "Test_Runner",
+          "FeatCmd_HighlightData",
+          "FeatCmd_FinancialModelling",
+          "FeatCmd_ExportImageOrPdf",
+          "FeatCmd_UnmergeFill",
+          "FeatCmd_ForceNumber",
+          "FeatCmd_Duplicate"
+        ],
+        "Test_UI_OptionPicker_DynamicLayout": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "UI_OptionPicker",
+          "Test_Runner"
+        ],
+        "Test_UI_OptionPicker_KeyboardNavigation": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "UI_OptionPicker",
+          "Test_Runner"
+        ],
+        "Test_UdfRegistry_And_HelpCenter": [
+          "Infra_Error",
+          "Lib_UdfRegistry",
+          "Test_Runner",
+          "AppContainer",
+          "Infra_Hotkeys"
+        ]
+      },
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Unit and integration tests for userforms and UI components.",
+      "Name": "Test_UI",
+      "Loc": 233
+    },
+    "Modules/Commands/FeatCmd_ForceNumber.cls": {
+      "Length": 3076,
+      "LastWriteTime": "134270454764099968",
+      "Dependencies": [
+        "ICommand",
+        "IBatchProcessor",
+        "ICellTransformer",
+        "ActionContext",
+        "Infra_Error",
+        "Infra_Undo",
+        "Infra_Progress",
+        "Infra_Interaction",
+        "Infra_Config"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Forces text-formatted numbers in the selection to become actual numeric values.",
+      "Name": "FeatCmd_ForceNumber",
+      "Loc": 85
+    },
+    "Modules/Infrastructure/Infra_BatchProcessor.cls": {
+      "Length": 4747,
+      "LastWriteTime": "134274086810726658",
+      "Dependencies": [
+        "IBatchProcessor",
+        "ActionContext",
+        "Infra_Progress",
+        "Infra_Undo",
+        "Infra_Error",
+        "Infra_CommandSupport",
+        "Infra_Interaction"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Centralized engine for executing scoped workbook/sheet/range batch operations with unified progress, undo, and state management.",
+      "Name": "Infra_BatchProcessor",
+      "Loc": 136
+    },
+    "Modules/Libraries/Lib_UdfRegistry.bas": {
+      "Length": 2851,
+      "LastWriteTime": "134267635158089517",
+      "Tests": [],
+      "Dependencies": "Infra_Error",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Generated registry of User Defined Functions (UDFs) metadata for Beaver Add-in.",
+      "Name": "Lib_UdfRegistry",
+      "Loc": 66
+    },
+    "Modules/Commands/FeatCmd_HighlightData.cls": {
+      "Length": 26086,
+      "LastWriteTime": "134291020530430997",
+      "Dependencies": [
+        "ICommand",
+        "ActionContext",
+        "HighlightDataRequest",
+        "Infra_Error",
+        "Infra_Undo",
+        "Infra_Progress",
+        "Infra_Interaction"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Advanced data highlighting tools (Inconsistent Formulas, Duplicates).",
+      "Name": "FeatCmd_HighlightData",
+      "Loc": 754
+    },
+    "Modules/Infrastructure/Infra_ContextTracker.cls": {
+      "Length": 795,
+      "LastWriteTime": "134187266094960603",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "RAII-style tracker for the execution stack (Infra_Error).",
+      "Name": "Infra_ContextTracker",
+      "Loc": 30
+    },
+    "Modules/Core/Enums.bas": {
+      "Length": 827,
+      "LastWriteTime": "134288213807919554",
+      "Tests": [],
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Centralized shared enumerations for scopes, modes, and command options.",
+      "Name": "Enums",
+      "Loc": 34
+    },
+    "Modules/Commands/FeatCmd_FilterByCell.cls": {
+      "Length": 7563,
+      "LastWriteTime": "134270454764067957",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Quick-filter a range based on the value of the active cell.",
+      "Name": "FeatCmd_FilterByCell",
+      "Loc": 214
+    },
+    "Modules/Infrastructure/Infra_PageSetupBackup.cls": {
+      "Length": 2616,
+      "LastWriteTime": "134259894326762853",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Backs up and restores worksheet PageSetup settings and visibility.",
+      "Name": "Infra_PageSetupBackup",
+      "Loc": 80
+    },
+    "Modules/Commands/FeatCmd_FillRight.cls": {
+      "Length": 9385,
+      "LastWriteTime": "134285701738480043",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Intelligent fill-right functionality that respects tables and filtered data.",
+      "Name": "FeatCmd_FillRight",
+      "Loc": 254
+    },
+    "Modules/Infrastructure/Infra_HotkeyDefinition.cls": {
+      "Length": 540,
+      "LastWriteTime": "134188138472103116",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Typed hotkey definition loaded from config.json.",
+      "Name": "Infra_HotkeyDefinition",
+      "Loc": 21
     },
     "Modules/Tests/Test_Feat_General.bas": {
       "Length": 22730,
@@ -154,6 +839,22 @@
         "FeatCmd_Duplicate"
       ],
       "TestDependencies": {
+        "Test_XFilter_Features": [
+          "Infra_Error",
+          "Lib_XFilterFunction",
+          "Test_Runner"
+        ],
+        "Test_XUnpivot_Features": [
+          "Infra_Error",
+          "Lib_XUnpivotFunction",
+          "Test_Runner"
+        ],
+        "Test_ValueConversion_ResolveSpillExpandedRange": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "Infra_ValueConversion",
+          "Test_Runner"
+        ],
         "Test_ProtectedSheet_CanModifyContext": [
           "Infra_Error",
           "Infra_AppStateGuard",
@@ -162,6 +863,12 @@
           "Infra_Config",
           "ExcelContextProvider",
           "Infra_AppState",
+          "Test_Runner"
+        ],
+        "Test_GetChunkedRanges_And_SpillExpansion": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "Infra_CommandSupport",
           "Test_Runner"
         ],
         "Test_SingleCell_Bugs_Regression": [
@@ -179,6 +886,19 @@
           "FeatCmd_CleanData",
           "FeatCmd_TableOfContents"
         ],
+        "Test_HelloWorld_Execution_And_Undo": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "ICommandContext",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "FeatCmd_HelloWorld",
+          "ActionContext",
+          "ICommand",
+          "Test_Runner",
+          "Infra_Undo"
+        ],
         "Test_ProtectedSheet_CommandValidators": [
           "Infra_Error",
           "Infra_AppStateGuard",
@@ -194,46 +914,11 @@
           "FeatCmd_ModifyData",
           "FeatCmd_StaticSheetWorkbook"
         ],
-        "Test_XFilter_Features": [
-          "Infra_Error",
-          "Lib_XFilterFunction",
-          "Test_Runner"
-        ],
-        "Test_GetChunkedRanges_And_SpillExpansion": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "Infra_CommandSupport",
-          "Test_Runner"
-        ],
-        "Test_XUnpivot_Features": [
-          "Infra_Error",
-          "Lib_XUnpivotFunction",
-          "Test_Runner"
-        ],
-        "Test_ValueConversion_ResolveSpillExpandedRange": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "Infra_ValueConversion",
-          "Test_Runner"
-        ],
         "Test_MultiArea_Undo_Robustness": [
           "Infra_Error",
           "Infra_AppStateGuard",
           "Infra_Undo",
           "Test_Runner"
-        ],
-        "Test_HelloWorld_Execution_And_Undo": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "ICommandContext",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "FeatCmd_HelloWorld",
-          "ActionContext",
-          "ICommand",
-          "Test_Runner",
-          "Infra_Undo"
         ]
       },
       "LintPassed": true,
@@ -241,6 +926,305 @@
       "Description": "Integration tests for general framework features, spill calculations, and regression checks.",
       "Name": "Test_Feat_General",
       "Loc": 559
+    },
+    "Modules/UI/UI_DialogHighlightData.bas": {
+      "Length": 5510,
+      "LastWriteTime": "134287884981642300",
+      "Tests": [],
+      "Dependencies": [
+        "Infra_Error",
+        "Infra_Interaction",
+        "ActionContext",
+        "HighlightDataRequest",
+        "UI_DialogShared"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "UI",
+      "Description": "Option selection dialog for data highlighting (Highlight Data).",
+      "Name": "UI_DialogHighlightData",
+      "Loc": 127
+    },
+    "Modules/Commands/FeatCmd_FinancialModelling.cls": {
+      "Length": 16673,
+      "LastWriteTime": "134280989694428106",
+      "Dependencies": [
+        "ICommand",
+        "IBatchProcessor",
+        "ActionContext",
+        "ScopedRequest",
+        "Infra_Error",
+        "Infra_Undo",
+        "Infra_Progress",
+        "Infra_Interaction",
+        "Infra_CommandSupport",
+        "Infra_BatchProcessor"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Auto-formatter applying the industry standard financial modeling coloring scheme to cells.",
+      "Name": "FeatCmd_FinancialModelling",
+      "Loc": 407
+    },
+    "Modules/Infrastructure/Infra_ConfigModel.cls": {
+      "Length": 7040,
+      "LastWriteTime": "134288213574232565",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Typed data model for the application configuration.",
+      "Name": "Infra_ConfigModel",
+      "Loc": 248
+    },
+    "Modules/Libraries/Lib_ValueConversionFunction.bas": {
+      "Length": 6246,
+      "LastWriteTime": "134288435513114370",
+      "Tests": [],
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Pure helper functions for variant types, cell value parsing, and type conversions.",
+      "Name": "Lib_ValueConversionFunction",
+      "Loc": 195
+    },
+    "Modules/Infrastructure/Infra_Hotkeys.bas": {
+      "Length": 4944,
+      "LastWriteTime": "134288431294209371",
+      "Tests": [],
+      "Dependencies": [
+        "Infra_Config",
+        "Infra_Error",
+        "Lib_UdfRegistry"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Central registry for all keyboard shortcuts, now loaded from config.json.",
+      "Name": "Infra_Hotkeys",
+      "Loc": 172
+    },
+    "Modules/Commands/FeatCmd_Duplicate.cls": {
+      "Length": 3415,
+      "LastWriteTime": "134270454764000754",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Duplicates the current workbook as a macro-free .xlsx file and lets the user choose where to save it.",
+      "Name": "FeatCmd_Duplicate",
+      "Loc": 101
+    },
+    "Modules/Libraries/Lib_XFilterFunction.bas": {
+      "Length": 4110,
+      "LastWriteTime": "134288435735593210",
+      "Tests": [],
+      "Dependencies": "Lib_ValueConversionFunction",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "UDF for advanced set filtering (Intersection, Difference) between ranges.",
+      "Name": "Lib_XFilterFunction",
+      "Loc": 117
+    },
+    "Modules/Tests/Test_Feat_ModifyData.bas": {
+      "Length": 13455,
+      "LastWriteTime": "134274073938293234",
+      "Tests": [
+        "Test_ModifyData_Casing",
+        "Test_ModifyData_DateStandardization",
+        "Test_ModifyData_Undo",
+        "Test_ModifyData_MixedFormats",
+        "Test_ModifyData_MixedFormats_DateStandardization",
+        "Test_ModifyData_BulkFormattingOverride"
+      ],
+      "Dependencies": [
+        "Test_Runner",
+        "AppContainer",
+        "Infra_Error",
+        "Infra_Undo",
+        "FeatCmd_ModifyData",
+        "ModifyDataRequest"
+      ],
+      "TestDependencies": {
+        "Test_ModifyData_BulkFormattingOverride": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_ModifyData",
+          "ModifyDataRequest",
+          "ActionContext",
+          "Test_Runner",
+          "Infra_Config"
+        ],
+        "Test_ModifyData_DateStandardization": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_ModifyData",
+          "ModifyDataRequest",
+          "ActionContext",
+          "Test_Runner",
+          "Infra_Config"
+        ],
+        "Test_ModifyData_Casing": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_ModifyData",
+          "ModifyDataRequest",
+          "ActionContext",
+          "Test_Runner"
+        ],
+        "Test_ModifyData_Undo": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "ICommandContext",
+          "FeatCmd_ModifyData",
+          "ActionContext",
+          "ICommand",
+          "ModifyDataRequest",
+          "Infra_Undo",
+          "Test_Runner"
+        ],
+        "Test_ModifyData_MixedFormats_DateStandardization": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_ModifyData",
+          "ModifyDataRequest",
+          "ActionContext",
+          "Test_Runner",
+          "Infra_Config"
+        ],
+        "Test_ModifyData_MixedFormats": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_ModifyData",
+          "ModifyDataRequest",
+          "ActionContext",
+          "Test_Runner"
+        ]
+      },
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Integration tests for data modification (casing, dates) features.",
+      "Name": "Test_Feat_ModifyData",
+      "Loc": 364
+    },
+    "Modules/Commands/FeatCmd_PasteFormat.cls": {
+      "Length": 4555,
+      "LastWriteTime": "134270454764397471",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Pastes cell formatting only. Requires user to have copied something first.",
+      "Name": "FeatCmd_PasteFormat",
+      "Loc": 132
+    },
+    "Modules/Tests/Test_Runner.bas": {
+      "Length": 10310,
+      "LastWriteTime": "134274916244184199",
+      "Tests": [
+        "Test_Infrastructure_Basics",
+        "Test_ConfigProvidesTypedHotkeys",
+        "Test_TranslateHotkeyHandlesModifiers"
+      ],
+      "Dependencies": [
+        "Infra_Error",
+        "Infra_Config",
+        "Infra_Hotkeys",
+        "Test_Manifest"
+      ],
+      "TestDependencies": {
+        "Test_ConfigProvidesTypedHotkeys": [
+          "Infra_Error",
+          "Infra_Config"
+        ],
+        "Test_TranslateHotkeyHandlesModifiers": [
+          "Infra_Error",
+          "Infra_Hotkeys",
+          "FeatCmd_DELETE"
+        ],
+        "Test_Infrastructure_Basics": [
+          "Infra_Error",
+          "Infra_Config"
+        ]
+      },
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Lightweight unit testing framework with structured result export for automated verification.",
+      "Name": "Test_Runner",
+      "Loc": 336
+    },
+    "Modules/UI/UI_Factory.cls": {
+      "Length": 5925,
+      "LastWriteTime": "134288430715181969",
+      "Dependencies": [
+        "ActionContext",
+        "CleanDataRequest",
+        "ModifyDataRequest",
+        "HighlightDataRequest",
+        "ExportRequest",
+        "ScopedRequest",
+        "Enums",
+        "UI_DialogShared",
+        "UI_DialogCleanData",
+        "UI_DialogModifyData",
+        "UI_DialogHighlightData",
+        "UI_DialogExport",
+        "UI_DialogSheet",
+        "UI_DialogWrap"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "UI",
+      "Description": "Centralized facade for creating and displaying standardized user prompts. Delegates to specialized dialog modules.",
+      "Name": "UI_Factory",
+      "Loc": 164
+    },
+    "Modules/Infrastructure/Infra_AppStateGuard.cls": {
+      "Length": 6140,
+      "LastWriteTime": "134284489777688177",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "RAII-style wrapper for Excel's global application state.",
+      "Name": "Infra_AppStateGuard",
+      "Loc": 177
+    },
+    "Modules/Core/CleanDataRequest.cls": {
+      "Length": 1964,
+      "LastWriteTime": "134270453265983209",
+      "Dependencies": [
+        "ActionContext",
+        "TargetScope"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Typed request describing the target scope, action context, and data cleaning options.",
+      "Name": "CleanDataRequest",
+      "Loc": 67
+    },
+    "Modules/Infrastructure/Infra_AppState.bas": {
+      "Length": 6298,
+      "LastWriteTime": "134270454764887344",
+      "Tests": [],
+      "Dependencies": [
+        "Infra_Config",
+        "ActionContext",
+        "Infra_Error"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Shared helpers: consistent error dialogs, selection guards, Desktop path retrieval, and file system utilities.",
+      "Name": "Infra_AppState",
+      "Loc": 190
     },
     "Modules/Infrastructure/Infra_FilterAppState.cls": {
       "Length": 2326,
@@ -261,201 +1245,100 @@
       "Name": "Infra_FilterAppState",
       "Loc": 72
     },
-    "Modules/UI/UI_DialogWrap.bas": {
-      "Length": 3897,
-      "LastWriteTime": "134274068575515114",
-      "Tests": [],
-      "Dependencies": [
-        "Infra_Error",
-        "Infra_Interaction",
-        "ActionContext",
-        "UI_DialogShared",
-        "Enums"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "UI",
-      "Description": "Prompt dialogs and cell selection inputs for the formula wrapping feature.",
-      "Name": "UI_DialogWrap",
-      "Loc": 97
-    },
-    "Modules/Infrastructure/Infra_HotkeyDefinition.cls": {
-      "Length": 540,
-      "LastWriteTime": "134188138472103116",
+    "Modules/Core/IConfig.cls": {
+      "Length": 655,
+      "LastWriteTime": "134270452534280956",
       "Dependencies": null,
       "TestDependencies": {},
       "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Typed hotkey definition loaded from config.json.",
-      "Name": "Infra_HotkeyDefinition",
-      "Loc": 21
+      "Category": "Core",
+      "Description": "Interface for accessing application configuration.",
+      "Name": "IConfig",
+      "Loc": 29
     },
-    "Modules/Libraries/Lib_HelpManifest.bas": {
-      "Length": 7859,
-      "LastWriteTime": "134287418636489152",
-      "Tests": [],
-      "Dependencies": "Infra_Error",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Generated help manifest containing ribbon feature descriptions for dynamic help display.",
-      "Name": "Lib_HelpManifest",
-      "Loc": 193
-    },
-    "Modules/Commands/FeatCmd_ApplyDefaultFormat.cls": {
-      "Length": 1749,
-      "LastWriteTime": "134284159974645606",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Applies the default number format to the selected range instantly.",
-      "Name": "FeatCmd_ApplyDefaultFormat",
-      "Loc": 51
-    },
-    "Modules/UI/UI_HelpCenter.frm": {
-      "Length": 13330,
-      "LastWriteTime": "134274073158412700",
+    "Modules/Commands/FeatCmd_ShowHelpCenter.cls": {
+      "Length": 1221,
+      "LastWriteTime": "134249292246159569",
       "Dependencies": [
+        "ICommand",
+        "ICommandContext",
         "Infra_Hotkeys",
-        "Lib_UdfRegistry",
-        "Infra_Config",
         "Infra_Error"
       ],
       "TestDependencies": {},
       "LintPassed": true,
-      "Category": "UI",
-      "Description": "Custom scrollable Help Center dialog displaying Beaver features, hotkeys, and diagnostics.",
-      "Name": "UI_HelpCenter",
-      "Loc": 414
-    },
-    "Modules/Core/ExcelContextProvider.cls": {
-      "Length": 2672,
-      "LastWriteTime": "134274915724112867",
-      "Dependencies": "ActionContext",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Captures and evaluates the current Excel workbook, sheet, window, and selection context.",
-      "Name": "ExcelContextProvider",
-      "Loc": 90
-    },
-    "Modules/Commands/FeatCmd_HelloWorld.cls": {
-      "Length": 2199,
-      "LastWriteTime": "134286134569814600",
-      "Dependencies": [
-        "ICommand",
-        "ICommandContext",
-        "Infra_Error",
-        "Infra_CommandSupport",
-        "Infra_Undo"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
       "Category": "Feature",
-      "Description": "Puts Hello World in the active cell of the active worksheet.",
-      "Name": "FeatCmd_HelloWorld",
-      "Loc": 69
+      "Description": "Displays the Beaver Help Center dialog containing hotkey shortcuts and UDF details (e.g. XFilter).",
+      "Name": "FeatCmd_ShowHelpCenter",
+      "Loc": 40
     },
-    "Modules/Core/ICommand.cls": {
-      "Length": 590,
-      "LastWriteTime": "134274915872261786",
+    "Modules/Core/CommandValidationResult.cls": {
+      "Length": 706,
+      "LastWriteTime": "134274915511865621",
       "Dependencies": null,
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "Core",
-      "Description": "Standard command pattern interface for all features.",
-      "Name": "ICommand",
-      "Loc": 23
+      "Description": "Captures whether a command can execute, and the user-facing feedback to show when it cannot.",
+      "Name": "CommandValidationResult",
+      "Loc": 27
     },
-    "Modules/Core/ICommandContext.cls": {
-      "Length": 677,
-      "LastWriteTime": "134274915918611490",
+    "Modules/Core/CommandExecutionPolicy.cls": {
+      "Length": 808,
+      "LastWriteTime": "134274915382211607",
       "Dependencies": null,
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "Core",
-      "Description": "Provides runtime context to commands (e.g., Ribbon state, arguments).",
-      "Name": "ICommandContext",
-      "Loc": 29
+      "Description": "Describes how the command invoker should configure Excel application state for a command.",
+      "Name": "CommandExecutionPolicy",
+      "Loc": 30
     },
-    "Modules/Infrastructure/Infra_Error.cls": {
-      "Length": 13923,
-      "LastWriteTime": "134274072066764766",
-      "Dependencies": [
-        "Infra_Config",
-        "Infra_Diagnostics",
-        "Infra_OperationContext"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Centralized error logging and breadcrumb tracking optimized for AI-assisted development.",
-      "Name": "Infra_Error",
-      "Loc": 401
-    },
-    "Modules/Core/Enums.bas": {
-      "Length": 827,
-      "LastWriteTime": "134288213807919554",
-      "Tests": [],
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Centralized shared enumerations for scopes, modes, and command options.",
-      "Name": "Enums",
-      "Loc": 34
-    },
-    "Modules/UI/UI_DialogSheet.bas": {
-      "Length": 3522,
-      "LastWriteTime": "134274068450055056",
+    "Modules/UI/UI_DialogExport.bas": {
+      "Length": 8946,
+      "LastWriteTime": "134274068384344144",
       "Tests": [],
       "Dependencies": [
         "Infra_Error",
         "Infra_Interaction",
+        "Infra_Config",
+        "Infra_AppState",
         "ActionContext",
-        "UI_DialogShared",
-        "Enums"
+        "ExportRequest",
+        "UI_DialogShared"
       ],
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "UI",
-      "Description": "Prompt dialogs for worksheet naming and insertion placement in workbook.",
-      "Name": "UI_DialogSheet",
-      "Loc": 86
+      "Description": "Dialog options and output file selection prompts for exporting range data (Image or PDF).",
+      "Name": "UI_DialogExport",
+      "Loc": 225
     },
-    "Modules/Commands/FeatCmd_CreateSheet.cls": {
-      "Length": 1964,
-      "LastWriteTime": "134270454763968041",
+    "Modules/Commands/FeatCmd_ApplyCustomNumberFormat.cls": {
+      "Length": 3032,
+      "LastWriteTime": "134284160011425219",
       "Dependencies": null,
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "Feature",
-      "Description": "Creates a new worksheet with a user-supplied name and explicit placement.",
-      "Name": "FeatCmd_CreateSheet",
-      "Loc": 63
+      "Description": "Prompts for a custom number format code and applies it to the selected range.",
+      "Name": "FeatCmd_ApplyCustomNumberFormat",
+      "Loc": 92
     },
-    "Modules/Core/CommandInvoker.cls": {
-      "Length": 3664,
-      "LastWriteTime": "134288213200127002",
-      "Dependencies": null,
+    "Modules/Infrastructure/Infra_Progress.bas": {
+      "Length": 5204,
+      "LastWriteTime": "134241544495761472",
+      "Tests": [],
+      "Dependencies": [
+        "Infra_Error",
+        "Infra_ProgressState"
+      ],
       "TestDependencies": {},
       "LintPassed": true,
-      "Category": "Core",
-      "Description": "Centralized pipeline for executing commands. Handles guards and errors.",
-      "Name": "CommandInvoker",
-      "Loc": 124
-    },
-    "Modules/Commands/FeatCmd_FormatRange.cls": {
-      "Length": 7039,
-      "LastWriteTime": "134270454764140137",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Bulk formatting tools for tables, custom numbering, and specialized pasting.",
-      "Name": "FeatCmd_FormatRange",
-      "Loc": 206
+      "Category": "Infrastructure",
+      "Description": "Centralized progress reporting and UI responsiveness management.",
+      "Name": "Infra_Progress",
+      "Loc": 170
     },
     "Modules/UI/UI_DialogModifyData.bas": {
       "Length": 3894,
@@ -475,16 +1358,557 @@
       "Name": "UI_DialogModifyData",
       "Loc": 110
     },
-    "Modules/UI/UI_OptionPicker.frm": {
-      "Length": 21704,
-      "LastWriteTime": "134270428052579050",
+    "Modules/Commands/FeatCmd_ApplyDefaultFormat.cls": {
+      "Length": 1749,
+      "LastWriteTime": "134284159974645606",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Applies the default number format to the selected range instantly.",
+      "Name": "FeatCmd_ApplyDefaultFormat",
+      "Loc": 51
+    },
+    "Modules/Commands/FeatCmd_BreakExternalLinks.cls": {
+      "Length": 18033,
+      "LastWriteTime": "134270454763935273",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Detects and breaks external Excel links, connections, and external named ranges.",
+      "Name": "FeatCmd_BreakExternalLinks",
+      "Loc": 465
+    },
+    "Modules/Commands/FeatCmd_Backspace.cls": {
+      "Length": 1429,
+      "LastWriteTime": "134270454763913602",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Custom handlers for Backspace with protection awareness.",
+      "Name": "FeatCmd_Backspace",
+      "Loc": 45
+    },
+    "Modules/Commands/FeatCmd_TableOfContents.cls": {
+      "Length": 10482,
+      "LastWriteTime": "134270454764493142",
+      "Dependencies": [
+        "ICommand",
+        "ICommandContext",
+        "Infra_Error",
+        "Infra_CommandSupport",
+        "Infra_Config",
+        "Infra_Interaction"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Generates a hyperlinked Table of Contents sheet in the active workbook.",
+      "Name": "FeatCmd_TableOfContents",
+      "Loc": 278
+    },
+    "Modules/Core/ExportRequest.cls": {
+      "Length": 588,
+      "LastWriteTime": "134270453315237094",
+      "Dependencies": "ActionContext",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Typed request describing what range to export and which export mode/options to use.",
+      "Name": "ExportRequest",
+      "Loc": 22
+    },
+    "Modules/Infrastructure/Infra_Cache.cls": {
+      "Length": 1579,
+      "LastWriteTime": "134265814261771697",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Transient shared in-memory cache for commands and evaluations.",
+      "Name": "Infra_Cache",
+      "Loc": 67
+    },
+    "Modules/Commands/FeatCmd_Delete.cls": {
+      "Length": 2895,
+      "LastWriteTime": "134290825389116754",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Custom handlers for Delete key with protection awareness.",
+      "Name": "FeatCmd_Delete",
+      "Loc": 91
+    },
+    "Modules/Tests/Test_Manifest.bas": {
+      "Length": 12962,
+      "LastWriteTime": "134290966214513408",
       "Dependencies": "Infra_Error",
       "TestDependencies": {},
       "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Generated test manifest that orchestrates all Test_* procedures.",
+      "Name": "Test_Manifest",
+      "Loc": 114
+    },
+    "Modules/Infrastructure/Infra_ValueConversion.bas": {
+      "Length": 21061,
+      "LastWriteTime": "134291020341407591",
+      "Tests": [],
+      "Dependencies": [
+        "Infra_Error",
+        "Lib_ValueConversionFunction"
+      ],
+      "TestDependencies": {},
+      "Category": "Infrastructure",
+      "Description": "Shared helpers for converting selections, formulas, and spill ranges to static values.",
+      "Name": "Infra_ValueConversion",
+      "Loc": 581
+    },
+    "Modules/Core/ICellTransformer.cls": {
+      "Length": 630,
+      "LastWriteTime": "134265807149801968",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Interface for a cell value transformer used by the unified batch processor engine.",
+      "Name": "ICellTransformer",
+      "Loc": 23
+    },
+    "Modules/Infrastructure/Infra_Error.cls": {
+      "Length": 13923,
+      "LastWriteTime": "134274072066764766",
+      "Dependencies": [
+        "Infra_Config",
+        "Infra_Diagnostics",
+        "Infra_OperationContext"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Centralized error logging and breadcrumb tracking optimized for AI-assisted development.",
+      "Name": "Infra_Error",
+      "Loc": 401
+    },
+    "Modules/Libraries/Lib_HelpManifest.bas": {
+      "Length": 7859,
+      "LastWriteTime": "134287418636489152",
+      "Tests": [],
+      "Dependencies": "Infra_Error",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Generated help manifest containing ribbon feature descriptions for dynamic help display.",
+      "Name": "Lib_HelpManifest",
+      "Loc": 193
+    },
+    "Modules/Infrastructure/Infra_OperationContext.cls": {
+      "Length": 1168,
+      "LastWriteTime": "134241538681197675",
+      "Dependencies": [
+        "Infra_Diagnostics",
+        "Infra_Error"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "RAII operation scope with diagnostics and breadcrumb cleanup.",
+      "Name": "Infra_OperationContext",
+      "Loc": 40
+    },
+    "Modules/Core/IBatchProcessor.cls": {
+      "Length": 582,
+      "LastWriteTime": "134259233834022052",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Interface for custom processing logic executed by Infra_BatchProcessor.",
+      "Name": "IBatchProcessor",
+      "Loc": 22
+    },
+    "Modules/Infrastructure/AppContainer.cls": {
+      "Length": 4889,
+      "LastWriteTime": "134290973375812999",
+      "Dependencies": [
+        "IConfig",
+        "Infra_Error",
+        "ExcelContextProvider",
+        "BasicCommandContext",
+        "Infra_CommandRegistry",
+        "Infra_Bootstrap"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Central Dependency Injection container / Service Locator. Uses PredeclaredId = True for global singleton access.",
+      "Name": "AppContainer",
+      "Loc": 132
+    },
+    "Modules/Core/ModifyDataRequest.cls": {
+      "Length": 788,
+      "LastWriteTime": "134270453428934921",
+      "Dependencies": "ActionContext",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Typed request describing the target selection, action context, and data modification options.",
+      "Name": "ModifyDataRequest",
+      "Loc": 30
+    },
+    "Modules/Commands/FeatCmd_FormatRange.cls": {
+      "Length": 7039,
+      "LastWriteTime": "134270454764140137",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Bulk formatting tools for tables, custom numbering, and specialized pasting.",
+      "Name": "FeatCmd_FormatRange",
+      "Loc": 206
+    },
+    "features.json": {
+      "Length": 28587,
+      "LastWriteTime": "134287418404178899",
+      "Dependencies": [],
+      "TestDependencies": {},
+      "Category": "Unknown",
+      "Description": "",
+      "Name": "features",
+      "Loc": 0
+    },
+    "Modules/Core/CommandInvoker.cls": {
+      "Length": 3664,
+      "LastWriteTime": "134288213200127002",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Core",
+      "Description": "Centralized pipeline for executing commands. Handles guards and errors.",
+      "Name": "CommandInvoker",
+      "Loc": 124
+    },
+    "Modules/Tests/Test_Feat_CreateNamedRanges.bas": {
+      "Length": 18186,
+      "LastWriteTime": "134285313961936712",
+      "Tests": [
+        "Test_CreateNamedRanges_Sanitization",
+        "Test_CreateNamedRanges_Execution",
+        "Test_CreateNamedRanges_SmartValidation",
+        "Test_CreateNamedRanges_EmptyValueSkipping",
+        "Test_CreateNamedRanges_FullColumnOptimized",
+        "Test_CreateNamedRanges_ApplyNames"
+      ],
+      "Dependencies": [
+        "Test_Runner",
+        "AppContainer",
+        "Infra_Error",
+        "FeatCmd_CreateNamedRanges"
+      ],
+      "TestDependencies": {
+        "Test_CreateNamedRanges_FullColumnOptimized": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_CreateNamedRanges",
+          "Test_Runner"
+        ],
+        "Test_CreateNamedRanges_EmptyValueSkipping": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_CreateNamedRanges",
+          "Test_Runner"
+        ],
+        "Test_CreateNamedRanges_Sanitization": [
+          "Infra_Error",
+          "FeatCmd_CreateNamedRanges",
+          "Test_Runner"
+        ],
+        "Test_CreateNamedRanges_SmartValidation": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_CreateNamedRanges",
+          "Test_Runner"
+        ],
+        "Test_CreateNamedRanges_Execution": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_CreateNamedRanges",
+          "Test_Runner",
+          "Infra_Undo"
+        ],
+        "Test_CreateNamedRanges_ApplyNames": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "Test_Runner",
+          "FeatCmd_CreateNamedRanges"
+        ]
+      },
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Unit tests for Bulk Named Ranges feature.",
+      "Name": "Test_Feat_CreateNamedRanges",
+      "Loc": 446
+    },
+    "Modules/Infrastructure/Infra_Interaction.bas": {
+      "Length": 12513,
+      "LastWriteTime": "134285316392847495",
+      "Tests": [],
+      "Dependencies": [
+        "Infra_Config",
+        "Infra_Error"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Centralized user interaction helpers for prompts, confirmations, and notifications.",
+      "Name": "Infra_Interaction",
+      "Loc": 422
+    },
+    "Modules/Commands/FeatCmd_StaticSheetWorkbook.cls": {
+      "Length": 5121,
+      "LastWriteTime": "134270454764459566",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Feature",
+      "Description": "Converts formulas (including spills) to static values across active sheet or whole workbook.",
+      "Name": "FeatCmd_StaticSheetWorkbook",
+      "Loc": 146
+    },
+    "Modules/Infrastructure/Infra_CommandRegistry.bas": {
+      "Length": 10400,
+      "LastWriteTime": "134287418636135450",
+      "Tests": [],
+      "Dependencies": "ICommand",
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Generated command registry mapping entry macros and command names to command classes.",
+      "Name": "Infra_CommandRegistry",
+      "Loc": 238
+    },
+    "Modules/Tests/Test_Feat_Workbook.bas": {
+      "Length": 11442,
+      "LastWriteTime": "134274073938353267",
+      "Tests": [
+        "Test_StaticSheetWorkbook_Execution",
+        "Test_CreateSheet_PlacementAndNaming",
+        "Test_TableOfContents_Generation",
+        "Test_Export_Pdf_Backup_And_MultiRange",
+        "Test_CleanWorkbookNames_BrokenAndExternal"
+      ],
+      "Dependencies": [
+        "Test_Runner",
+        "AppContainer",
+        "Infra_Error",
+        "Infra_Undo",
+        "FeatCmd_StaticSheetWorkbook",
+        "FeatCmd_TableOfContents",
+        "FeatCmd_ExportImageOrPdf"
+      ],
+      "TestDependencies": {
+        "Test_Export_Pdf_Backup_And_MultiRange": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "Infra_PageSetupBackup",
+          "Test_Runner"
+        ],
+        "Test_StaticSheetWorkbook_Execution": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_StaticSheetWorkbook",
+          "Test_Runner"
+        ],
+        "Test_CreateSheet_PlacementAndNaming": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "Test_Runner"
+        ],
+        "Test_TableOfContents_Generation": [
+          "Infra_Error",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "ICommandContext",
+          "FeatCmd_TableOfContents",
+          "ActionContext",
+          "ICommand",
+          "Test_Runner"
+        ],
+        "Test_CleanWorkbookNames_BrokenAndExternal": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "Infra_CommandSupport",
+          "Test_Runner"
+        ]
+      },
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Integration tests for workbook duplication, named sheet creation, export, and index reports.",
+      "Name": "Test_Feat_Workbook",
+      "Loc": 309
+    },
+    "Modules/Tests/Test_Feat_CleanData.bas": {
+      "Length": 25108,
+      "LastWriteTime": "134274073938066022",
+      "Tests": [
+        "Test_CleanData_TrimmingAndNumericalFixing",
+        "Test_CleanData_CheckboxOptions",
+        "Test_CleanData_NewEnhancements",
+        "Test_CleanData_UserRequestedEnhancements",
+        "Test_CleanData_HygieneOptions",
+        "Test_CleanData_LargeSelectionSafety",
+        "Test_ForceNumber_Execution_And_Undo",
+        "Test_UnmergeFill_Execution_And_Undo",
+        "Test_UnifiedHelpers_And_CleanDataDisjoint",
+        "Test_TryConvertToNumber_Unification"
+      ],
+      "Dependencies": [
+        "Test_Runner",
+        "AppContainer",
+        "Infra_Error",
+        "Infra_Undo",
+        "Lib_ValueConversion",
+        "FeatCmd_CleanData",
+        "CleanDataRequest"
+      ],
+      "TestDependencies": {
+        "Test_CleanData_NewEnhancements": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "CleanDataRequest",
+          "FeatCmd_CleanData",
+          "Test_Runner",
+          "FeatCmd_helloworld"
+        ],
+        "Test_UnmergeFill_Execution_And_Undo": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "ICommand",
+          "FeatCmd_UnmergeFill",
+          "Test_Runner",
+          "UI_Ribbon",
+          "Infra_Undo"
+        ],
+        "Test_CleanData_HygieneOptions": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "FeatCmd_CleanData",
+          "CleanDataRequest",
+          "Test_Runner"
+        ],
+        "Test_ForceNumber_Execution_And_Undo": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "UI_Ribbon",
+          "FeatCmd_ForceNumber",
+          "Test_Runner",
+          "Infra_Undo"
+        ],
+        "Test_CleanData_UserRequestedEnhancements": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "FeatCmd_CleanData",
+          "CleanDataRequest",
+          "Test_Runner",
+          "FeatCmd_helloworld"
+        ],
+        "Test_UnifiedHelpers_And_CleanDataDisjoint": [
+          "Infra_Error",
+          "Test_Runner",
+          "Infra_ValueConversion",
+          "ThisWorkbook",
+          "CleanDataRequest",
+          "FeatCmd_CleanData"
+        ],
+        "Test_CleanData_LargeSelectionSafety": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
+          "ThisWorkbook",
+          "FeatCmd_CleanData",
+          "CleanDataRequest",
+          "AppContainer",
+          "ActionContext",
+          "Test_Runner"
+        ],
+        "Test_CleanData_TrimmingAndNumericalFixing": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "FeatCmd_CleanData",
+          "Test_Runner"
+        ],
+        "Test_CleanData_CheckboxOptions": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "CleanDataRequest",
+          "FeatCmd_CleanData",
+          "Test_Runner",
+          "FeatCmd_helloworld"
+        ],
+        "Test_TryConvertToNumber_Unification": [
+          "Infra_Error",
+          "Infra_ValueConversion",
+          "Test_Runner"
+        ]
+      },
+      "LintPassed": true,
+      "Category": "Library",
+      "Description": "Integration tests for data clean features.",
+      "Name": "Test_Feat_CleanData",
+      "Loc": 656
+    },
+    "Modules/UI/UI_DialogShared.bas": {
+      "Length": 12291,
+      "LastWriteTime": "134285696157689981",
+      "Tests": [],
+      "Dependencies": [
+        "Infra_Error",
+        "Infra_Interaction",
+        "Infra_Config",
+        "ActionContext",
+        "ScopedRequest",
+        "CleanDataRequest",
+        "HighlightDataRequest"
+      ],
+      "TestDependencies": {},
+      "LintPassed": true,
       "Category": "UI",
-      "Description": "Dedicated option-picker form reused by interactive command dialogs.",
-      "Name": "UI_OptionPicker",
-      "Loc": 711
+      "Description": "Shared helper functions and scope-based dialogs for UI prompts.",
+      "Name": "UI_DialogShared",
+      "Loc": 357
+    },
+    "Modules/Infrastructure/Infra_TestResult.cls": {
+      "Length": 552,
+      "LastWriteTime": "134274073937786593",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "LintPassed": true,
+      "Category": "Infrastructure",
+      "Description": "Simple object to hold a single unit test result for Test_Runner.",
+      "Name": "Infra_TestResult",
+      "Loc": 21
+    },
+    "Modules/Commands/FeatCmd_CleanData.cls": {
+      "Length": 24507,
+      "LastWriteTime": "134291020407596339",
+      "Dependencies": null,
+      "TestDependencies": {},
+      "Category": "Feature",
+      "Description": "Advanced data cleaning tools (Trim, Clean).",
+      "Name": "FeatCmd_CleanData",
+      "Loc": 652
     },
     "Modules/Commands/FeatCmd_CreateNamedRanges.cls": {
       "Length": 26446,
@@ -505,188 +1929,131 @@
       "Name": "FeatCmd_CreateNamedRanges",
       "Loc": 688
     },
-    "Modules/Core/IConfig.cls": {
-      "Length": 655,
-      "LastWriteTime": "134270452534280956",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Interface for accessing application configuration.",
-      "Name": "IConfig",
-      "Loc": 29
-    },
-    "Modules/UI/UI_HelpCenter.frx": {
-      "Length": 2584,
-      "LastWriteTime": "134185099800719051",
-      "Dependencies": [],
-      "TestDependencies": {},
-      "Category": "Unknown",
-      "Description": "",
-      "Name": "UI_HelpCenter",
-      "Loc": 0
-    },
-    "Modules/Commands/FeatCmd_ExportImageOrPdf.cls": {
-      "Length": 15160,
-      "LastWriteTime": "134270454764024428",
-      "Dependencies": "Infra_PageSetupBackup",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Exports selected range as a PNG image or high-quality PDF.",
-      "Name": "FeatCmd_ExportImageOrPdf",
-      "Loc": 463
-    },
-    "Modules/Infrastructure/AppContainer.cls": {
-      "Length": 4593,
-      "LastWriteTime": "134288431235578374",
-      "Dependencies": [
-        "IConfig",
-        "Infra_Error",
-        "ExcelContextProvider",
-        "BasicCommandContext",
-        "Infra_CommandRegistry",
-        "Infra_Bootstrap"
-      ],
+    "Modules/Infrastructure/Infra_Undo.bas": {
+      "Length": 21561,
+      "LastWriteTime": "134288217745385934",
+      "Tests": [],
+      "Dependencies": "Infra_Error",
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "Infrastructure",
-      "Description": "Central Dependency Injection container / Service Locator. Uses PredeclaredId = True for global singleton access.",
-      "Name": "AppContainer",
-      "Loc": 124
+      "Description": "Custom Undo management for macro-driven changes.",
+      "Name": "Infra_Undo",
+      "Loc": 570
     },
-    "Modules/Commands/FeatCmd_StaticSheetWorkbook.cls": {
-      "Length": 5121,
-      "LastWriteTime": "134270454764459566",
-      "Dependencies": null,
+    "Modules/Core/ICommandFilter.cls": {
+      "Length": 722,
+      "LastWriteTime": "134288212757331593",
+      "Dependencies": [
+        "ICommand",
+        "ICommandContext"
+      ],
       "TestDependencies": {},
       "LintPassed": true,
+      "Category": "Core",
+      "Description": "Interface for intercepting command execution (middleware pattern).",
+      "Name": "ICommandFilter",
+      "Loc": 24
+    },
+    "Modules/Commands/FeatCmd_Wrap.cls": {
+      "Length": 25848,
+      "LastWriteTime": "134291020480087846",
+      "Dependencies": [
+        "ICommand",
+        "Infra_CommandSupport",
+        "Infra_Interaction",
+        "Infra_Undo",
+        "Infra_Error"
+      ],
+      "TestDependencies": {},
       "Category": "Feature",
-      "Description": "Converts formulas (including spills) to static values across active sheet or whole workbook.",
-      "Name": "FeatCmd_StaticSheetWorkbook",
-      "Loc": 146
+      "Description": "Wraps the current selection by either applying a typed pattern or reusing a wrapper formula from another cell.",
+      "Name": "FeatCmd_Wrap",
+      "Loc": 753
     },
-    "Modules/Libraries/Lib_XUnpivotFunction.bas": {
-      "Length": 4724,
-      "LastWriteTime": "134288436329399618",
+    "Modules/Infrastructure/Infra_CommandSupport.bas": {
+      "Length": 47636,
+      "LastWriteTime": "134291020189728197",
       "Tests": [],
-      "Dependencies": "Lib_ValueConversionFunction",
+      "Dependencies": [
+        "Infra_AppState",
+        "Infra_Error",
+        "ICommandContext",
+        "ActionContext",
+        "CommandExecutionPolicy",
+        "CommandValidationResult",
+        "Infra_Interaction"
+      ],
       "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "UDF to unpivot wide data into long format, auto-detecting columns by trailing numeric values.",
-      "Name": "Lib_XUnpivotFunction",
-      "Loc": 137
+      "Category": "Infrastructure",
+      "Description": "Shared helpers for command validation, execution policy, and typed command context access.",
+      "Name": "Infra_CommandSupport",
+      "Loc": 1333
     },
-    "Modules/Tests/Test_CommandInfrastructure.bas": {
-      "Length": 6045,
-      "LastWriteTime": "134274073937973045",
+    "Modules/Tests/Test_Feat_BreakLinks.bas": {
+      "Length": 5086,
+      "LastWriteTime": "134274073938006856",
       "Tests": [
-        "Test_CommandRegistryResolvesRibbonEntries",
-        "Test_CommandRegistryResolvesHotkeyEntries",
-        "Test_CommandContextIncludesMetadataAndActionContext",
-        "Test_CommandRegistryCreatesKnownCommands",
-        "Test_DiagnosticsEscapeJson",
-        "Test_DiagnosticsLogsJSON"
+        "Test_BreakExternalLinks_Execution",
+        "Test_BreakExternalLinks_SpillHandling"
       ],
       "Dependencies": [
         "Test_Runner",
-        "Infra_CommandRegistry",
         "AppContainer",
-        "Infra_Error"
+        "Infra_Error",
+        "FeatCmd_BreakExternalLinks"
       ],
       "TestDependencies": {
-        "Test_CommandContextIncludesMetadataAndActionContext": [
+        "Test_BreakExternalLinks_Execution": [
           "Infra_Error",
-          "ICommandContext",
+          "ThisWorkbook",
+          "FeatCmd_BreakExternalLinks",
+          "Test_Runner"
+        ],
+        "Test_BreakExternalLinks_SpillHandling": [
+          "Infra_Error",
+          "Infra_AppStateGuard",
           "AppContainer",
           "Infra_Config",
           "ExcelContextProvider",
-          "UI_Hotkeys",
-          "FeatCmd_FormatRange",
+          "ThisWorkbook",
+          "Infra_ValueConversion",
+          "Test_Runner",
+          "FeatCmd_BreakExternalLinks",
+          "ScopedRequest",
+          "ICommandContext",
           "ActionContext"
-        ],
-        "Test_DiagnosticsEscapeJson": [
-          "Infra_Error",
-          "Infra_Diagnostics"
-        ],
-        "Test_DiagnosticsLogsJSON": [
-          "Infra_Error",
-          "Infra_Diagnostics"
-        ],
-        "Test_CommandRegistryResolvesHotkeyEntries": [
-          "Infra_Error",
-          "Infra_CommandRegistry",
-          "UI_Hotkeys",
-          "FeatCmd_FormatRange",
-          "FeatCmd_Delete"
-        ],
-        "Test_CommandRegistryResolvesRibbonEntries": [
-          "Infra_Error",
-          "Infra_CommandRegistry",
-          "UI_Ribbon",
-          "FeatCmd_ShowHelpCenter"
-        ],
-        "Test_CommandRegistryCreatesKnownCommands": [
-          "Infra_Error",
-          "Infra_CommandRegistry",
-          "FeatCmd_FormatRange",
-          "FeatCmd_ShowHelpCenter"
         ]
       },
       "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Tests for manifest-driven command resolution and typed command context capture.",
-      "Name": "Test_CommandInfrastructure",
-      "Loc": 150
+      "Category": "Library",
+      "Description": "Unit and integration tests for link breaking commands.",
+      "Name": "Test_Feat_BreakLinks",
+      "Loc": 138
     },
-    "Modules/Infrastructure/Infra_ContextTracker.cls": {
-      "Length": 795,
-      "LastWriteTime": "134187266094960603",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "RAII-style tracker for the execution stack (Infra_Error).",
-      "Name": "Infra_ContextTracker",
-      "Loc": 30
-    },
-    "Modules/Commands/FeatCmd_PasteFormat.cls": {
-      "Length": 4555,
-      "LastWriteTime": "134270454764397471",
-      "Dependencies": null,
+    "Modules/Commands/FeatCmd_ModifyData.cls": {
+      "Length": 16530,
+      "LastWriteTime": "134270454764323131",
+      "Dependencies": [
+        "ICommand",
+        "ActionContext",
+        "ModifyDataRequest",
+        "Infra_Error",
+        "Infra_Undo",
+        "Infra_Progress",
+        "Infra_Interaction",
+        "Infra_Config"
+      ],
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "Feature",
-      "Description": "Pastes cell formatting only. Requires user to have copied something first.",
-      "Name": "FeatCmd_PasteFormat",
-      "Loc": 132
+      "Description": "Modification tools for selected ranges (Casing: UPPER/lower/Proper, Date Standardization using custom patterns).",
+      "Name": "FeatCmd_ModifyData",
+      "Loc": 486
     },
-    "Modules/Core/ModifyDataRequest.cls": {
-      "Length": 788,
-      "LastWriteTime": "134270453428934921",
-      "Dependencies": "ActionContext",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Typed request describing the target selection, action context, and data modification options.",
-      "Name": "ModifyDataRequest",
-      "Loc": 30
-    },
-    "Modules/Infrastructure/Infra_TestResult.cls": {
-      "Length": 552,
-      "LastWriteTime": "134274073937786593",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Simple object to hold a single unit test result for Test_Runner.",
-      "Name": "Infra_TestResult",
-      "Loc": 21
-    },
-    "Modules/Core/CleanDataRequest.cls": {
-      "Length": 1964,
-      "LastWriteTime": "134270453265983209",
+    "Modules/Core/HighlightDataRequest.cls": {
+      "Length": 1348,
+      "LastWriteTime": "134285690045351013",
       "Dependencies": [
         "ActionContext",
         "TargetScope"
@@ -694,58 +2061,20 @@
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "Core",
-      "Description": "Typed request describing the target scope, action context, and data cleaning options.",
-      "Name": "CleanDataRequest",
-      "Loc": 67
+      "Description": "Typed request describing the target scope, action context, and data highlighting options.",
+      "Name": "HighlightDataRequest",
+      "Loc": 47
     },
-    "Modules/Core/CommandExecutionPolicy.cls": {
-      "Length": 808,
-      "LastWriteTime": "134274915382211607",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Describes how the command invoker should configure Excel application state for a command.",
-      "Name": "CommandExecutionPolicy",
-      "Loc": 30
-    },
-    "Modules/Commands/FeatCmd_Delete.cls": {
-      "Length": 2895,
-      "LastWriteTime": "134270454763984479",
+    "Modules/Commands/FeatCmd_CreateSheet.cls": {
+      "Length": 1964,
+      "LastWriteTime": "134270454763968041",
       "Dependencies": null,
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "Feature",
-      "Description": "Custom handlers for Delete key with protection awareness.",
-      "Name": "FeatCmd_Delete",
-      "Loc": 91
-    },
-    "Modules/Infrastructure/Infra_Progress.bas": {
-      "Length": 5204,
-      "LastWriteTime": "134241544495761472",
-      "Tests": [],
-      "Dependencies": [
-        "Infra_Error",
-        "Infra_ProgressState"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Centralized progress reporting and UI responsiveness management.",
-      "Name": "Infra_Progress",
-      "Loc": 170
-    },
-    "Modules/Libraries/Lib_JsonConverter.bas": {
-      "Length": 10793,
-      "LastWriteTime": "134182565901641108",
-      "Tests": [],
-      "Dependencies": "Microsoft Scripting Runtime",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Standard JSON parser for VBA. Requires reference to \"Microsoft Scripting Runtime\".",
-      "Name": "Lib_JsonConverter",
-      "Loc": 239
+      "Description": "Creates a new worksheet with a user-supplied name and explicit placement.",
+      "Name": "FeatCmd_CreateSheet",
+      "Loc": 63
     },
     "Modules/Tests/Test_Feat_Editing.bas": {
       "Length": 21421,
@@ -783,17 +2112,17 @@
           "ICommand",
           "Test_Runner"
         ],
-        "Test_Backspace_LargeRange_Undo": [
+        "Test_Delete_Execution_And_Undo": [
           "Infra_Error",
           "ThisWorkbook",
           "AppContainer",
           "Infra_Config",
           "ExcelContextProvider",
-          "ICommandContext",
-          "FeatCmd_Backspace",
-          "ActionContext",
           "ICommand",
+          "FeatCmd_Delete",
+          "ICommandContext",
           "Test_Runner",
+          "CommandValidationResult",
           "Infra_Undo"
         ],
         "Test_FillDown_Features": [
@@ -806,6 +2135,17 @@
           "FeatCmd_FillDown",
           "ActionContext",
           "ICommand",
+          "Test_Runner"
+        ],
+        "Test_FilterByCell_Execution": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "ICommand",
+          "FeatCmd_FilterByCell",
+          "ICommandContext",
           "Test_Runner"
         ],
         "Test_MakePermanent_LegacyArray_And_Undo": [
@@ -822,30 +2162,6 @@
           "ICommand",
           "Infra_Undo"
         ],
-        "Test_FilterByCell_Execution": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "ICommand",
-          "FeatCmd_FilterByCell",
-          "ICommandContext",
-          "Test_Runner"
-        ],
-        "Test_Delete_Execution_And_Undo": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "ICommand",
-          "FeatCmd_Delete",
-          "ICommandContext",
-          "Test_Runner",
-          "CommandValidationResult",
-          "Infra_Undo"
-        ],
         "Test_MakePermanent_SpillHandling_And_Undo": [
           "Infra_Error",
           "ThisWorkbook",
@@ -859,6 +2175,19 @@
           "ActionContext",
           "ICommand",
           "Infra_Undo"
+        ],
+        "Test_Backspace_LargeRange_Undo": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "ICommandContext",
+          "FeatCmd_Backspace",
+          "ActionContext",
+          "ICommand",
+          "Test_Runner",
+          "Infra_Undo"
         ]
       },
       "LintPassed": true,
@@ -867,146 +2196,34 @@
       "Name": "Test_Feat_Editing",
       "Loc": 580
     },
-    "Modules/Infrastructure/Infra_Bootstrap.bas": {
-      "Length": 1980,
-      "LastWriteTime": "134270267750580594",
-      "Tests": [],
+    "Modules/Tests/Test_Feat_Wrap.bas": {
+      "Length": 4054,
+      "LastWriteTime": "134285058011703174",
+      "Tests": [
+        "Test_Wrap_CellAndPatternModes"
+      ],
       "Dependencies": [
+        "Test_Runner",
         "AppContainer",
-        "Infra_Config",
         "Infra_Error",
-        "Infra_Hotkeys",
-        "ExcelContextProvider",
-        "Lib_UdfRegistry"
+        "FeatCmd_Wrap"
       ],
-      "TestDependencies": {},
+      "TestDependencies": {
+        "Test_Wrap_CellAndPatternModes": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "FeatCmd_Wrap",
+          "Test_Runner"
+        ]
+      },
       "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Centralized startup and shutdown workflow for the add-in host.",
-      "Name": "Infra_Bootstrap",
-      "Loc": 78
-    },
-    "features.json": {
-      "Length": 28587,
-      "LastWriteTime": "134287418404178899",
-      "Dependencies": [],
-      "TestDependencies": {},
-      "Category": "Unknown",
-      "Description": "",
-      "Name": "features",
-      "Loc": 0
-    },
-    "Modules/UI/UI_Ribbon.bas": {
-      "Length": 1231,
-      "LastWriteTime": "134288437453183803",
-      "Tests": [],
-      "Dependencies": [
-        "AppContainer",
-        "Infra_Config",
-        "Infra_Error"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "UI",
-      "Description": "Generated Ribbon callbacks for the Beaver Add-in.",
-      "Name": "UI_Ribbon",
-      "Loc": 41
-    },
-    "Modules/Infrastructure/Infra_AppState.bas": {
-      "Length": 6298,
-      "LastWriteTime": "134270454764887344",
-      "Tests": [],
-      "Dependencies": [
-        "Infra_Config",
-        "ActionContext",
-        "Infra_Error"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Shared helpers: consistent error dialogs, selection guards, Desktop path retrieval, and file system utilities.",
-      "Name": "Infra_AppState",
-      "Loc": 190
-    },
-    "Modules/Commands/FeatCmd_FinancialModelling.cls": {
-      "Length": 16673,
-      "LastWriteTime": "134280989694428106",
-      "Dependencies": [
-        "ICommand",
-        "IBatchProcessor",
-        "ActionContext",
-        "ScopedRequest",
-        "Infra_Error",
-        "Infra_Undo",
-        "Infra_Progress",
-        "Infra_Interaction",
-        "Infra_CommandSupport",
-        "Infra_BatchProcessor"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Auto-formatter applying the industry standard financial modeling coloring scheme to cells.",
-      "Name": "FeatCmd_FinancialModelling",
-      "Loc": 407
-    },
-    "Modules/Commands/FeatCmd_ApplyCustomNumberFormat.cls": {
-      "Length": 3032,
-      "LastWriteTime": "134284160011425219",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Prompts for a custom number format code and applies it to the selected range.",
-      "Name": "FeatCmd_ApplyCustomNumberFormat",
-      "Loc": 92
-    },
-    "Modules/UI/UI_DialogCleanData.bas": {
-      "Length": 5941,
-      "LastWriteTime": "134274068093386912",
-      "Tests": [],
-      "Dependencies": [
-        "Infra_Error",
-        "Infra_Interaction",
-        "ActionContext",
-        "CleanDataRequest",
-        "UI_DialogShared"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "UI",
-      "Description": "Option selection dialog for text and formatting cleanup (Clean Data).",
-      "Name": "UI_DialogCleanData",
-      "Loc": 149
-    },
-    "Modules/Commands/FeatCmd_Duplicate.cls": {
-      "Length": 3415,
-      "LastWriteTime": "134270454764000754",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Duplicates the current workbook as a macro-free .xlsx file and lets the user choose where to save it.",
-      "Name": "FeatCmd_Duplicate",
-      "Loc": 101
-    },
-    "Modules/Commands/FeatCmd_TableOfContents.cls": {
-      "Length": 10482,
-      "LastWriteTime": "134270454764493142",
-      "Dependencies": [
-        "ICommand",
-        "ICommandContext",
-        "Infra_Error",
-        "Infra_CommandSupport",
-        "Infra_Config",
-        "Infra_Interaction"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Generates a hyperlinked Table of Contents sheet in the active workbook.",
-      "Name": "FeatCmd_TableOfContents",
-      "Loc": 278
+      "Category": "Library",
+      "Description": "Unit and integration tests for formula wrapping feature.",
+      "Name": "Test_Feat_Wrap",
+      "Loc": 91
     },
     "Modules/Tests/Test_Feat_Formatting.bas": {
       "Length": 14012,
@@ -1032,30 +2249,6 @@
         "FeatCmd_FormatRange"
       ],
       "TestDependencies": {
-        "Test_ApplyDefaultFormat_WholeSheetSafety": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "ICommandContext",
-          "FeatCmd_ApplyDefaultFormat",
-          "ActionContext",
-          "ICommand",
-          "Test_Runner"
-        ],
-        "Test_PasteFormat_Execution": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "ICommandContext",
-          "FeatCmd_PasteFormat",
-          "ActionContext",
-          "ICommand",
-          "Test_Runner"
-        ],
         "Test_FormatRange_Execution": [
           "Infra_Error",
           "ThisWorkbook",
@@ -1113,6 +2306,30 @@
           "ThisWorkbook",
           "FeatCmd_FormatRange",
           "Test_Runner"
+        ],
+        "Test_ApplyDefaultFormat_WholeSheetSafety": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "ICommandContext",
+          "FeatCmd_ApplyDefaultFormat",
+          "ActionContext",
+          "ICommand",
+          "Test_Runner"
+        ],
+        "Test_PasteFormat_Execution": [
+          "Infra_Error",
+          "ThisWorkbook",
+          "AppContainer",
+          "Infra_Config",
+          "ExcelContextProvider",
+          "ICommandContext",
+          "FeatCmd_PasteFormat",
+          "ActionContext",
+          "ICommand",
+          "Test_Runner"
         ]
       },
       "LintPassed": true,
@@ -1121,277 +2338,62 @@
       "Name": "Test_Feat_Formatting",
       "Loc": 411
     },
-    "Modules/UI/UI_Factory.cls": {
-      "Length": 5925,
-      "LastWriteTime": "134288430715181969",
+    "Modules/UI/UI_HelpCenter.frx": {
+      "Length": 2584,
+      "LastWriteTime": "134185099800719051",
+      "Dependencies": [],
+      "TestDependencies": {},
+      "Category": "Unknown",
+      "Description": "",
+      "Name": "UI_HelpCenter",
+      "Loc": 0
+    },
+    "Modules/UI/UI_DialogWrap.bas": {
+      "Length": 3897,
+      "LastWriteTime": "134274068575515114",
+      "Tests": [],
       "Dependencies": [
+        "Infra_Error",
+        "Infra_Interaction",
         "ActionContext",
-        "CleanDataRequest",
-        "ModifyDataRequest",
-        "HighlightDataRequest",
-        "ExportRequest",
-        "ScopedRequest",
-        "Enums",
         "UI_DialogShared",
-        "UI_DialogCleanData",
-        "UI_DialogModifyData",
-        "UI_DialogHighlightData",
-        "UI_DialogExport",
-        "UI_DialogSheet",
-        "UI_DialogWrap"
+        "Enums"
       ],
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "UI",
-      "Description": "Centralized facade for creating and displaying standardized user prompts. Delegates to specialized dialog modules.",
-      "Name": "UI_Factory",
-      "Loc": 164
+      "Description": "Prompt dialogs and cell selection inputs for the formula wrapping feature.",
+      "Name": "UI_DialogWrap",
+      "Loc": 97
     },
-    "Modules/UI/UI_DialogHighlightData.bas": {
-      "Length": 5510,
-      "LastWriteTime": "134287884981642300",
-      "Tests": [],
-      "Dependencies": [
-        "Infra_Error",
-        "Infra_Interaction",
-        "ActionContext",
-        "HighlightDataRequest",
-        "UI_DialogShared"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "UI",
-      "Description": "Option selection dialog for data highlighting (Highlight Data).",
-      "Name": "UI_DialogHighlightData",
-      "Loc": 127
-    },
-    "Modules/Tests/Test_Feat_CreateNamedRanges.bas": {
-      "Length": 18186,
-      "LastWriteTime": "134285313961936712",
-      "Tests": [
-        "Test_CreateNamedRanges_Sanitization",
-        "Test_CreateNamedRanges_Execution",
-        "Test_CreateNamedRanges_SmartValidation",
-        "Test_CreateNamedRanges_EmptyValueSkipping",
-        "Test_CreateNamedRanges_FullColumnOptimized",
-        "Test_CreateNamedRanges_ApplyNames"
-      ],
-      "Dependencies": [
-        "Test_Runner",
-        "AppContainer",
-        "Infra_Error",
-        "FeatCmd_CreateNamedRanges"
-      ],
-      "TestDependencies": {
-        "Test_CreateNamedRanges_EmptyValueSkipping": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_CreateNamedRanges",
-          "Test_Runner"
-        ],
-        "Test_CreateNamedRanges_SmartValidation": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_CreateNamedRanges",
-          "Test_Runner"
-        ],
-        "Test_CreateNamedRanges_FullColumnOptimized": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_CreateNamedRanges",
-          "Test_Runner"
-        ],
-        "Test_CreateNamedRanges_Sanitization": [
-          "Infra_Error",
-          "FeatCmd_CreateNamedRanges",
-          "Test_Runner"
-        ],
-        "Test_CreateNamedRanges_ApplyNames": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "Test_Runner",
-          "FeatCmd_CreateNamedRanges"
-        ],
-        "Test_CreateNamedRanges_Execution": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_CreateNamedRanges",
-          "Test_Runner",
-          "Infra_Undo"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Unit tests for Bulk Named Ranges feature.",
-      "Name": "Test_Feat_CreateNamedRanges",
-      "Loc": 446
-    },
-    "Modules/Libraries/Lib_XFilterFunction.bas": {
-      "Length": 4110,
-      "LastWriteTime": "134288435735593210",
-      "Tests": [],
-      "Dependencies": "Lib_ValueConversionFunction",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "UDF for advanced set filtering (Intersection, Difference) between ranges.",
-      "Name": "Lib_XFilterFunction",
-      "Loc": 117
-    },
-    "Modules/Commands/FeatCmd_HighlightData.cls": {
-      "Length": 25999,
-      "LastWriteTime": "134285701611992195",
-      "Dependencies": [
-        "ICommand",
-        "ActionContext",
-        "HighlightDataRequest",
-        "Infra_Error",
-        "Infra_Undo",
-        "Infra_Progress",
-        "Infra_Interaction"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Advanced data highlighting tools (Inconsistent Formulas, Duplicates).",
-      "Name": "FeatCmd_HighlightData",
-      "Loc": 750
-    },
-    "Modules/Commands/FeatCmd_Backspace.cls": {
-      "Length": 1429,
-      "LastWriteTime": "134270454763913602",
+    "Modules/Core/BasicCommandContext.cls": {
+      "Length": 2143,
+      "LastWriteTime": "134274915325300235",
       "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Custom handlers for Backspace with protection awareness.",
-      "Name": "FeatCmd_Backspace",
-      "Loc": 45
-    },
-    "Modules/Infrastructure/Infra_CommandRegistry.bas": {
-      "Length": 10400,
-      "LastWriteTime": "134287418636135450",
-      "Tests": [],
-      "Dependencies": "ICommand",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Generated command registry mapping entry macros and command names to command classes.",
-      "Name": "Infra_CommandRegistry",
-      "Loc": 238
-    },
-    "Modules/UI/UI_DialogShared.bas": {
-      "Length": 12291,
-      "LastWriteTime": "134285696157689981",
-      "Tests": [],
-      "Dependencies": [
-        "Infra_Error",
-        "Infra_Interaction",
-        "Infra_Config",
-        "ActionContext",
-        "ScopedRequest",
-        "CleanDataRequest",
-        "HighlightDataRequest"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "UI",
-      "Description": "Shared helper functions and scope-based dialogs for UI prompts.",
-      "Name": "UI_DialogShared",
-      "Loc": 357
-    },
-    "Modules/Infrastructure/Infra_ProgressState.cls": {
-      "Length": 567,
-      "LastWriteTime": "134188138472161201",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Mutable progress session state for Infra_Progress.",
-      "Name": "Infra_ProgressState",
-      "Loc": 22
-    },
-    "Modules/Tests/Test_Manifest.bas": {
-      "Length": 12962,
-      "LastWriteTime": "134285690905670087",
-      "Dependencies": "Infra_Error",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Generated test manifest that orchestrates all Test_* procedures.",
-      "Name": "Test_Manifest",
-      "Loc": 114
-    },
-    "Modules/Core/ScopedRequest.cls": {
-      "Length": 752,
-      "LastWriteTime": "134270453450210995",
-      "Dependencies": [
-        "ActionContext",
-        "TargetScope"
-      ],
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "Core",
-      "Description": "Typed request describing the target scope and action context for a scoped command execution.",
-      "Name": "ScopedRequest",
-      "Loc": 29
+      "Description": "Simple implementation of ICommandContext for standard commands.",
+      "Name": "BasicCommandContext",
+      "Loc": 82
     },
-    "Modules/Core/IRequest.cls": {
-      "Length": 544,
-      "LastWriteTime": "134270454764825686",
-      "Dependencies": [
-        "ActionContext",
-        "TargetScope"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Interface for all typed request objects in the command pipeline.",
-      "Name": "IRequest",
-      "Loc": 22
-    },
-    "Modules/Libraries/Lib_UdfRegistry.bas": {
-      "Length": 2851,
-      "LastWriteTime": "134267635158089517",
-      "Tests": [],
-      "Dependencies": "Infra_Error",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Generated registry of User Defined Functions (UDFs) metadata for Beaver Add-in.",
-      "Name": "Lib_UdfRegistry",
-      "Loc": 66
-    },
-    "Modules/Commands/FeatCmd_FillDown.cls": {
-      "Length": 9350,
-      "LastWriteTime": "134285701693720729",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Intelligent fill-down functionality that respects tables and filtered data.",
-      "Name": "FeatCmd_FillDown",
-      "Loc": 254
-    },
-    "Modules/UI/UI_DialogExport.bas": {
-      "Length": 8946,
-      "LastWriteTime": "134274068384344144",
+    "Modules/UI/UI_DialogSheet.bas": {
+      "Length": 3522,
+      "LastWriteTime": "134274068450055056",
       "Tests": [],
       "Dependencies": [
         "Infra_Error",
         "Infra_Interaction",
-        "Infra_Config",
-        "Infra_AppState",
         "ActionContext",
-        "ExportRequest",
-        "UI_DialogShared"
+        "UI_DialogShared",
+        "Enums"
       ],
       "TestDependencies": {},
       "LintPassed": true,
       "Category": "UI",
-      "Description": "Dialog options and output file selection prompts for exporting range data (Image or PDF).",
-      "Name": "UI_DialogExport",
-      "Loc": 225
+      "Description": "Prompt dialogs for worksheet naming and insertion placement in workbook.",
+      "Name": "UI_DialogSheet",
+      "Loc": 86
     },
     "Modules/UI/UI_OptionPicker.frx": {
       "Length": 3096,
@@ -1413,1014 +2415,9 @@
       "Description": "Typed snapshot of the active Excel workbook, sheet, and selection state for a macro invocation.",
       "Name": "ActionContext",
       "Loc": 25
-    },
-    "Modules/Tests/Test_Feat_ModifyData.bas": {
-      "Length": 13455,
-      "LastWriteTime": "134274073938293234",
-      "Tests": [
-        "Test_ModifyData_Casing",
-        "Test_ModifyData_DateStandardization",
-        "Test_ModifyData_Undo",
-        "Test_ModifyData_MixedFormats",
-        "Test_ModifyData_MixedFormats_DateStandardization",
-        "Test_ModifyData_BulkFormattingOverride"
-      ],
-      "Dependencies": [
-        "Test_Runner",
-        "AppContainer",
-        "Infra_Error",
-        "Infra_Undo",
-        "FeatCmd_ModifyData",
-        "ModifyDataRequest"
-      ],
-      "TestDependencies": {
-        "Test_ModifyData_MixedFormats": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_ModifyData",
-          "ModifyDataRequest",
-          "ActionContext",
-          "Test_Runner"
-        ],
-        "Test_ModifyData_BulkFormattingOverride": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_ModifyData",
-          "ModifyDataRequest",
-          "ActionContext",
-          "Test_Runner",
-          "Infra_Config"
-        ],
-        "Test_ModifyData_Undo": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "ICommandContext",
-          "FeatCmd_ModifyData",
-          "ActionContext",
-          "ICommand",
-          "ModifyDataRequest",
-          "Infra_Undo",
-          "Test_Runner"
-        ],
-        "Test_ModifyData_Casing": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_ModifyData",
-          "ModifyDataRequest",
-          "ActionContext",
-          "Test_Runner"
-        ],
-        "Test_ModifyData_DateStandardization": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_ModifyData",
-          "ModifyDataRequest",
-          "ActionContext",
-          "Test_Runner",
-          "Infra_Config"
-        ],
-        "Test_ModifyData_MixedFormats_DateStandardization": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_ModifyData",
-          "ModifyDataRequest",
-          "ActionContext",
-          "Test_Runner",
-          "Infra_Config"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Integration tests for data modification (casing, dates) features.",
-      "Name": "Test_Feat_ModifyData",
-      "Loc": 364
-    },
-    "Modules/Commands/FeatCmd_ForceNumber.cls": {
-      "Length": 3076,
-      "LastWriteTime": "134270454764099968",
-      "Dependencies": [
-        "ICommand",
-        "IBatchProcessor",
-        "ICellTransformer",
-        "ActionContext",
-        "Infra_Error",
-        "Infra_Undo",
-        "Infra_Progress",
-        "Infra_Interaction",
-        "Infra_Config"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Forces text-formatted numbers in the selection to become actual numeric values.",
-      "Name": "FeatCmd_ForceNumber",
-      "Loc": 85
-    },
-    "Modules/Infrastructure/Infra_BatchProcessor.cls": {
-      "Length": 4747,
-      "LastWriteTime": "134274086810726658",
-      "Dependencies": [
-        "IBatchProcessor",
-        "ActionContext",
-        "Infra_Progress",
-        "Infra_Undo",
-        "Infra_Error",
-        "Infra_CommandSupport",
-        "Infra_Interaction"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Centralized engine for executing scoped workbook/sheet/range batch operations with unified progress, undo, and state management.",
-      "Name": "Infra_BatchProcessor",
-      "Loc": 136
-    },
-    "Modules/Infrastructure/Infra_CommandSupport.bas": {
-      "Length": 47862,
-      "LastWriteTime": "134288213688968803",
-      "Tests": [],
-      "Dependencies": [
-        "Infra_AppState",
-        "Infra_Error",
-        "ICommandContext",
-        "ActionContext",
-        "CommandExecutionPolicy",
-        "CommandValidationResult",
-        "Infra_Interaction"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Shared helpers for command validation, execution policy, and typed command context access.",
-      "Name": "Infra_CommandSupport",
-      "Loc": 1339
-    },
-    "Modules/Core/ICommandFilter.cls": {
-      "Length": 722,
-      "LastWriteTime": "134288212757331593",
-      "Dependencies": [
-        "ICommand",
-        "ICommandContext"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Interface for intercepting command execution (middleware pattern).",
-      "Name": "ICommandFilter",
-      "Loc": 24
-    },
-    "Modules/Infrastructure/Infra_ConfigModel.cls": {
-      "Length": 7040,
-      "LastWriteTime": "134288213574232565",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Typed data model for the application configuration.",
-      "Name": "Infra_ConfigModel",
-      "Loc": 248
-    },
-    "Modules/Infrastructure/Infra_Interaction.bas": {
-      "Length": 12513,
-      "LastWriteTime": "134285316392847495",
-      "Tests": [],
-      "Dependencies": [
-        "Infra_Config",
-        "Infra_Error"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Centralized user interaction helpers for prompts, confirmations, and notifications.",
-      "Name": "Infra_Interaction",
-      "Loc": 422
-    },
-    "Modules/Core/IBatchProcessor.cls": {
-      "Length": 582,
-      "LastWriteTime": "134259233834022052",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Interface for custom processing logic executed by Infra_BatchProcessor.",
-      "Name": "IBatchProcessor",
-      "Loc": 22
-    },
-    "Modules/Commands/FeatCmd_FillRight.cls": {
-      "Length": 9385,
-      "LastWriteTime": "134285701738480043",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Intelligent fill-right functionality that respects tables and filtered data.",
-      "Name": "FeatCmd_FillRight",
-      "Loc": 254
-    },
-    "Modules/Tests/Test_Runner.bas": {
-      "Length": 10310,
-      "LastWriteTime": "134274916244184199",
-      "Tests": [
-        "Test_Infrastructure_Basics",
-        "Test_ConfigProvidesTypedHotkeys",
-        "Test_TranslateHotkeyHandlesModifiers"
-      ],
-      "Dependencies": [
-        "Infra_Error",
-        "Infra_Config",
-        "Infra_Hotkeys",
-        "Test_Manifest"
-      ],
-      "TestDependencies": {
-        "Test_ConfigProvidesTypedHotkeys": [
-          "Infra_Error",
-          "Infra_Config"
-        ],
-        "Test_Infrastructure_Basics": [
-          "Infra_Error",
-          "Infra_Config"
-        ],
-        "Test_TranslateHotkeyHandlesModifiers": [
-          "Infra_Error",
-          "Infra_Hotkeys",
-          "FeatCmd_DELETE"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Lightweight unit testing framework with structured result export for automated verification.",
-      "Name": "Test_Runner",
-      "Loc": 336
-    },
-    "Modules/UI/UI_Hotkeys.bas": {
-      "Length": 4543,
-      "LastWriteTime": "134284151822618669",
-      "Tests": [],
-      "Dependencies": [
-        "AppContainer",
-        "Infra_Error"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "UI",
-      "Description": "Generated hotkey wrappers that route through the command pipeline.",
-      "Name": "UI_Hotkeys",
-      "Loc": 151
-    },
-    "Modules/Infrastructure/Infra_Undo.bas": {
-      "Length": 21561,
-      "LastWriteTime": "134288217745385934",
-      "Tests": [],
-      "Dependencies": "Infra_Error",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Custom Undo management for macro-driven changes.",
-      "Name": "Infra_Undo",
-      "Loc": 570
-    },
-    "Modules/Commands/FeatCmd_ShowHelpCenter.cls": {
-      "Length": 1221,
-      "LastWriteTime": "134249292246159569",
-      "Dependencies": [
-        "ICommand",
-        "ICommandContext",
-        "Infra_Hotkeys",
-        "Infra_Error"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Displays the Beaver Help Center dialog containing hotkey shortcuts and UDF details (e.g. XFilter).",
-      "Name": "FeatCmd_ShowHelpCenter",
-      "Loc": 40
-    },
-    "Modules/Infrastructure/Infra_Config.cls": {
-      "Length": 15899,
-      "LastWriteTime": "134288213610085719",
-      "Dependencies": [
-        "Lib_JsonConverter",
-        "Infra_ConfigModel",
-        "Infra_HotkeyDefinition",
-        "Infra_Error",
-        "Infra_Diagnostics"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Central registry for all shared constants, now loaded from config.json.",
-      "Name": "Infra_Config",
-      "Loc": 445
-    },
-    "Modules/Tests/Test_Feat_BreakLinks.bas": {
-      "Length": 5086,
-      "LastWriteTime": "134274073938006856",
-      "Tests": [
-        "Test_BreakExternalLinks_Execution",
-        "Test_BreakExternalLinks_SpillHandling"
-      ],
-      "Dependencies": [
-        "Test_Runner",
-        "AppContainer",
-        "Infra_Error",
-        "FeatCmd_BreakExternalLinks"
-      ],
-      "TestDependencies": {
-        "Test_BreakExternalLinks_SpillHandling": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "ThisWorkbook",
-          "Infra_ValueConversion",
-          "Test_Runner",
-          "FeatCmd_BreakExternalLinks",
-          "ScopedRequest",
-          "ICommandContext",
-          "ActionContext"
-        ],
-        "Test_BreakExternalLinks_Execution": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_BreakExternalLinks",
-          "Test_Runner"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Unit and integration tests for link breaking commands.",
-      "Name": "Test_Feat_BreakLinks",
-      "Loc": 138
-    },
-    "ThisWorkbook.cls": {
-      "Length": 1509,
-      "LastWriteTime": "134288450182185399",
-      "Dependencies": [
-        "Infra_Hotkeys",
-        "Infra_Error"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Workbook event bridge for Excel add-in startup and shutdown hooks.",
-      "Name": "ThisWorkbook",
-      "Loc": 52
-    },
-    "Modules/Commands/FeatCmd_ModifyData.cls": {
-      "Length": 16530,
-      "LastWriteTime": "134270454764323131",
-      "Dependencies": [
-        "ICommand",
-        "ActionContext",
-        "ModifyDataRequest",
-        "Infra_Error",
-        "Infra_Undo",
-        "Infra_Progress",
-        "Infra_Interaction",
-        "Infra_Config"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Modification tools for selected ranges (Casing: UPPER/lower/Proper, Date Standardization using custom patterns).",
-      "Name": "FeatCmd_ModifyData",
-      "Loc": 486
-    },
-    "Modules/Core/ICellTransformer.cls": {
-      "Length": 630,
-      "LastWriteTime": "134265807149801968",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Interface for a cell value transformer used by the unified batch processor engine.",
-      "Name": "ICellTransformer",
-      "Loc": 23
-    },
-    "Modules/Infrastructure/Infra_Hotkeys.bas": {
-      "Length": 4944,
-      "LastWriteTime": "134288431294209371",
-      "Tests": [],
-      "Dependencies": [
-        "Infra_Config",
-        "Infra_Error",
-        "Lib_UdfRegistry"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Central registry for all keyboard shortcuts, now loaded from config.json.",
-      "Name": "Infra_Hotkeys",
-      "Loc": 172
-    },
-    "Modules/Tests/Test_Feat_CleanData.bas": {
-      "Length": 25108,
-      "LastWriteTime": "134274073938066022",
-      "Tests": [
-        "Test_CleanData_TrimmingAndNumericalFixing",
-        "Test_CleanData_CheckboxOptions",
-        "Test_CleanData_NewEnhancements",
-        "Test_CleanData_UserRequestedEnhancements",
-        "Test_CleanData_HygieneOptions",
-        "Test_CleanData_LargeSelectionSafety",
-        "Test_ForceNumber_Execution_And_Undo",
-        "Test_UnmergeFill_Execution_And_Undo",
-        "Test_UnifiedHelpers_And_CleanDataDisjoint",
-        "Test_TryConvertToNumber_Unification"
-      ],
-      "Dependencies": [
-        "Test_Runner",
-        "AppContainer",
-        "Infra_Error",
-        "Infra_Undo",
-        "Lib_ValueConversion",
-        "FeatCmd_CleanData",
-        "CleanDataRequest"
-      ],
-      "TestDependencies": {
-        "Test_CleanData_HygieneOptions": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "FeatCmd_CleanData",
-          "CleanDataRequest",
-          "Test_Runner"
-        ],
-        "Test_CleanData_CheckboxOptions": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "CleanDataRequest",
-          "FeatCmd_CleanData",
-          "Test_Runner",
-          "FeatCmd_helloworld"
-        ],
-        "Test_CleanData_TrimmingAndNumericalFixing": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_CleanData",
-          "Test_Runner"
-        ],
-        "Test_ForceNumber_Execution_And_Undo": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "UI_Ribbon",
-          "FeatCmd_ForceNumber",
-          "Test_Runner",
-          "Infra_Undo"
-        ],
-        "Test_CleanData_UserRequestedEnhancements": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "FeatCmd_CleanData",
-          "CleanDataRequest",
-          "Test_Runner",
-          "FeatCmd_helloworld"
-        ],
-        "Test_UnifiedHelpers_And_CleanDataDisjoint": [
-          "Infra_Error",
-          "Test_Runner",
-          "Infra_ValueConversion",
-          "ThisWorkbook",
-          "CleanDataRequest",
-          "FeatCmd_CleanData"
-        ],
-        "Test_CleanData_LargeSelectionSafety": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "FeatCmd_CleanData",
-          "CleanDataRequest",
-          "AppContainer",
-          "ActionContext",
-          "Test_Runner"
-        ],
-        "Test_CleanData_NewEnhancements": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "CleanDataRequest",
-          "FeatCmd_CleanData",
-          "Test_Runner",
-          "FeatCmd_helloworld"
-        ],
-        "Test_UnmergeFill_Execution_And_Undo": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "ICommand",
-          "FeatCmd_UnmergeFill",
-          "Test_Runner",
-          "UI_Ribbon",
-          "Infra_Undo"
-        ],
-        "Test_TryConvertToNumber_Unification": [
-          "Infra_Error",
-          "Infra_ValueConversion",
-          "Test_Runner"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Integration tests for data clean features.",
-      "Name": "Test_Feat_CleanData",
-      "Loc": 656
-    },
-    "Modules/Commands/FeatCmd_MakePermanent.cls": {
-      "Length": 1913,
-      "LastWriteTime": "134270454764271336",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Converts selection to values.",
-      "Name": "FeatCmd_MakePermanent",
-      "Loc": 57
-    },
-    "Modules/Core/CommandValidationResult.cls": {
-      "Length": 706,
-      "LastWriteTime": "134274915511865621",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Captures whether a command can execute, and the user-facing feedback to show when it cannot.",
-      "Name": "CommandValidationResult",
-      "Loc": 27
-    },
-    "Modules/Tests/Test_Feat_HighlightData.bas": {
-      "Length": 18028,
-      "LastWriteTime": "134285690749769425",
-      "Tests": [
-        "Test_HighlightData_InconsistentFormulasAndDuplicates",
-        "Test_HighlightData_FormulaLimitSafety",
-        "Test_HighlightData_Errors",
-        "Test_HighlightData_HardcodedValues",
-        "Test_HighlightData_DataValidations",
-        "Test_HighlightData_ConditionalFormatting",
-        "Test_HighlightData_ClearHighlights",
-        "Test_HighlightData_NamedRanges"
-      ],
-      "Dependencies": [
-        "Test_Runner",
-        "AppContainer",
-        "Infra_Error",
-        "Infra_Undo",
-        "FeatCmd_HighlightData",
-        "HighlightDataRequest"
-      ],
-      "TestDependencies": {
-        "Test_HighlightData_HardcodedValues": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "FeatCmd_HighlightData",
-          "Test_Runner",
-          "ThisWorkbook",
-          "HighlightDataRequest",
-          "Infra_Config"
-        ],
-        "Test_HighlightData_FormulaLimitSafety": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "FeatCmd_HighlightData",
-          "Test_Runner"
-        ],
-        "Test_HighlightData_InconsistentFormulasAndDuplicates": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "FeatCmd_HighlightData",
-          "Infra_Config",
-          "Test_Runner"
-        ],
-        "Test_HighlightData_Errors": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "HighlightDataRequest",
-          "FeatCmd_HighlightData",
-          "Test_Runner",
-          "Infra_Config"
-        ],
-        "Test_HighlightData_DataValidations": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "HighlightDataRequest",
-          "FeatCmd_HighlightData",
-          "Test_Runner",
-          "Infra_Config"
-        ],
-        "Test_HighlightData_ConditionalFormatting": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "HighlightDataRequest",
-          "FeatCmd_HighlightData",
-          "Test_Runner",
-          "Infra_Config"
-        ],
-        "Test_HighlightData_NamedRanges": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "HighlightDataRequest",
-          "FeatCmd_HighlightData",
-          "Test_Runner",
-          "Infra_Config"
-        ],
-        "Test_HighlightData_ClearHighlights": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "ThisWorkbook",
-          "Infra_Config",
-          "Test_Runner",
-          "FeatCmd_HighlightData"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Integration tests for data highlighting features.",
-      "Name": "Test_Feat_HighlightData",
-      "Loc": 448
-    },
-    "Modules/Libraries/Lib_ValueConversionFunction.bas": {
-      "Length": 6246,
-      "LastWriteTime": "134288435513114370",
-      "Tests": [],
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Pure helper functions for variant types, cell value parsing, and type conversions.",
-      "Name": "Lib_ValueConversionFunction",
-      "Loc": 195
-    },
-    "Modules/Core/BasicCommandContext.cls": {
-      "Length": 2143,
-      "LastWriteTime": "134274915325300235",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Simple implementation of ICommandContext for standard commands.",
-      "Name": "BasicCommandContext",
-      "Loc": 82
-    },
-    "Modules/Tests/Test_Feat_Wrap.bas": {
-      "Length": 4054,
-      "LastWriteTime": "134285058011703174",
-      "Tests": [
-        "Test_Wrap_CellAndPatternModes"
-      ],
-      "Dependencies": [
-        "Test_Runner",
-        "AppContainer",
-        "Infra_Error",
-        "FeatCmd_Wrap"
-      ],
-      "TestDependencies": {
-        "Test_Wrap_CellAndPatternModes": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "FeatCmd_Wrap",
-          "Test_Runner"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Unit and integration tests for formula wrapping feature.",
-      "Name": "Test_Feat_Wrap",
-      "Loc": 91
-    },
-    "Modules/Tests/Test_Feat_FinancialModelling.bas": {
-      "Length": 3439,
-      "LastWriteTime": "134280994146837320",
-      "Tests": [
-        "Test_FinancialModelling_Execution"
-      ],
-      "Dependencies": [
-        "Test_Runner",
-        "AppContainer",
-        "Infra_Error",
-        "FeatCmd_FinancialModelling"
-      ],
-      "TestDependencies": {
-        "Test_FinancialModelling_Execution": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "ICommandContext",
-          "ActionContext",
-          "ICommand",
-          "Test_Runner"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Unit tests for financial model coloring auto-formatter.",
-      "Name": "Test_Feat_FinancialModelling",
-      "Loc": 94
-    },
-    "Modules/Infrastructure/Infra_Diagnostics.bas": {
-      "Length": 3987,
-      "LastWriteTime": "134274086919771730",
-      "Tests": [],
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Structured diagnostics logging for operations, warnings, and failures.",
-      "Name": "Infra_Diagnostics",
-      "Loc": 118
-    },
-    "Modules/Tests/Test_UI.bas": {
-      "Length": 11254,
-      "LastWriteTime": "134280986512432972",
-      "Tests": [
-        "Test_UI_OptionPicker_DynamicLayout",
-        "Test_UI_OptionPicker_KeyboardNavigation",
-        "Test_UdfRegistry_And_HelpCenter",
-        "Test_CommandResolution_NewMenus"
-      ],
-      "Dependencies": [
-        "Test_Runner",
-        "AppContainer",
-        "Infra_Error",
-        "Infra_Hotkeys",
-        "Lib_UdfRegistry"
-      ],
-      "TestDependencies": {
-        "Test_CommandResolution_NewMenus": [
-          "Infra_Error",
-          "ICommand",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "FeatCmd_ShowHelpCenter",
-          "Test_Runner",
-          "FeatCmd_HighlightData",
-          "FeatCmd_FinancialModelling",
-          "FeatCmd_ExportImageOrPdf",
-          "FeatCmd_UnmergeFill",
-          "FeatCmd_ForceNumber",
-          "FeatCmd_Duplicate"
-        ],
-        "Test_UI_OptionPicker_DynamicLayout": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "UI_OptionPicker",
-          "Test_Runner"
-        ],
-        "Test_UdfRegistry_And_HelpCenter": [
-          "Infra_Error",
-          "Lib_UdfRegistry",
-          "Test_Runner",
-          "Infra_Hotkeys"
-        ],
-        "Test_UI_OptionPicker_KeyboardNavigation": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "UI_OptionPicker",
-          "Test_Runner"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Unit and integration tests for userforms and UI components.",
-      "Name": "Test_UI",
-      "Loc": 224
-    },
-    "Modules/Tests/Test_Feat_Workbook.bas": {
-      "Length": 11442,
-      "LastWriteTime": "134274073938353267",
-      "Tests": [
-        "Test_StaticSheetWorkbook_Execution",
-        "Test_CreateSheet_PlacementAndNaming",
-        "Test_TableOfContents_Generation",
-        "Test_Export_Pdf_Backup_And_MultiRange",
-        "Test_CleanWorkbookNames_BrokenAndExternal"
-      ],
-      "Dependencies": [
-        "Test_Runner",
-        "AppContainer",
-        "Infra_Error",
-        "Infra_Undo",
-        "FeatCmd_StaticSheetWorkbook",
-        "FeatCmd_TableOfContents",
-        "FeatCmd_ExportImageOrPdf"
-      ],
-      "TestDependencies": {
-        "Test_Export_Pdf_Backup_And_MultiRange": [
-          "Infra_Error",
-          "Infra_AppStateGuard",
-          "Infra_PageSetupBackup",
-          "Test_Runner"
-        ],
-        "Test_TableOfContents_Generation": [
-          "Infra_Error",
-          "AppContainer",
-          "Infra_Config",
-          "ExcelContextProvider",
-          "ICommandContext",
-          "FeatCmd_TableOfContents",
-          "ActionContext",
-          "ICommand",
-          "Test_Runner"
-        ],
-        "Test_StaticSheetWorkbook_Execution": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "FeatCmd_StaticSheetWorkbook",
-          "Test_Runner"
-        ],
-        "Test_CreateSheet_PlacementAndNaming": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "Test_Runner"
-        ],
-        "Test_CleanWorkbookNames_BrokenAndExternal": [
-          "Infra_Error",
-          "ThisWorkbook",
-          "Infra_CommandSupport",
-          "Test_Runner"
-        ]
-      },
-      "LintPassed": true,
-      "Category": "Library",
-      "Description": "Integration tests for workbook duplication, named sheet creation, export, and index reports.",
-      "Name": "Test_Feat_Workbook",
-      "Loc": 309
-    },
-    "Modules/Infrastructure/Infra_Cache.cls": {
-      "Length": 1579,
-      "LastWriteTime": "134265814261771697",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Transient shared in-memory cache for commands and evaluations.",
-      "Name": "Infra_Cache",
-      "Loc": 67
-    },
-    "Modules/Core/ExportRequest.cls": {
-      "Length": 588,
-      "LastWriteTime": "134270453315237094",
-      "Dependencies": "ActionContext",
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Typed request describing what range to export and which export mode/options to use.",
-      "Name": "ExportRequest",
-      "Loc": 22
-    },
-    "Modules/Commands/FeatCmd_Wrap.cls": {
-      "Length": 25864,
-      "LastWriteTime": "134288431344082259",
-      "Dependencies": [
-        "ICommand",
-        "Infra_CommandSupport",
-        "Infra_Interaction",
-        "Infra_Undo",
-        "Infra_Error"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Wraps the current selection by either applying a typed pattern or reusing a wrapper formula from another cell.",
-      "Name": "FeatCmd_Wrap",
-      "Loc": 753
-    },
-    "Modules/Infrastructure/Infra_AppStateGuard.cls": {
-      "Length": 6140,
-      "LastWriteTime": "134284489777688177",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "RAII-style wrapper for Excel's global application state.",
-      "Name": "Infra_AppStateGuard",
-      "Loc": 177
-    },
-    "Modules/Commands/FeatCmd_BreakExternalLinks.cls": {
-      "Length": 18033,
-      "LastWriteTime": "134270454763935273",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Detects and breaks external Excel links, connections, and external named ranges.",
-      "Name": "FeatCmd_BreakExternalLinks",
-      "Loc": 465
-    },
-    "Modules/Infrastructure/Infra_ErrorContext.cls": {
-      "Length": 1197,
-      "LastWriteTime": "134188180630716932",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Structured payload describing a single runtime error instance.",
-      "Name": "Infra_ErrorContext",
-      "Loc": 38
-    },
-    "Modules/Commands/FeatCmd_CleanData.cls": {
-      "Length": 24659,
-      "LastWriteTime": "134274087339910324",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Advanced data cleaning tools (Trim, Clean).",
-      "Name": "FeatCmd_CleanData",
-      "Loc": 658
-    },
-    "Modules/Core/HighlightDataRequest.cls": {
-      "Length": 1348,
-      "LastWriteTime": "134285690045351013",
-      "Dependencies": [
-        "ActionContext",
-        "TargetScope"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Core",
-      "Description": "Typed request describing the target scope, action context, and data highlighting options.",
-      "Name": "HighlightDataRequest",
-      "Loc": 47
-    },
-    "Modules/Infrastructure/Infra_OperationContext.cls": {
-      "Length": 1168,
-      "LastWriteTime": "134241538681197675",
-      "Dependencies": [
-        "Infra_Diagnostics",
-        "Infra_Error"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "RAII operation scope with diagnostics and breadcrumb cleanup.",
-      "Name": "Infra_OperationContext",
-      "Loc": 40
-    },
-    "Modules/Commands/FeatCmd_UnmergeFill.cls": {
-      "Length": 5044,
-      "LastWriteTime": "134270454764531960",
-      "Dependencies": [
-        "ICommand",
-        "ActionContext",
-        "Infra_Error",
-        "Infra_Undo",
-        "Infra_Progress",
-        "Infra_Interaction",
-        "Infra_Config"
-      ],
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Unmerges cells and fills the top-left value across the unmerged area.",
-      "Name": "FeatCmd_UnmergeFill",
-      "Loc": 161
-    },
-    "Modules/Commands/FeatCmd_FilterByCell.cls": {
-      "Length": 7563,
-      "LastWriteTime": "134270454764067957",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Feature",
-      "Description": "Quick-filter a range based on the value of the active cell.",
-      "Name": "FeatCmd_FilterByCell",
-      "Loc": 214
-    },
-    "Modules/Infrastructure/Infra_PageSetupBackup.cls": {
-      "Length": 2616,
-      "LastWriteTime": "134259894326762853",
-      "Dependencies": null,
-      "TestDependencies": {},
-      "LintPassed": true,
-      "Category": "Infrastructure",
-      "Description": "Backs up and restores worksheet PageSetup settings and visibility.",
-      "Name": "Infra_PageSetupBackup",
-      "Loc": 80
     }
   },
   "ManifestStructuralHash": "EAFFCA3F034645A215F8204BEECFA12B",
-  "ExcelPid": 11336,
-  "TestsPassed": true
+  "ExcelPid": 17680,
+  "TestsPassed": false
 }

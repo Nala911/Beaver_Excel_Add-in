@@ -1,5 +1,5 @@
 ﻿{
-  "timestamp": "2026-07-18T16:34:20+05:30",
+  "timestamp": "2026-07-21T15:40:26+05:30",
   "status": "success",
   "commandLine": ". (Join-Path $PSScriptRoot \"lib\\Logging.ps1\")\n",
   "buildMode": "incremental",
@@ -7,22 +7,81 @@
     "os": "Microsoft Windows NT 10.0.26200.0",
     "powershellVersion": "7.6.0",
     "excelProcess": {
-      "pid": 0,
+      "pid": 17680,
       "wasAlreadyOpen": false,
-      "reusedSession": false,
+      "reusedSession": true,
       "lockRecovered": false
     }
   },
   "changes": {
-    "hasChanges": false,
-    "changedFiles": [],
+    "hasChanges": true,
+    "changedFiles": [
+      "Modules/Commands/FeatCmd_HighlightData.cls"
+    ],
     "deletedFiles": [],
     "manifestChanged": false,
     "manifestStructureChanged": false
   },
-  "stages": [],
+  "stages": [
+    {
+      "name": "manifest_sync",
+      "status": "success",
+      "durationMs": 7.9,
+      "details": "skipped (manifest unchanged)"
+    },
+    {
+      "name": "command_registry_generation",
+      "status": "success",
+      "durationMs": 6.46,
+      "details": "skipped (manifest unchanged)"
+    },
+    {
+      "name": "ui_entry_generation",
+      "status": "success",
+      "durationMs": 2.93,
+      "details": "skipped (manifest unchanged)"
+    },
+    {
+      "name": "test_manifest_generation",
+      "status": "success",
+      "durationMs": 3.43,
+      "details": "skipped (no test file changes)"
+    },
+    {
+      "name": "validation",
+      "status": "success",
+      "durationMs": 394.62,
+      "details": "ribbon, syntax, lint, and form checks passed"
+    },
+    {
+      "name": "environment_checks",
+      "status": "success",
+      "durationMs": 28.03,
+      "details": "workbook available"
+    },
+    {
+      "name": "workbook_update",
+      "status": "success",
+      "durationMs": 2442.8,
+      "details": "modules imported (save deferred)"
+    },
+    {
+      "name": "ribbon_injection",
+      "status": "success",
+      "durationMs": 3.23,
+      "details": "skipped (ribbon unchanged)"
+    },
+    {
+      "name": "runtime_tests",
+      "status": "success",
+      "durationMs": 2434.13,
+      "details": ""
+    }
+  ],
   "lintResults": {
-    "checkedFiles": [],
+    "checkedFiles": [
+      "Modules/Commands/FeatCmd_HighlightData.cls"
+    ],
     "errors": []
   },
   "compileResults": {
@@ -30,17 +89,17 @@
     "errorDetails": null
   },
   "testResults": {
-    "runTests": false,
-    "filter": null,
+    "runTests": true,
+    "filter": "*Test_CleanData_NewEnhancements*,*Test_Wrap_CellAndPatternModes*,*Test_CleanData_CheckboxOptions*,*Test_TryConvertToNumber_Unification*,*Test_CleanWorkbookNames_BrokenAndExternal*,*Test_ValueConversion_ResolveSpillExpandedRange*,*Test_HighlightData_InconsistentFormulasAndDuplicates*,*Test_HighlightData_NamedRanges*,*Test_HighlightData_ConditionalFormatting*,*Test_HighlightData_FormulaLimitSafety*,*Test_HighlightData_ClearHighlights*,*Test_MakePermanent_LegacyArray_And_Undo*,*Test_HighlightData_Errors*,*Test_CommandResolution_NewMenus*,*Test_CleanData_UserRequestedEnhancements*,*Test_HighlightData_HardcodedValues*,*Test_HighlightData_DataValidations*,*Test_SingleCell_Bugs_Regression*,*Test_MakePermanent_SpillHandling_And_Undo*,*Test_BreakExternalLinks_SpillHandling*,*Test_GetChunkedRanges_And_SpillExpansion*,*Test_CleanData_TrimmingAndNumericalFixing*,*Test_UnifiedHelpers_And_CleanDataDisjoint*,*Test_CleanData_HygieneOptions*,*Test_CleanData_LargeSelectionSafety*,*Test_ProtectedSheet_CommandValidators*",
     "ribbonValidation": {
-      "status": "success",
+      "status": "skipped",
       "error": null
     },
     "unitTests": {
-      "total": 0,
-      "passed": 0,
+      "total": 323,
+      "passed": 323,
       "failed": 0,
-      "durationMs": 0,
+      "durationMs": 1956,
       "failures": []
     },
     "headlessCallbacks": {
@@ -49,5 +108,5 @@
       "failures": []
     }
   },
-  "totalDurationMs": 1560.13
+  "totalDurationMs": 7580.21
 }

@@ -895,9 +895,6 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
     Set dictRanges = CreateObject("Scripting.Dictionary")
     Set dictAddrLists = CreateObject("Scripting.Dictionary")
     
-    Dim isModifyData As Boolean
-    isModifyData = (TypeName(transformer) = "FeatCmd_ModifyData")
-    
     ' Resolve column formats using the cached column formats passed from the parent range
     Dim colFormats() As String
     If isFmtsNull Then
@@ -930,10 +927,7 @@ Private Function ProcessChunkArea(ByVal area As Range, ByVal transformer As ICel
                     oldFormat = colFmtCached
                 Else
                     Dim needsFormat As Boolean
-                    needsFormat = False
-                    If isModifyData Then
-                        If VarType(oldVal) = vbDate Then needsFormat = True
-                    End If
+                    needsFormat = (VarType(oldVal) = vbDate)
                     
                     If needsFormat Then
                         oldFormat = CStr(area.Cells(r, c).NumberFormat)
