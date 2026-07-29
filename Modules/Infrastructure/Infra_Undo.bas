@@ -59,24 +59,9 @@ Public Function SaveState(ByVal Target As Range, ByVal ActionName As String, Opt
     End If
     
     Dim captureRange As Range
-    Set captureRange = Target
-    
-    ' Safety Check: Don't capture massive ranges that would crash Excel.
-    ' If the target range is large, try to restrict it to the sheet's UsedRange.
-    If captureRange.Cells.CountLarge > Infra_Config.MAX_UNDO_CELLS Then
-        Dim usedIntersect As Range
-        On Error Resume Next
-        Set usedIntersect = Application.Intersect(captureRange, captureRange.Worksheet.UsedRange)
-        On Error GoTo ErrHandler
-        
-        If Not usedIntersect Is Nothing Then
-            Set captureRange = usedIntersect
-        Else
-            Debug.Print "BEAVER [UNDO]: Target range is too large to capture safely (" & Target.Cells.CountLarge & " cells) and does not intersect with UsedRange. Skipping undo registration."
-            GoTo CleanExit
-        End If
-    End If
-    
+    Set captureRange = Infra_CommandSupport.GetSafeProcessingRange(Target, Infra_Config.MAX_UNDO_CELLS, False)
+    If captureRange Is Nothing Then GoTo CleanExit
+
     ' Double check size after intersection (if the intersection itself is still too large)
     If captureRange.Cells.CountLarge > Infra_Config.MAX_UNDO_CELLS Then
         Debug.Print "BEAVER [UNDO]: Restrained capture range is still too large to capture safely (" & captureRange.Cells.CountLarge & " cells). Skipping undo registration."

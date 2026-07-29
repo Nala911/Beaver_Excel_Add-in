@@ -42,14 +42,14 @@ Private Sub Class_Initialize()
     CleanTrimSpaces = True
     CleanNonPrintables = True
     CleanInvisibleChars = True
+    CleanStandardizeDashes = True
+    CleanRemoveAccents = True
+    CleanSpecialSymbols = True
     CleanReplaceLineBreaksWithSpace = False
     CleanRemoveLineBreaks = False
     CleanStandardizeLineBreaks = False
     CleanConvertNumbers = False
     CleanBrokenNames = True
-    CleanSpecialSymbols = False
-    CleanStandardizeDashes = False
-    CleanRemoveAccents = False
     CleanComments = False
     CleanValidation = False
     CleanConditionalFormatting = False

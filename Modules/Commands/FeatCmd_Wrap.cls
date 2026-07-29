@@ -45,6 +45,11 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set rng = ctx.SelectionRange
     If rng Is Nothing Then GoTo CleanExit
 
+    Dim safeRng As Range
+    Set safeRng = Infra_CommandSupport.GetSafeProcessingRange(rng, 50000, False)
+    If safeRng Is Nothing Then GoTo CleanExit
+    Set rng = safeRng
+
     If rng.CountLarge > Infra_Config.MAX_WRAP_CELLS Then
         If Not Infra_Interaction.Confirm("You have selected " & Format(rng.CountLarge, "#,##0") & " cells. This may take a moment to process. Continue?") Then GoTo CleanExit
     End If

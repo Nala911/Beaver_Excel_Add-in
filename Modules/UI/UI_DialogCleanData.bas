@@ -60,11 +60,7 @@ Public Function ShowCleanDataDialog(ByVal ctx As ActionContext) As CleanDataRequ
     Dim idx As Variant
     cleanOptionsList = Array( _
         ChrW$(9670) & "  TEXT CLEANING", _
-        "  Trim extra spaces & non-breaking spaces", _
-        "  Remove non-printable characters", _
-        "  Standardize invisible chars (zero-width, BOM, thin spaces)", _
-        "  Standardize dashes (convert – — − to -)", _
-        "  Remove accents (convert diacritics to standard letters)", _
+        "  Standard text cleanup (trim extra spaces, remove non-printable/invisible chars, dashes, accents & symbols)", _
         ChrW$(9670) & "  LINE BREAKS", _
         "  Line breaks: Replace with space", _
         "  Line breaks: Remove entirely", _
@@ -72,7 +68,6 @@ Public Function ShowCleanDataDialog(ByVal ctx As ActionContext) As CleanDataRequ
         ChrW$(9670) & "  HYGIENE & FORMATS", _
         "  Convert numeric text to numbers", _
         "  Delete broken named ranges (#REF!)", _
-        "  Remove special symbols (tabs, bullets, ™, ®, ©)", _
         "  Remove comments & notes", _
         "  Remove data validation rules", _
         "  Remove conditional formatting", _
@@ -82,11 +77,11 @@ Public Function ShowCleanDataDialog(ByVal ctx As ActionContext) As CleanDataRequ
     )
     cleanDefaultsChecked = Array( _
         False, _
-        True, True, True, False, False, _
+        True, _
         False, _
         False, False, False, _
         False, _
-        False, True, False, False, _
+        False, True, False, _
         False, False, False, False, False _
     )
 
@@ -120,23 +115,24 @@ Public Function ShowCleanDataDialog(ByVal ctx As ActionContext) As CleanDataRequ
 
     For Each idx In selectedIndices
         Select Case idx
-            Case 1: request.CleanTrimSpaces = True
-            Case 2: request.CleanNonPrintables = True
-            Case 3: request.CleanInvisibleChars = True
-            Case 4: request.CleanStandardizeDashes = True
-            Case 5: request.CleanRemoveAccents = True
-            Case 7: request.CleanReplaceLineBreaksWithSpace = True
-            Case 8: request.CleanRemoveLineBreaks = True
-            Case 9: request.CleanStandardizeLineBreaks = True
-            Case 11: request.CleanConvertNumbers = True
-            Case 12: request.CleanBrokenNames = True
-            Case 13: request.CleanSpecialSymbols = True
-            Case 14: request.CleanComments = True
-            Case 15: request.CleanValidation = True
-            Case 16: request.CleanConditionalFormatting = True
-            Case 17: request.CleanFormats = True
-            Case 18: request.CleanShapes = True
-            Case 19: request.CleanSheetNames = True
+            Case 1
+                request.CleanTrimSpaces = True
+                request.CleanNonPrintables = True
+                request.CleanInvisibleChars = True
+                request.CleanStandardizeDashes = True
+                request.CleanRemoveAccents = True
+                request.CleanSpecialSymbols = True
+            Case 3: request.CleanReplaceLineBreaksWithSpace = True
+            Case 4: request.CleanRemoveLineBreaks = True
+            Case 5: request.CleanStandardizeLineBreaks = True
+            Case 7: request.CleanConvertNumbers = True
+            Case 8: request.CleanBrokenNames = True
+            Case 9: request.CleanComments = True
+            Case 10: request.CleanValidation = True
+            Case 11: request.CleanConditionalFormatting = True
+            Case 12: request.CleanFormats = True
+            Case 13: request.CleanShapes = True
+            Case 14: request.CleanSheetNames = True
         End Select
     Next idx
     Set ShowCleanDataDialog = request

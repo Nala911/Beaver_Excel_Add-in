@@ -38,6 +38,11 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set targetRange = ctx.SelectionRange
     If targetRange Is Nothing Then GoTo CleanExit
 
+    Dim safeRange As Range
+    Set safeRange = Infra_CommandSupport.GetSafeProcessingRange(targetRange, 50000, True)
+    If safeRange Is Nothing Then GoTo CleanExit
+    Set targetRange = safeRange
+
     If Application.CutCopyMode = False Then
         Infra_Interaction.ShowWarning "Nothing to paste. Please copy a range first."
         GoTo CleanExit

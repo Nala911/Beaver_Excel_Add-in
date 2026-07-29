@@ -35,8 +35,13 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set rng = ctx.SelectionRange
     If rng Is Nothing Then GoTo CleanExit
 
+    Dim safeRange As Range
+    Set safeRange = Infra_CommandSupport.GetSafeProcessingRange(rng, 50000, False)
+    If safeRange Is Nothing Then GoTo CleanExit
+
     Dim expandedRange As Range
-    Set expandedRange = Infra_ValueConversion.ResolveSpillExpandedRange(rng)
+    Set expandedRange = Infra_ValueConversion.ResolveSpillExpandedRange(safeRange)
+    If expandedRange Is Nothing Then GoTo CleanExit
 
     If Not Infra_Undo.SaveStateOrConfirm(expandedRange, "Make Permanent", UndoCaptureFormulaOnly) Then GoTo CleanExit
     Infra_Progress.StartProgress "Converting Selection to Values", 1

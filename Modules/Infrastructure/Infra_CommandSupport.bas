@@ -452,13 +452,30 @@ Public Function GetSafeProcessingRange(ByVal targetRange As Range, ByVal sizeThr
         GoTo CleanExit
     End If
 
-    If targetRange.Cells.CountLarge <= sizeThreshold Then
+    Dim ws As Worksheet
+    Set ws = targetRange.Worksheet
+
+    Dim isFullSheet As Boolean
+    Dim isFullColumn As Boolean
+    Dim isFullRow As Boolean
+    Dim needsClipping As Boolean
+
+    On Error Resume Next
+    If targetRange.Address = ws.Cells.Address Then
+        isFullSheet = True
+    ElseIf targetRange.Rows.Count = ws.Rows.Count Then
+        isFullColumn = True
+    ElseIf targetRange.Columns.Count = ws.Columns.Count Then
+        isFullRow = True
+    End If
+    On Error GoTo ErrHandler
+
+    needsClipping = isFullSheet Or isFullColumn Or isFullRow Or (targetRange.Cells.CountLarge > sizeThreshold)
+
+    If Not needsClipping Then
         Set GetSafeProcessingRange = targetRange
         GoTo CleanExit
     End If
-
-    Dim ws As Worksheet
-    Set ws = targetRange.Worksheet
 
     Dim usedRange As Range
     On Error Resume Next

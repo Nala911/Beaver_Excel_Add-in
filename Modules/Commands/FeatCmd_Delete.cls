@@ -64,8 +64,12 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     
     Select Case selType
         Case "Range"
-            If Not Infra_Undo.SaveStateOrConfirm(ctx.SelectionRange, "Delete") Then GoTo CleanExit
-            ctx.SelectionRange.Clear
+            Dim delRange As Range
+            Set delRange = Infra_CommandSupport.GetSafeProcessingRange(ctx.SelectionRange, 50000, False)
+            If delRange Is Nothing Then GoTo CleanExit
+
+            If Not Infra_Undo.SaveStateOrConfirm(delRange, "Delete") Then GoTo CleanExit
+            delRange.Clear
 
         Case "Picture", "Shape", "DrawingObjects", "OLEObject", "ChartObject"
             selectionRef.Delete

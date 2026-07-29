@@ -40,7 +40,12 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     Set ctx = Infra_CommandSupport.ActionContextFromCommandContext(context)
     If Not Infra_CommandSupport.HasRangeSelectionInContext(ctx) Then GoTo CleanExit
     Set selectionRng = ctx.SelectionRange
+    If selectionRng Is Nothing Then GoTo CleanExit
     Set ws = selectionRng.Worksheet
+
+    Dim safeRng As Range
+    Set safeRng = Infra_CommandSupport.GetSafeProcessingRange(selectionRng, 50000, False)
+    If Not safeRng Is Nothing Then Set selectionRng = safeRng
 
     ' If multiple cells are selected, start filling from the rightmost column of the selection
     If selectionRng.Cells.CountLarge > 1 Then

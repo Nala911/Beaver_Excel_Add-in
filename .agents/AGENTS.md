@@ -4,9 +4,9 @@ VBA Excel Add-in for advanced formatting, cleanup, and reporting.
 
 ---
 
-## 🚀 Mandate & Vision
-- **Fearless Overhauls**: Empowered and expected to perform high-level architectural changes, module refactoring, and codebase modernization. Unify macros, decouple layers, and optimize performance.
-- **High-Level Agency**: Focus on high-level architecture and design system goals; do not let micro-rules block structural improvements.
+## 🚀 Architecture & Mandate
+- **System Architecture**: Consult [`ARCHITECTURE.md`](file:///c:/Users/fazil_uxry2im/Documents/Beaver/Excel%20Add-in/ARCHITECTURE.md) for subsystem maps, sequence diagrams, layer dependency rules (`UI` → `Feature` → `Infra` → `Lib` → `Core`), and entry point mappings before refactoring or adding features.
+- **Fearless Overhauls**: Empowered to perform high-level architectural changes, module refactoring, and codebase modernization without being blocked by micro-rules.
 
 ---
 
@@ -19,10 +19,10 @@ VBA Excel Add-in for advanced formatting, cleanup, and reporting.
 
 ---
 
-## 🛡️ Non-Negotiable Safety & Quality Rules
-1. **Option Explicit**: Required at the start of every module.
-2. **Worksheet Qualification**: Always qualify range calls (`ws.Range`, `ws.Cells`) to avoid active sheet bugs.
-3. **Null-Safe Property Access**: Check if range properties (e.g. `NumberFormat`, `Font.Name`) are `Null` before type conversion.
+## 🛡️ Non-Negotiable Rules
+1. **Option Explicit**: Line 1 of every `.bas`, `.cls`, `.frm` module.
+2. **Worksheet Qualification**: Always qualify range calls (`ws.Range`, `ws.Cells`).
+3. **Null-Safe Property Access**: Check range properties for `Null` before type casting.
 4. **Backward Collection Loops**: Iterate backward (`Step -1`) when deleting collection items.
 5. **Error Logging**: Wrap entry points and public procedures with `Infra_Error` logging.
-6. **Architecture & Prefixes**: Preserve layered architecture (UI, Feature, Infra, Lib, Core) and naming prefixes (`FeatCmd_`, `Infra_`, `UI_`, `Lib_`/`Udf_`, `Test_`).
+6. **Architecture & Prefixes**: Preserve layered architecture and naming prefixes (`FeatCmd_`, `Infra_`, `UI_`, `Lib_`/`Udf_`, `Test_`).

@@ -151,6 +151,63 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_MakePermanent_FullSheet_CtrlA()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_MakePermanent_FullSheet_CtrlA")
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets.Add
+    ws.Name = "Test_Temp_CtrlA"
+
+    ' Setup formulas and values in UsedRange (A1:B3)
+    ws.Range("A1").Value = 100
+    ws.Range("A2").Value = 200
+    ws.Range("A3").Formula2 = "=SUM(A1:A2)"
+    ws.Range("B1").Formula2 = "=SEQUENCE(3, 1)"
+    
+    ws.Calculate
+    Infra_ValueConversion.WaitForCalculation
+
+    ' Simulate Ctrl+A selection (ws.Cells - all 17 billion cells)
+    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    
+    Dim ctx As ICommandContext
+    Set ctx = AppContainer.CreateCommandContext("MakePermanent")
+    
+    Set ctx.ActionContext.WorksheetRef = ws
+    Set ctx.ActionContext.WorkbookRef = ThisWorkbook
+    Set ctx.ActionContext.SelectionRange = ws.Cells
+    ctx.ActionContext.HasRangeSelection = True
+
+    Dim cmd As ICommand
+    Set cmd = AppContainer.ResolveCommand("MakePermanent")
+    
+    ' Execute MakePermanent on full sheet selection - should finish cleanly without freezing
+    cmd.Execute ctx
+
+    ' Verify formulas converted to static values in used range
+    Test_Runner.AssertEqual ws.Range("A3").HasFormula, False, "A3 formula should be converted to static value"
+    Test_Runner.AssertEqual ws.Range("A3").Value2, 300#, "A3 value should be 300"
+    Test_Runner.AssertEqual ws.Range("B1").HasFormula, False, "B1 formula should be converted to static value"
+    Test_Runner.AssertEqual ws.Range("B1").Value2, 1#, "B1 value should be 1"
+
+    ' Cleanup
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    Infra_Error.HandleError "Test_MakePermanent_FullSheet_CtrlA", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_FillDown_Features()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_FillDown_Features")
     On Error GoTo ErrHandler
