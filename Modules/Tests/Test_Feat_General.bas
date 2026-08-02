@@ -557,3 +557,42 @@ ErrHandler:
     Infra_Error.HandleError "Test_MultiArea_Undo_Robustness", Err
     Resume CleanExit
 End Sub
+
+Public Sub Test_AppStateGuard_RAII_Restoration()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_AppStateGuard_RAII_Restoration")
+    On Error GoTo ErrHandler
+
+    Dim origCalc As XlCalculation
+    Dim origScreen As Boolean
+    Dim origEvents As Boolean
+    
+    origCalc = Application.Calculation
+    origScreen = Application.ScreenUpdating
+    origEvents = Application.EnableEvents
+
+    ' Create guard scope
+    If True Then
+        Dim guard As New Infra_AppStateGuard
+        guard.ScreenUpdating = False
+        guard.EnableEvents = False
+        guard.Calculation = xlCalculationManual
+        guard.UpdateState
+        
+        Test_Runner.AssertEqual Application.ScreenUpdating, False, "ScreenUpdating should be False inside guard scope"
+        Test_Runner.AssertEqual Application.EnableEvents, False, "EnableEvents should be False inside guard scope"
+        Test_Runner.AssertEqual Application.Calculation, xlCalculationManual, "Calculation should be Manual inside guard scope"
+        Set guard = Nothing
+    End If
+
+    ' Assert automatic restoration
+    Test_Runner.AssertEqual Application.ScreenUpdating, origScreen, "ScreenUpdating should be restored after guard termination"
+    Test_Runner.AssertEqual Application.EnableEvents, origEvents, "EnableEvents should be restored after guard termination"
+    Test_Runner.AssertEqual Application.Calculation, origCalc, "Calculation should be restored after guard termination"
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "Test_AppStateGuard_RAII_Restoration", Err
+    Resume CleanExit
+End Sub
+

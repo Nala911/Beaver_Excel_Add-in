@@ -190,11 +190,7 @@ Public Sub FormatRangeDirect(ByVal selRange As Range, ByVal ws As Worksheet)
     End With
     Infra_Progress.UpdateProgress 95
 
-    ' --- Step 11: Apply AutoFilter ---
-    If ws.AutoFilterMode Then ws.AutoFilterMode = False
-    selRange.Rows(1).AutoFilter
-
-    ' --- Step 12: Land cursor on first cell ---
+    ' --- Step 11: Land cursor on first cell ---
     selRange.Cells(1, 1).Select
     Infra_Progress.UpdateProgress 100
 

@@ -17,6 +17,8 @@ Option Explicit
 
 Public Context As ActionContext
 Public SourceRange As Range
+Public ExportScope As String
 Public ExportAsPng As Boolean
 Public ScaleFactor As Long
 Public OutputPath As String
+Public CopyToClipboard As Boolean

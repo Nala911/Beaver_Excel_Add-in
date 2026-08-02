@@ -15,17 +15,88 @@ Public Function ShowExportDialog(ByVal ctx As ActionContext, Optional ByVal comm
     Dim request As ExportRequest
     Dim exportChoice As String
     Dim normalizedChoice As String
+    Dim ws As Worksheet
+    Dim selRng As Range
+
+    If ctx Is Nothing Then GoTo CleanExit
+    Set ws = ctx.WorksheetRef
+    If ws Is Nothing Then GoTo CleanExit
     
     Set request = New ExportRequest
     Set request.Context = ctx
-    Set request.SourceRange = ResolveExportRange(ctx)
     request.ScaleFactor = Infra_Config.DEFAULT_EXPORT_SCALE
+
+    ' Step 1: Prompt Scope (Sheet, Workbook, or Selection)
+    Dim hasSelection As Boolean
+    hasSelection = False
     
+    If TypeName(Selection) = "Range" Then
+        Set selRng = Selection
+        If selRng.Cells.CountLarge > 1 Or selRng.Areas.Count > 1 Then
+            hasSelection = True
+        End If
+    End If
+
+    Dim scopeChoice As String
+    Dim scopeOptions As Variant
+    Dim defaultScope As String
+
+    If hasSelection Then
+        scopeOptions = UI_DialogShared.BuildChoiceArray("Selection", "Sheet", "Workbook")
+        defaultScope = "Selection"
+    Else
+        scopeOptions = UI_DialogShared.BuildChoiceArray("Sheet", "Workbook")
+        defaultScope = "Sheet"
+    End If
+
+    If Not Infra_Interaction.PromptOption( _
+        "What content would you like to export?", _
+        UI_DialogShared.BuildDialogTitle("Export Scope"), defaultScope, scopeOptions, scopeChoice, "ExportScopeOptions") Then GoTo CleanExit
+
+    Dim normalizedScope As String
+    normalizedScope = UI_DialogShared.NormalizeChoiceText(scopeChoice)
+    If normalizedScope = "SELECTION" Or normalizedScope = "RANGE" Then
+        request.ExportScope = "Selection"
+        Set request.SourceRange = selRng
+    ElseIf normalizedScope = "WORKBOOK" Or normalizedScope = "WB" Then
+        request.ExportScope = "Workbook"
+        Set request.SourceRange = ws.UsedRange
+    Else
+        request.ExportScope = "Sheet"
+        Set request.SourceRange = ws.UsedRange
+    End If
+
+    If request.SourceRange Is Nothing Then
+        Set request.SourceRange = ws.UsedRange
+    End If
+
     If request.SourceRange Is Nothing Then
         Infra_Interaction.ShowWarning "No data found on the active sheet to export."
         GoTo CleanExit
     End If
 
+    ' Step 2: Prompt Destination (Copy vs Save to Desktop)
+    Dim destChoice As String
+    Dim normalizedDest As String
+
+    If Not Infra_Interaction.PromptOption( _
+        "Where would you like to export?" & vbCrLf & vbCrLf & _
+        BuildExportSummary(request.SourceRange) & vbCrLf & vbCrLf & _
+        "Copy - Copy directly to clipboard to paste into Gmail, WhatsApp, etc." & vbCrLf & _
+        "Save to Desktop - Export as a file on Desktop", _
+        UI_DialogShared.BuildDialogTitle("Export Destination"), "Save to Desktop", UI_DialogShared.BuildChoiceArray("Copy", "Save to Desktop"), destChoice, "ExportDestinationOptions") Then GoTo CleanExit
+
+    normalizedDest = UI_DialogShared.NormalizeChoiceText(destChoice)
+    If normalizedDest = "COPY" Or normalizedDest = "CLIPBOARD" Or normalizedDest = "C" Then
+        request.CopyToClipboard = True
+        request.ExportAsPng = True
+        Set ShowExportDialog = request
+        GoTo CleanExit
+    Else
+        request.CopyToClipboard = False
+    End If
+
+    ' Step 3: Prompt Format (PNG vs PDF) & Output Path
     Dim skipFormatPrompt As Boolean
     skipFormatPrompt = False
     
@@ -40,13 +111,10 @@ Public Function ShowExportDialog(ByVal ctx As ActionContext, Optional ByVal comm
     If Not skipFormatPrompt Then
         Do
             If Not Infra_Interaction.PromptOption( _
-                "Export the selected content and choose where to save it." & vbCrLf & vbCrLf & _
-                BuildExportSummary(request.SourceRange) & vbCrLf & vbCrLf & _
-                "Choose a format:" & vbCrLf & _
+                "Choose an export file format:" & vbCrLf & vbCrLf & _
                 "PNG - High-resolution image" & vbCrLf & _
-                "PDF - Print-ready document" & vbCrLf & vbCrLf & _
-                "Choose PNG or PDF.", _
-                UI_DialogShared.BuildDialogTitle("Export"), "PNG", UI_DialogShared.BuildChoiceArray("PNG", "PDF"), exportChoice, "ExportOptions") Then GoTo CleanExit
+                "PDF - Print-ready document", _
+                UI_DialogShared.BuildDialogTitle("Export Format"), "PNG", UI_DialogShared.BuildChoiceArray("PNG", "PDF"), exportChoice, "ExportOptions") Then GoTo CleanExit
 
             normalizedChoice = UI_DialogShared.NormalizeChoiceText(exportChoice)
             Select Case normalizedChoice
@@ -57,7 +125,7 @@ Public Function ShowExportDialog(ByVal ctx As ActionContext, Optional ByVal comm
                     request.ExportAsPng = False
                     Exit Do
                 Case Else
-                    Infra_Interaction.ShowWarning "Please choose PNG or PDF.", UI_DialogShared.BuildDialogTitle("Export")
+                    Infra_Interaction.ShowWarning "Please choose PNG or PDF.", UI_DialogShared.BuildDialogTitle("Export Format")
             End Select
         Loop
     End If
@@ -67,12 +135,11 @@ Public Function ShowExportDialog(ByVal ctx As ActionContext, Optional ByVal comm
         If request.ScaleFactor = 0 Then GoTo CleanExit
     End If
 
-    request.OutputPath = PromptForOutputPath( _
+    request.OutputPath = ResolveDesktopOutputPath( _
         ctx, _
         "Export", _
         BuildSuggestedExportBaseName(request.SourceRange, request.ExportAsPng), _
-        IIf(request.ExportAsPng, "png", "pdf"), _
-        IIf(request.ExportAsPng, "PNG Files (*.png), *.png", "PDF Files (*.pdf), *.pdf"))
+        IIf(request.ExportAsPng, "png", "pdf"))
     If request.OutputPath = vbNullString Then GoTo CleanExit
     
     Set ShowExportDialog = request
@@ -184,17 +251,15 @@ Private Function BuildRangeFileLabel(ByVal sourceRange As Range) As String
     End If
 End Function
 
-Private Function PromptForOutputPath(ByVal ctx As ActionContext, ByVal taskName As String, ByVal suggestedBaseName As String, ByVal extensionWithoutDot As String, ByVal fileFilter As String) As String
-    Dim tracker As Object: Set tracker = Infra_Error.Track("PromptForOutputPath")
+Private Function ResolveDesktopOutputPath(ByVal ctx As ActionContext, ByVal taskName As String, ByVal suggestedBaseName As String, ByVal extensionWithoutDot As String) As String
+    Dim tracker As Object: Set tracker = Infra_Error.Track("ResolveDesktopOutputPath")
     On Error GoTo ErrHandler
 
     Dim desktopPath As String
-    Dim initialPath As String
-    Dim selectedPath As String
     Dim normalizedBaseName As String
 
     desktopPath = Infra_AppState.GetDesktopPath()
-    if desktopPath = vbNullString Then
+    If desktopPath = vbNullString Then
         Infra_Interaction.ShowCritical "Could not locate a default save location."
         GoTo CleanExit
     End If
@@ -202,24 +267,11 @@ Private Function PromptForOutputPath(ByVal ctx As ActionContext, ByVal taskName 
     normalizedBaseName = Infra_AppState.SanitizeFileNameStem(suggestedBaseName)
     If normalizedBaseName = vbNullString Then normalizedBaseName = "BeaverOutput"
 
-    initialPath = Infra_AppState.CombinePath(desktopPath, normalizedBaseName & "." & LCase$(extensionWithoutDot))
-    If Not Infra_Interaction.PromptSaveAsPath(UI_DialogShared.BuildDialogTitle(taskName), initialPath, fileFilter, selectedPath) Then GoTo CleanExit
-
-    selectedPath = Infra_AppState.EnsureExtension(selectedPath, extensionWithoutDot)
-    If Infra_AppState.FileExists(selectedPath) Then
-        If Not Infra_Interaction.Confirm( _
-            "A file with this name already exists:" & vbCrLf & selectedPath & vbCrLf & vbCrLf & _
-            "Do you want to replace it?", _
-            UI_DialogShared.BuildDialogTitle(taskName), vbDefaultButton2) Then
-            GoTo CleanExit
-        End If
-    End If
-
-    PromptForOutputPath = selectedPath
+    ResolveDesktopOutputPath = Infra_AppState.CombinePath(desktopPath, normalizedBaseName & "." & LCase$(extensionWithoutDot))
 
 CleanExit:
     Exit Function
 ErrHandler:
-    Infra_Error.HandleError "PromptForOutputPath", Err
+    Infra_Error.HandleError "ResolveDesktopOutputPath", Err
     Resume CleanExit
 End Function

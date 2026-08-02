@@ -272,7 +272,7 @@ function Save-BuildState {
         ExcelPid = $excelPid
     }
     $stateJson = $state | ConvertTo-Json -Depth 10
-    [System.IO.File]::WriteAllText($resolvedBuildStatePath, $stateJson, [System.Text.Encoding]::UTF8)
+    Write-FileSafe -Path $resolvedBuildStatePath -Content $stateJson -Encoding ([System.Text.Encoding]::UTF8)
     $global:BeaverBuildStateCache = $state
 }
 
@@ -287,7 +287,7 @@ function Set-BuildStateTestsPassed {
     if ($null -ne $buildState) {
         $buildState | Add-Member -NotePropertyName TestsPassed -NotePropertyValue $Passed -Force
         $stateJson = $buildState | ConvertTo-Json -Depth 10
-        [System.IO.File]::WriteAllText($resolvedBuildStatePath, $stateJson, [System.Text.Encoding]::UTF8)
+        Write-FileSafe -Path $resolvedBuildStatePath -Content $stateJson -Encoding ([System.Text.Encoding]::UTF8)
         $global:BeaverBuildStateCache = $buildState
     }
 }
@@ -534,6 +534,37 @@ function Get-ManifestStructuralHash {
     return $sb.ToString().ToUpperInvariant()
 }
 
+function Write-FileSafe {
+    param(
+        [string]$Path,
+        [string]$Content,
+        [System.Text.Encoding]$Encoding = [System.Text.Encoding]::UTF8
+    )
+    $dir = Split-Path $Path
+    if ($dir -and -not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+    $tmpPath = "$Path.tmp"
+    $written = $false
+    for ($i = 0; $i -lt 5; $i++) {
+        try {
+            [System.IO.File]::WriteAllText($tmpPath, $Content, $Encoding)
+            if (Test-Path $Path) {
+                [System.IO.File]::Replace($tmpPath, $Path, $null, $true)
+            } else {
+                [System.IO.File]::Move($tmpPath, $Path)
+            }
+            $written = $true
+            break
+        } catch {
+            Start-Sleep -Milliseconds (100 * ($i + 1))
+        }
+    }
+    if (-not $written) {
+        [System.IO.File]::WriteAllText($Path, $Content, $Encoding)
+    }
+}
+
 function Write-FileIfChanged {
     param(
         [string]$Path,
@@ -545,11 +576,7 @@ function Write-FileIfChanged {
             return $false
         }
     }
-    $dir = Split-Path $Path
-    if ($dir -and -not (Test-Path $dir)) {
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    }
-    [System.IO.File]::WriteAllText($Path, $Content, [System.Text.Encoding]::ASCII)
+    Write-FileSafe -Path $Path -Content $Content -Encoding ([System.Text.Encoding]::ASCII)
     return $true
 }
 

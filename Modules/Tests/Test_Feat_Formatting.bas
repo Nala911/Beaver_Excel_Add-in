@@ -309,6 +309,7 @@ Public Sub Test_FormatRange_Execution()
     Test_Runner.AssertEqual ws.Range("A1").Font.Size, Infra_Config.Model.HeaderFontSize, "Header font size should match config"
     Test_Runner.AssertEqual ws.Range("A1").Interior.Color, Infra_Config.Model.HeaderColor, "Header color should match config"
     Test_Runner.AssertEqual ws.Range("A2").Font.Size, Infra_Config.Model.DefaultFontSize, "Data row font size should match default config"
+    Test_Runner.AssertEqual ws.AutoFilterMode, False, "AutoFilter mode should not be enabled on the range"
 
     ' Cleanup
     Application.DisplayAlerts = False

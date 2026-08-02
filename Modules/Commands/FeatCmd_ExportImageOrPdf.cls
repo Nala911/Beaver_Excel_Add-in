@@ -38,109 +38,42 @@ Private Sub ICommand_Execute(ByVal context As ICommandContext)
     If ctx.WorksheetRef Is Nothing Then GoTo CleanExit
     Infra_Error.AddState stateInfo, "Worksheet", ctx.WorksheetRef.Name
 
-    Dim isPdf As Boolean
-    isPdf = (LCase$(context.CommandName) = "exportpdf")
+    Dim ws As Worksheet
+    Set ws = ctx.WorksheetRef
 
-    If isPdf Then
-        Dim exportMode As String
-        Dim selRng As Range
-        Dim ws As Worksheet
-        Set ws = ctx.WorksheetRef
+    Dim request As ExportRequest
+    Set request = UI_Factory.ShowExportDialog(ctx, context.CommandName)
+    If request Is Nothing Then GoTo CleanExit
+    If request.SourceRange Is Nothing Then GoTo CleanExit
 
-        ' 1. Check if we have an active range selection (> 1 cell or multi-area)
-        Dim hasRangeSelection As Boolean
-        hasRangeSelection = False
-        If TypeName(Selection) = "Range" Then
-            Set selRng = Selection
-            If selRng.Cells.CountLarge > 1 Or selRng.Areas.Count > 1 Then
-                hasRangeSelection = True
-            End If
-        End If
+    If request.CopyToClipboard Then
+        Application.StatusBar = "Beaver: Copying content to clipboard..."
+        request.SourceRange.CopyPicture Appearance:=xlScreen, Format:=xlPicture
+        Infra_Interaction.ShowInfo "Content copied to clipboard! You can now paste (Ctrl+V) directly into Gmail, WhatsApp, or any application.", Infra_Config.ADDIN_NAME & " - Copy to Clipboard"
+        GoTo CleanExit
+    End If
 
-        If hasRangeSelection Then
-            exportMode = "Range"
-        Else
-            ' Prompt options: Sheet or Workbook
-            Dim choice As String
-            If Not Infra_Interaction.PromptOption( _
-                "What would you like to export as PDF?", _
-                "Export PDF", "Sheet", Array("Sheet", "Workbook"), choice, _
-                "ExportPdfOptions") Then
-                GoTo CleanExit
-            End If
-            exportMode = choice
-        End If
+    If request.OutputPath = vbNullString Then GoTo CleanExit
 
-        ' 2. Determine Output File Name & Path (Save directly to Desktop)
-        Dim desktopPath As String
-        desktopPath = Infra_AppState.GetDesktopPath()
-        If desktopPath = vbNullString Then
-            Infra_Interaction.ShowCritical "Could not locate the Desktop path.", "Export PDF"
-            GoTo CleanExit
-        End If
-
-        Dim wb As Workbook
-        Set wb = ws.Parent
-
-        Dim wbName As String
-        If InStr(wb.Name, ".") > 0 Then
-            wbName = Left$(wb.Name, InStrRev(wb.Name, ".") - 1)
-        Else
-            wbName = wb.Name
-        End If
-        wbName = Infra_AppState.SanitizeFileNameStem(wbName)
-        If wbName = vbNullString Then wbName = "Workbook"
-
-        Dim fileLabel As String
-        If exportMode = "Range" Then
-            fileLabel = Infra_AppState.SanitizeFileNameStem(ws.Name) & "_Range"
-        ElseIf exportMode = "Sheet" Then
-            fileLabel = Infra_AppState.SanitizeFileNameStem(ws.Name) & "_Sheet"
-        Else
-            fileLabel = "Workbook"
-        End If
-
-        Dim fileName As String
-        fileName = wbName & "_" & fileLabel & "_Export_" & Format(Now, "yyyymmdd_hhnnss") & ".pdf"
-
-        Dim outputPath As String
-        outputPath = Infra_AppState.CombinePath(desktopPath, fileName)
-
-        ' 3. Perform the PDF Export based on Mode
+    If request.ExportAsPng Then
+        Application.StatusBar = "Beaver: Exporting image - please wait..."
+        If Not ExportAsPngImpl(request.SourceRange, request.ScaleFactor, request.OutputPath) Then GoTo CleanExit
+        Infra_Interaction.ShowInfo "Export saved:" & vbCrLf & request.OutputPath, Infra_Config.ADDIN_NAME & " - Export"
+    Else
         Application.StatusBar = "Beaver: Exporting PDF - please wait..."
-
         Dim success As Boolean
         success = False
 
-        If exportMode = "Range" Then
-            success = ExportRangesPdf(ws, selRng, outputPath)
-        ElseIf exportMode = "Sheet" Then
-            success = ExportSheetPdf(ws, outputPath)
-        ElseIf exportMode = "Workbook" Then
-            success = ExportWorkbookPdf(wb, outputPath)
+        If request.ExportScope = "Workbook" Then
+            success = ExportWorkbookPdf(ws.Parent, request.OutputPath)
+        ElseIf request.ExportScope = "Sheet" Then
+            success = ExportSheetPdf(ws, request.OutputPath)
+        Else
+            success = ExportRangesPdf(ws, request.SourceRange, request.OutputPath)
         End If
 
         If success Then
-            Infra_Interaction.ShowInfo "PDF exported successfully to Desktop:" & vbCrLf & outputPath, Infra_Config.ADDIN_NAME & " - Export PDF"
-        End If
-    Else
-        ' PNG / dialog flow
-        Dim request As ExportRequest
-        Set request = UI_Factory.ShowExportDialog(ctx, context.CommandName)
-        If request Is Nothing Then GoTo CleanExit
-        
-        If request.SourceRange Is Nothing Then GoTo CleanExit
-        If request.OutputPath = vbNullString Then GoTo CleanExit
-
-        If request.ExportAsPng Then
-            Application.StatusBar = "Beaver: Exporting image - please wait..."
-            If Not ExportAsPngImpl(request.SourceRange, request.ScaleFactor, request.OutputPath) Then GoTo CleanExit
-            Infra_Interaction.ShowInfo "Export saved:" & vbCrLf & request.OutputPath, Infra_Config.ADDIN_NAME & " - Export"
-        Else
-            ' Fallback PDF export
-            Application.StatusBar = "Beaver: Exporting PDF - please wait..."
-            If Not ExportAsPdfImpl(request.SourceRange, request.OutputPath) Then GoTo CleanExit
-            Infra_Interaction.ShowInfo "Export saved:" & vbCrLf & request.OutputPath, Infra_Config.ADDIN_NAME & " - Export"
+            Infra_Interaction.ShowInfo "PDF exported successfully:" & vbCrLf & request.OutputPath, Infra_Config.ADDIN_NAME & " - Export PDF"
         End If
     End If
 

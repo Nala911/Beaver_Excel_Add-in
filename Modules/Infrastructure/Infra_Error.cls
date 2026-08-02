@@ -1,4 +1,4 @@
-﻿VERSION 1.0 CLASS
+VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -202,16 +202,23 @@ Private Function GetRichContext(Optional ByVal stateInfo As Collection = Nothing
     End If
     If Not ActiveSheet Is Nothing Then
         context = context & "ActiveSheet: " & ActiveSheet.Name & vbCrLf
+        If TypeName(ActiveSheet) = "Worksheet" Then
+            context = context & "ActiveSheet.Protected: " & ActiveSheet.ProtectContents & vbCrLf
+        End If
     End If
+    context = context & "Application.CalculationMode: " & Application.Calculation & vbCrLf
     
     ' Selection
     If TypeName(Selection) = "Range" Then
         Dim sel As Range
         Set sel = Selection
         context = context & "Selection.Address: " & sel.Address(False, False) & vbCrLf
+        If sel.Areas.Count > 1 Then
+            context = context & "Selection.AreasCount: " & sel.Areas.Count & vbCrLf
+        End If
         
         ' If single cell, get its value/formula to help AI
-        If sel.Cells.Count = 1 Then
+        If sel.Cells.CountLarge = 1 Then
             Dim cellVal As Variant
             cellVal = sel.Value
             
@@ -233,7 +240,7 @@ Private Function GetRichContext(Optional ByVal stateInfo As Collection = Nothing
                 context = context & "Selection.Value: " & strVal & vbCrLf
             End If
         Else
-            context = context & "Selection.CellsCount: " & sel.Cells.Count & vbCrLf
+            context = context & "Selection.CellsCount: " & sel.Cells.CountLarge & vbCrLf
         End If
     Else
         context = context & "Selection.Type: " & TypeName(Selection) & vbCrLf
