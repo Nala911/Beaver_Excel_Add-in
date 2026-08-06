@@ -662,7 +662,7 @@ function Initialize-ExcelWorkbookSession {
         $lockFile = Join-Path $resolvedProjectRoot ("~$" + $fileName)
         $excelProcesses = @(Get-Process -Name "EXCEL" -ErrorAction SilentlyContinue)
         
-        if ((Test-Path $lockFile) -and ($excelProcesses.Count -gt 0)) {
+        if ((Test-Path $lockFile) -or ($excelProcesses.Count -gt 0)) {
             $backgroundExcel = @(
                 $excelProcesses | Where-Object {
                     $_.MainWindowHandle -eq 0 -and [string]::IsNullOrWhiteSpace($_.MainWindowTitle)
@@ -670,13 +670,13 @@ function Initialize-ExcelWorkbookSession {
             )
             
             if ($backgroundExcel.Count -gt 0) {
-                Write-Host "  [PRE-STARTUP CLEANUP] Workbook is locked and background Excel process(es) found. Terminating to prevent read-only issues..." -ForegroundColor Yellow
+                Write-Host "  [PRE-STARTUP CLEANUP] Cleaning up background Excel process(es) to release file lock..." -ForegroundColor Yellow
                 foreach ($proc in $backgroundExcel) {
                     try {
                         Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
                     } catch {}
                 }
-                Start-Sleep -Seconds 1
+                Start-Sleep -Milliseconds 500
                 if (Test-Path $lockFile) {
                     Remove-Item $lockFile -Force -ErrorAction SilentlyContinue
                 }

@@ -852,3 +852,195 @@ function Get-VbaComponentNameFromFile {
     
     return [System.IO.Path]::GetFileNameWithoutExtension($FilePath)
 }
+
+function Add-FeatureToManifest {
+    param(
+        [string]$ManifestPath,
+        [string]$ControlId,
+        [string]$Label,
+        [string]$Group,
+        [string]$Tab = "BeaverTab",
+        [string]$Icon = "FunctionWizard",
+        [string]$Keytip = "",
+        [string]$Shortcut = "",
+        [string]$Screentip = "",
+        [string]$Supertip = ""
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ControlId) -or [string]::IsNullOrWhiteSpace($Label)) {
+        throw "ControlId and Label are required to add a feature."
+    }
+
+    $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
+    $commandName = $ControlId -replace "^Btn", ""
+    if ([string]::IsNullOrWhiteSpace($commandName)) { $commandName = $ControlId }
+
+    # Check if feature already exists
+    $existing = @($manifest.Features | Where-Object { $_.ControlId -eq $ControlId })
+    if ($existing.Count -eq 0) {
+        $newFeature = [ordered]@{
+            ControlId = $ControlId
+            Label = $Label
+            OnAction = "Ribbon_On$commandName"
+            Macro = "UI_Ribbon.Ribbon_On$commandName"
+            CommandName = $commandName
+            Icon = $Icon
+            Keytip = $Keytip
+            Screentip = if ($Screentip) { $Screentip } else { $Label }
+            Supertip = if ($Supertip) { $Supertip } else { $Label }
+            RuntimeTestMode = "interactive"
+        }
+        $manifest.Features += [pscustomobject]$newFeature
+        Write-Host "Added feature node '$ControlId' to manifest." -ForegroundColor Green
+    } else {
+        Write-Host "Feature '$ControlId' already exists in manifest. Updating properties." -ForegroundColor Yellow
+        $existing[0].Label = $Label
+        $existing[0].Icon = $Icon
+        if ($Keytip) { $existing[0].Keytip = $Keytip }
+        if ($Screentip) { $existing[0].Screentip = $Screentip }
+        if ($Supertip) { $existing[0].Supertip = $Supertip }
+    }
+
+    # Assign feature to group
+    if ($Group) {
+        $targetGroup = @($manifest.Groups | Where-Object { $_.Id -eq $Group })
+        if ($targetGroup.Count -gt 0) {
+            if ($targetGroup[0].Features -notcontains $ControlId) {
+                $targetGroup[0].Features += $ControlId
+                Write-Host "Assigned feature '$ControlId' to group '$Group'." -ForegroundColor Green
+            }
+        } else {
+            # Create new group if needed
+            $newGroup = [ordered]@{
+                Id = $Group
+                Label = $Group -replace "^Grp", ""
+                TabId = $Tab
+                Features = @($ControlId)
+            }
+            $manifest.Groups += [pscustomobject]$newGroup
+            Write-Host "Created new group '$Group' and assigned feature '$ControlId'." -ForegroundColor Green
+        }
+    }
+
+    # Add Hotkey if shortcut supplied
+    if (-not [string]::IsNullOrWhiteSpace($Shortcut)) {
+        $existingHotkey = @($manifest.Hotkeys | Where-Object { $_.Key -eq $Shortcut -or $_.CommandName -eq $commandName })
+        if ($existingHotkey.Count -eq 0) {
+            $newHotkey = [ordered]@{
+                Key = $Shortcut
+                Macro = "UI_Hotkeys.Hotkey_$commandName"
+                CommandName = $commandName
+                Description = "$Label Shortcut"
+            }
+            $manifest.Hotkeys += [pscustomobject]$newHotkey
+            Write-Host "Added hotkey shortcut '$Shortcut' for '$commandName'." -ForegroundColor Green
+        }
+    }
+
+    # Write back manifest
+    $json = $manifest | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText($ManifestPath, $json, [System.Text.Encoding]::UTF8)
+
+    # Scaffold missing unit test stub if needed
+    $projectRoot = Split-Path $ManifestPath -Parent
+    $testPath = Join-Path $projectRoot "Modules/Tests/Test_Feat_$commandName.bas"
+    if (-not (Test-Path $testPath)) {
+        Sync-UnitTestStub -CommandName $commandName -OutputPath $testPath
+    }
+}
+
+function Add-HotkeyToManifest {
+    param(
+        [string]$ManifestPath,
+        [string]$Key,
+        [string]$Macro,
+        [string]$CommandName,
+        [string]$Description
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Key) -or [string]::IsNullOrWhiteSpace($CommandName)) {
+        throw "Key and CommandName are required to add a hotkey."
+    }
+
+    $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
+    $macroName = if ($Macro) { $Macro } else { "UI_Hotkeys.Hotkey_$CommandName" }
+
+    $existing = @($manifest.Hotkeys | Where-Object { $_.Key -eq $Key })
+    if ($existing.Count -eq 0) {
+        $newHotkey = [ordered]@{
+            Key = $Key
+            Macro = $macroName
+            CommandName = $CommandName
+            Description = if ($Description) { $Description } else { "$CommandName Shortcut" }
+        }
+        $manifest.Hotkeys += [pscustomobject]$newHotkey
+        Write-Host "Added hotkey '$Key' ($CommandName) to manifest." -ForegroundColor Green
+    } else {
+        $existing[0].Macro = $macroName
+        $existing[0].CommandName = $CommandName
+        if ($Description) { $existing[0].Description = $Description }
+        Write-Host "Updated existing hotkey '$Key'." -ForegroundColor Yellow
+    }
+
+    $json = $manifest | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText($ManifestPath, $json, [System.Text.Encoding]::UTF8)
+}
+
+function Sync-UnitTestStub {
+    param(
+        [string]$CommandName,
+        [string]$OutputPath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CommandName)) { return }
+
+    $moduleName = "Test_Feat_$CommandName"
+    $className = "FeatCmd_$CommandName"
+
+    $lines = @(
+        "Attribute VB_Name = ""$moduleName""",
+        'Option Explicit',
+        '',
+        "' @Module: $moduleName",
+        "' @Category: Feature",
+        "' @Description: Unit test suite for $CommandName feature.",
+        "' @ManagedBy: BeaverAddin Agent",
+        "' @Dependencies: Test_Runner, AppContainer, Infra_Error, $className",
+        '',
+        "Public Sub Test_${CommandName}_BasicExecution()",
+        "    Dim tracker As Object: Set tracker = Infra_Error.Track(""Test_${CommandName}_BasicExecution"")",
+        '    On Error GoTo ErrHandler',
+        '',
+        '    Dim ws As Worksheet',
+        '    Set ws = ThisWorkbook.Worksheets.Add',
+        "    ws.Name = ""Test_Temp_${CommandName}""",
+        '',
+        '    AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider',
+        '',
+        "    Dim cmd As New $className",
+        "    Dim ctx As New ActionContext",
+        "    Set ctx.TargetRange = ws.Range(""A1:B10"")",
+        '',
+        '    Test_Runner.AssertTrue Not cmd Is Nothing, "Command instance should be created successfully"',
+        '',
+        '    Application.DisplayAlerts = False',
+        '    ws.Delete',
+        '    Application.DisplayAlerts = True',
+        '',
+        'CleanExit:',
+        '    Exit Sub',
+        'ErrHandler:',
+        '    On Error Resume Next',
+        '    Application.DisplayAlerts = False',
+        '    ws.Delete',
+        '    Application.DisplayAlerts = True',
+        '    On Error GoTo 0',
+        "    Infra_Error.HandleError ""Test_${CommandName}_BasicExecution"", Err",
+        '    Resume CleanExit',
+        'End Sub'
+    )
+
+    $null = Write-FileIfChanged -Path $OutputPath -Content ($lines -join "`r`n")
+    Write-Host "  Scaffolded unit test suite: $moduleName" -ForegroundColor Green
+}
+

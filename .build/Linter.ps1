@@ -29,6 +29,51 @@ function Invoke-VbaLint {
                 $manifestValid = $false
             } else {
                 Write-Host "  features.json schema validation passed." -ForegroundColor Green
+                
+                # Perform deeper integrity validation on features.json
+                $manifestObj = $jsonContent | ConvertFrom-Json
+                
+                # 1. Hotkey collision check
+                if ($null -ne $manifestObj.Hotkeys) {
+                    $seenHotkeys = @{}
+                    foreach ($hk in $manifestObj.Hotkeys) {
+                        if (-not [string]::IsNullOrWhiteSpace($hk.Key)) {
+                            $normKey = $hk.Key.Trim().ToLower()
+                            if ($seenHotkeys.ContainsKey($normKey)) {
+                                Write-Error "Manifest Error: Duplicate hotkey binding detected for key '$($hk.Key)' in features.json!"
+                                $manifestValid = $false
+                            } else {
+                                $seenHotkeys[$normKey] = $hk.CommandName
+                            }
+                        }
+                    }
+                }
+                
+                # 2. Keytip collision check per group
+                if ($null -ne $manifestObj.Features) {
+                    $featuresById = @{}
+                    foreach ($feat in $manifestObj.Features) {
+                        $featuresById[$feat.ControlId] = $feat
+                    }
+                    if ($null -ne $manifestObj.Groups) {
+                        foreach ($group in $manifestObj.Groups) {
+                            $seenKeytips = @{}
+                            foreach ($featId in $group.Features) {
+                                if ($featuresById.ContainsKey($featId)) {
+                                    $feat = $featuresById[$featId]
+                                    if (-not [string]::IsNullOrWhiteSpace($feat.Keytip)) {
+                                        $kt = $feat.Keytip.Trim().ToUpper()
+                                        if ($seenKeytips.ContainsKey($kt)) {
+                                            Write-Warning "Manifest Warning: Duplicate keytip '$kt' in group '$($group.Id)' (controls: $($seenKeytips[$kt]), $featId)."
+                                        } else {
+                                            $seenKeytips[$kt] = $featId
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         } catch {
             Write-Host "  Error validating features.json schema: $_" -ForegroundColor Red

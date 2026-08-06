@@ -11,7 +11,8 @@ VBA Excel Add-in for advanced formatting, cleanup, and reporting.
 ---
 
 ## ⚡ Workflow Commands (`Update.ps1`)
-- `pwsh -File .\Update.ps1` — Full build, lint, test execution, & doc update.
+- `pwsh -File .\Update.ps1` — Standard build, lint, & test execution (skips `.xlam` export for speed).
+- `pwsh -File .\Update.ps1 -ExportAddin` — Full build, test execution, & export compiled `Beaver.xlam` add-in binary.
 - `pwsh -File .\Update.ps1 -Fast` — Fast dev mode (keeps background Excel session alive).
 - `pwsh -File .\Update.ps1 -LintOnly -File <path>` — Sub-second syntax check without Excel.
 - `pwsh -File .\Update.ps1 -Filter "Test_*"` — Run targeted tests.

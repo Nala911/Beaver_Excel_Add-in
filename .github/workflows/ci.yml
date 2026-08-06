@@ -1,0 +1,40 @@
+name: Beaver Excel Add-in CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint-and-validate:
+    name: Sub-Second Lint & Schema Check
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Beaver Linter & Schema Validation
+        shell: pwsh
+        run: |
+          .\Update.ps1 -LintOnly
+
+  build-and-test:
+    name: Build Add-in & Execute Test Suite
+    needs: lint-and-validate
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Fast Development Build & Test Verification
+        shell: pwsh
+        run: |
+          .\Update.ps1 -Fast -GenerateDocs -ExportAddin
+
+      - name: Upload Compiled Add-in Artifact (Beaver.xlam)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Beaver-Excel-Addin
+          path: Beaver.xlam
+          if-no-files-found: ignore

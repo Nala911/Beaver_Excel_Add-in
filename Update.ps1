@@ -24,7 +24,25 @@ param(
     [switch]$Quick,
     [string]$TestCategory,
     [switch]$Status,
-    [string[]]$File
+    [string[]]$File,
+    [switch]$ExportAddin,
+    [switch]$AddFeature,
+    [string]$ControlId,
+    [string]$Label,
+    [string]$Group,
+    [string]$Tab = "BeaverTab",
+    [string]$Icon = "FunctionWizard",
+    [string]$Keytip,
+    [string]$Shortcut,
+    [string]$Screentip,
+    [string]$Supertip,
+    [switch]$AddHotkey,
+    [string]$Key,
+    [string]$Macro,
+    [string]$CommandName,
+    [string]$Description,
+    [switch]$ValidateManifest,
+    [switch]$Repair
 )
 
 Set-StrictMode -Version Latest

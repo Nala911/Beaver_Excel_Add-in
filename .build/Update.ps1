@@ -26,18 +26,36 @@ param(
     [switch]$Quick,
     [string]$TestCategory,
     [switch]$Status,
-    [string[]]$File
+    [string[]]$File,
+    [switch]$ExportAddin,
+    [switch]$AddFeature,
+    [string]$ControlId,
+    [string]$Label,
+    [string]$Group,
+    [string]$Tab = "BeaverTab",
+    [string]$Icon = "FunctionWizard",
+    [string]$Keytip,
+    [string]$Shortcut,
+    [string]$Screentip,
+    [string]$Supertip,
+    [switch]$AddHotkey,
+    [string]$Key,
+    [string]$Macro,
+    [string]$CommandName,
+    [string]$Description,
+    [switch]$ValidateManifest,
+    [switch]$Repair
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 . (Join-Path $PSScriptRoot "BuildSupport.ps1")
+. (Join-Path $PSScriptRoot "lib\Generators.ps1")
 
 # Enable orchestrator mode to share Excel session and hashes across stages
 $global:BeaverOrchestratorActive = $true
 if ($Fast -or $Quick) {
-    $KeepAlive = $true
     $SkipDocs = $true
 }
 $global:BeaverKeepAliveActive = $KeepAlive
@@ -51,6 +69,53 @@ $global:BeaverFeatureManifestCache = $null
 $global:BeaverFileContentCache = $null
 
 try {
+    if ($AddFeature) {
+        Write-Host "Scaffolding new feature command..." -ForegroundColor Cyan
+        Add-FeatureToManifest -ManifestPath $featureManifestPath `
+                             -ControlId $ControlId `
+                             -Label $Label `
+                             -Group $Group `
+                             -Tab $Tab `
+                             -Icon $Icon `
+                             -Keytip $Keytip `
+                             -Shortcut $Shortcut `
+                             -Screentip $Screentip `
+                             -Supertip $Supertip
+        Write-Host "Feature scaffolding complete. Running manifest sync..." -ForegroundColor Green
+        $Force = $true
+    }
+
+    if ($AddHotkey) {
+        Write-Host "Registering new hotkey..." -ForegroundColor Cyan
+        Add-HotkeyToManifest -ManifestPath $featureManifestPath `
+                            -Key $Key `
+                            -Macro $Macro `
+                            -CommandName $CommandName `
+                            -Description $Description
+        Write-Host "Hotkey registration complete." -ForegroundColor Green
+        $Force = $true
+    }
+
+    if ($ValidateManifest) {
+        . (Join-Path $PSScriptRoot "Linter.ps1")
+        $validLint = Invoke-VbaLint -SourceDir $modulesDir -FilesToProcess @()
+        if ($validLint) {
+            Write-Host "Manifest validation PASSED!" -ForegroundColor Green
+            exit 0
+        } else {
+            Write-Host "Manifest validation FAILED!" -ForegroundColor Red
+            exit 1
+        }
+    }
+
+    if ($Repair) {
+        Write-Host "Executing Beaver Agent workspace repair..." -ForegroundColor Cyan
+        $buildStatePath = Join-Path $PSScriptRoot ".build_state.json"
+        if (Test-Path $buildStatePath) { Remove-Item $buildStatePath -Force }
+        $Force = $true
+        Write-Host "Workspace cache cleared. Re-syncing manifests and re-building..." -ForegroundColor Yellow
+    }
+
     if ($Status) {
         Write-Host "=========================================" -ForegroundColor Cyan
         Write-Host "     BEAVER WORKSPACE AGENT STATUS       " -ForegroundColor Cyan
@@ -273,7 +338,8 @@ try {
 
         $skipUnitTests = (-not $hasVbaChanges -and -not $manifestStructureChanged -and -not $Force -and $testsPassed)
 
-        if (-not $hasAnyChanges -and -not $Force -and -not $Filter -and (Test-Path $excelPath) -and $testsPassed) {
+        $xlamPath = Join-Path $projectRoot "Beaver.xlam"
+        if (-not $hasAnyChanges -and -not $Force -and -not $Filter -and (Test-Path $excelPath) -and $testsPassed -and (-not $ExportAddin -or (Test-Path $xlamPath))) {
             Write-Host "========================================" -ForegroundColor Green
             Write-Host "  BEAVER ADD-IN: PIPELINE UP TO DATE" -ForegroundColor Green
             Write-Host "========================================" -ForegroundColor Green
@@ -383,29 +449,57 @@ try {
         Set-BuildStateTestsPassed -Passed $false
     }
 
-    # Save the workbook if everything succeeded and we have an open workbook session
-    if ($global:BeaverSharedExcel) {
+    # Save the workbook if everything succeeded and handle ExportAddin
+    if ($ExportAddin -or $global:BeaverSharedExcel) {
         try {
+            if (-not $global:BeaverSharedExcel) {
+                $session = Initialize-ExcelWorkbookSession -Purpose "ExportAddin"
+                $global:BeaverSharedExcel = $session.Excel
+            }
+            $beaverWb = $null
             $wbs = $global:BeaverSharedExcel.Workbooks
             foreach ($wb in $wbs) {
                 if ($wb.Name -eq "Beaver.xlsm") {
-                    try {
-                        if ($global:BeaverSharedExcel.Calculation -ne -4105) {
-                            $global:BeaverSharedExcel.Calculation = -4105 # xlCalculationAutomatic
-                            Write-Host "  Ensuring calculation option is Automatic before final save." -ForegroundColor Green
-                        }
-                    } catch {}
-                    Write-Host "Saving workbook after successful tests (Save-On-Success)..." -ForegroundColor Green
-                    $wb.Save()
-                    $xlamExportPath = Join-Path $projectRoot "Beaver.xlam"
-                    Write-Host "Exporting compiled Excel Add-in ($xlamExportPath)..." -ForegroundColor Green
-                    $wb.SaveCopyAs($xlamExportPath)
+                    $beaverWb = $wb
                     break
+                }
+            }
+            if ($null -eq $beaverWb) {
+                $beaverWb = $global:BeaverSharedExcel.Workbooks.Open($excelPath)
+            }
+            if ($null -ne $beaverWb) {
+                try {
+                    if ($global:BeaverSharedExcel.Calculation -ne -4105) {
+                        $global:BeaverSharedExcel.Calculation = -4105 # xlCalculationAutomatic
+                        Write-Host "  Ensuring calculation option is Automatic before final save." -ForegroundColor Green
+                    }
+                } catch {}
+                Write-Host "Saving workbook after successful tests (Save-On-Success)..." -ForegroundColor Green
+                $beaverWb.Save()
+
+                if ($ExportAddin) {
+                    $xlamExportPath = Join-Path $projectRoot "Beaver.xlam"
+                    $tempExportPath = Join-Path $projectRoot "Beaver_export_temp.xlsm"
+                    Write-Host "Exporting compiled Excel Add-in (FileFormat 55: xlOpenXMLAddIn -> $xlamExportPath)..." -ForegroundColor Green
+                    
+                    if (Test-Path $tempExportPath) { Remove-Item $tempExportPath -Force -ErrorAction SilentlyContinue }
+                    if (Test-Path $xlamExportPath) { Remove-Item $xlamExportPath -Force -ErrorAction SilentlyContinue }
+                    
+                    $beaverWb.SaveCopyAs($tempExportPath)
+                    $tempWb = $global:BeaverSharedExcel.Workbooks.Open($tempExportPath)
+                    $tempWb.SaveAs($xlamExportPath, 55) # 55 = xlOpenXMLAddIn
+                    $tempWb.Close($false)
+                    Release-ComObjectSafely $tempWb
+                    
+                    if (Test-Path $tempExportPath) { Remove-Item $tempExportPath -Force -ErrorAction SilentlyContinue }
+                    Write-Host "  Successfully compiled and exported valid Beaver.xlam add-in." -ForegroundColor Green
+                } else {
+                    Write-Host "  Skipping Beaver.xlam export (use -ExportAddin to compile and export add-in binary)." -ForegroundColor Gray
                 }
             }
             Release-ComObjectSafely $wbs
         } catch {
-            Write-Warning "Failed to save workbook on success: $($_.Exception.Message)"
+            Write-Warning "Failed to save workbook on success or export add-in: $($_.Exception.Message)"
         }
     }
 

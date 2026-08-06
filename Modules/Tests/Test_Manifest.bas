@@ -52,6 +52,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Test_Feat_Formatting.Test_FormatRange_Execution", filterPattern) Then Test_Feat_Formatting.Test_FormatRange_Execution
     If MatchesFilter("Test_Feat_Formatting.Test_FormatRange_WholeSheetSafety", filterPattern) Then Test_Feat_Formatting.Test_FormatRange_WholeSheetSafety
     If MatchesFilter("Test_Feat_Formatting.Test_PasteFormat_Execution", filterPattern) Then Test_Feat_Formatting.Test_PasteFormat_Execution
+    If MatchesFilter("Test_Feat_General.Test_AppStateGuard_RAII_Restoration", filterPattern) Then Test_Feat_General.Test_AppStateGuard_RAII_Restoration
     If MatchesFilter("Test_Feat_General.Test_GetChunkedRanges_And_SpillExpansion", filterPattern) Then Test_Feat_General.Test_GetChunkedRanges_And_SpillExpansion
     If MatchesFilter("Test_Feat_General.Test_HelloWorld_Execution_And_Undo", filterPattern) Then Test_Feat_General.Test_HelloWorld_Execution_And_Undo
     If MatchesFilter("Test_Feat_General.Test_MultiArea_Undo_Robustness", filterPattern) Then Test_Feat_General.Test_MultiArea_Undo_Robustness
