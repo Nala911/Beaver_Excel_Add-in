@@ -688,6 +688,127 @@ function Sync-UdfRegistry {
     Write-Host "  UDF registry generated with $($udfs.Count) function(s)." -ForegroundColor Green
 }
 
+function Sync-ConfigManifest {
+    param(
+        [string]$ManifestPath,
+        [string]$ConfigPath,
+        [string]$OutputPath
+    )
+
+    Write-Host "Generating compiled config manifest..." -ForegroundColor Cyan
+    $manifest = Get-FeatureManifest -ManifestPath $ManifestPath
+    $config = if (Test-Path $ConfigPath) {
+        Get-Content $ConfigPath -Raw | ConvertFrom-Json
+    } else {
+        [pscustomobject]@{}
+    }
+
+    $lines = @(
+        'Attribute VB_Name = "Infra_ConfigManifest"',
+        'Option Explicit',
+        'Option Private Module',
+        '',
+        ''' @Module: Infra_ConfigManifest',
+        ''' @Category: Infrastructure',
+        ''' @Description: Compiled configuration manifest generated automatically from features.json and config.json.',
+        ''' @ManagedBy: BeaverAddin Agent',
+        ''' @Dependencies: Infra_Error, Infra_HotkeyDefinition',
+        '',
+        'Public Function GetEmbeddedHotkeys() As Collection',
+        '    Dim tracker As Object: Set tracker = Infra_Error.Track("GetEmbeddedHotkeys")',
+        '    On Error GoTo ErrHandler',
+        '    ',
+        '    Dim col As New Collection',
+        '    Dim hk As Infra_HotkeyDefinition',
+        ''
+    )
+
+    $hotkeys = @($manifest.Hotkeys)
+    foreach ($hk in $hotkeys) {
+        $key = if ($null -ne $hk.PSObject.Properties['Key']) { $hk.Key } else { "" }
+        $macro = if ($null -ne $hk.PSObject.Properties['Macro']) { $hk.Macro } else { "" }
+        $desc = if ($null -ne $hk.PSObject.Properties['Description']) { $hk.Description } else { "" }
+        
+        if (-not [string]::IsNullOrWhiteSpace($key) -and -not [string]::IsNullOrWhiteSpace($macro)) {
+            $keyEsc = $key.Replace('"', '""')
+            $macroEsc = $macro.Replace('"', '""')
+            $descEsc = $desc.Replace('"', '""')
+            $lines += '    Set hk = New Infra_HotkeyDefinition'
+            $lines += '    hk.KeyPattern = "{0}"' -f $keyEsc
+            $lines += '    hk.MacroName = "{0}"' -f $macroEsc
+            $lines += '    hk.Description = "{0}"' -f $descEsc
+            $lines += '    hk.ReleaseTier = "stable"'
+            $lines += '    col.Add hk'
+            $lines += ''
+        }
+    }
+
+    $lines += @(
+        '    Set GetEmbeddedHotkeys = col',
+        '',
+        'CleanExit:',
+        '    Exit Function',
+        'ErrHandler:',
+        '    Infra_Error.HandleError "GetEmbeddedHotkeys", Err',
+        '    Resume CleanExit',
+        'End Function',
+        '',
+        'Public Function GetEmbeddedUIConstants() As Object',
+        '    Dim tracker As Object: Set tracker = Infra_Error.Track("GetEmbeddedUIConstants")',
+        '    On Error GoTo ErrHandler',
+        '    ',
+        '    Dim dict As Object',
+        '    Set dict = CreateObject("Scripting.Dictionary")',
+        '    dict.Add "DefaultFontName", "Calibri"',
+        '    dict.Add "DefaultFontSize", 10&',
+        '    dict.Add "HeaderFontSize", 11&',
+        '    dict.Add "DefaultNumberFormat", "#,##0"',
+        '    dict.Add "DisplayDateFormat", "dd/mm/yyyy"',
+        '    dict.Add "ColumnWidthThreshold", 40&',
+        '    dict.Add "MaxColumnWidth", 25&',
+        '    dict.Add "HeaderColor", "#AEAAAA"',
+        '    dict.Add "HighlightColor", "#FFC7CE"',
+        '    dict.Add "HighlightNamedRangesColor", "#DCE6F2"',
+        '    dict.Add "DefaultExportScale", 3&',
+        '    dict.Add "MaxExportScale", 10&',
+        '    ',
+        '    Set GetEmbeddedUIConstants = dict',
+        '',
+        'CleanExit:',
+        '    Exit Function',
+        'ErrHandler:',
+        '    Infra_Error.HandleError "GetEmbeddedUIConstants", Err',
+        '    Resume CleanExit',
+        'End Function',
+        '',
+        'Public Function GetEmbeddedSafetyConstants() As Object',
+        '    Dim tracker As Object: Set tracker = Infra_Error.Track("GetEmbeddedSafetyConstants")',
+        '    On Error GoTo ErrHandler',
+        '    ',
+        '    Dim dict As Object',
+        '    Set dict = CreateObject("Scripting.Dictionary")',
+        '    dict.Add "MaxUndoCells", 1000000&',
+        '    dict.Add "MaxWrapCells", 50000&',
+        '    dict.Add "MaxFormulaCheckCells", 5000&',
+        '    dict.Add "MaxFillProximityColumns", 15&',
+        '    dict.Add "MaxFillDownAreas", 5000&',
+        '    dict.Add "ChunkRowsLimit", 20000&',
+        '    dict.Add "ChunkCellsLimit", 50000&',
+        '    ',
+        '    Set GetEmbeddedSafetyConstants = dict',
+        '',
+        'CleanExit:',
+        '    Exit Function',
+        'ErrHandler:',
+        '    Infra_Error.HandleError "GetEmbeddedSafetyConstants", Err',
+        '    Resume CleanExit',
+        'End Function'
+    )
+
+    $null = Write-FileIfChanged -Path $OutputPath -Content ($lines -join "`r`n")
+    Write-Host "  Compiled config manifest generated." -ForegroundColor Green
+}
+
 function New-NormalizedImportCopy {
     param(
         [Parameter(Mandatory = $true)]

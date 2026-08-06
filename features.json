@@ -4,11 +4,6 @@
                     "Id":  "BeaverTab",
                     "Label":  "Beaver",
                     "Keytip":  "K"
-                },
-                {
-                    "Id":  "OfficeToolsTab",
-                    "Label":  "Office Tools",
-                    "Keytip":  "X"
                 }
             ],
     "Groups":  [
@@ -51,14 +46,6 @@
                        "Label":  "Support",
                        "Features":  [
                                         "BtnHelpCenter"
-                                    ]
-                   },
-                   {
-                       "Id":  "GrpHelloWorld",
-                       "Label":  "Hello World Group",
-                       "TabId":  "OfficeToolsTab",
-                       "Features":  [
-                                        "BtnHelloWorld"
                                     ]
                    }
                ],
@@ -357,16 +344,16 @@
                          "RuntimeTestMode":  "interactive"
                      },
                      {
-                          "ControlId":  "BtnHelloWorld",
-                          "Label":  "Hello World",
-                          "OnAction":  "Ribbon_OnHelloWorld",
-                          "Macro":  "UI_Ribbon.Ribbon_OnHelloWorld",
-                          "CommandName":  "HelloWorld",
-                          "Icon":  "HappyFace",
-                          "Keytip":  "H",
-                          "Screentip":  "Say Hello World",
-                          "Supertip":  "Puts 'Hello world' into the active cell (metadata test).",
-                          "RuntimeTestMode":  "interactive"
+                         "ControlId":  "BtnHelloWorld",
+                         "Label":  "Hello World",
+                         "OnAction":  "Ribbon_OnHelloWorld",
+                         "Macro":  "UI_Ribbon.Ribbon_OnHelloWorld",
+                         "CommandName":  "HelloWorld",
+                         "Icon":  "HappyFace",
+                         "Keytip":  "H",
+                         "Screentip":  "Say Hello World",
+                         "Supertip":  "Puts 'Hello world' into the active cell (metadata test).",
+                         "RuntimeTestMode":  "interactive"
                      },
                      {
                          "ControlId":  "BtnReportGenerator",

@@ -106,6 +106,34 @@ ErrHandler:
     Resume CleanExit
 End Sub
 
+Public Sub Test_StandaloneAddinConfigFallback()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Test_StandaloneAddinConfigFallback")
+    On Error GoTo ErrHandler
+
+    ' Test that compiled embedded config manifest is 100% complete
+    Dim embeddedHotkeys As Collection
+    Set embeddedHotkeys = Infra_ConfigManifest.GetEmbeddedHotkeys()
+    AssertTrue Not embeddedHotkeys Is Nothing, "Embedded hotkeys collection should be available"
+    AssertTrue embeddedHotkeys.Count >= 11, "Embedded hotkeys should contain at least 11 default definitions"
+
+    Dim uiConsts As Object
+    Set uiConsts = Infra_ConfigManifest.GetEmbeddedUIConstants()
+    AssertTrue Not uiConsts Is Nothing, "Embedded UI constants dictionary should be available"
+    AssertEqual CStr(uiConsts("DefaultFontName")), "Calibri", "Embedded UI constant DefaultFontName should be Calibri"
+
+    Dim safetyConsts As Object
+    Set safetyConsts = Infra_ConfigManifest.GetEmbeddedSafetyConstants()
+    AssertTrue Not safetyConsts Is Nothing, "Embedded safety constants dictionary should be available"
+    AssertTrue CLng(safetyConsts("MaxUndoCells")) >= 1000000, "Embedded MaxUndoCells safety threshold should be at least 1,000,000"
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "Test_StandaloneAddinConfigFallback", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Test_TranslateHotkeyHandlesModifiers()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Test_TranslateHotkeyHandlesModifiers")
     On Error GoTo ErrHandler

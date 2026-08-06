@@ -388,7 +388,7 @@ try {
         try {
             $wbs = $global:BeaverSharedExcel.Workbooks
             foreach ($wb in $wbs) {
-                if ($wb.Name -eq "Beaver Add-in.xlsm") {
+                if ($wb.Name -eq "Beaver.xlsm") {
                     try {
                         if ($global:BeaverSharedExcel.Calculation -ne -4105) {
                             $global:BeaverSharedExcel.Calculation = -4105 # xlCalculationAutomatic
@@ -397,6 +397,9 @@ try {
                     } catch {}
                     Write-Host "Saving workbook after successful tests (Save-On-Success)..." -ForegroundColor Green
                     $wb.Save()
+                    $xlamExportPath = Join-Path $projectRoot "Beaver.xlam"
+                    Write-Host "Exporting compiled Excel Add-in ($xlamExportPath)..." -ForegroundColor Green
+                    $wb.SaveCopyAs($xlamExportPath)
                     break
                 }
             }

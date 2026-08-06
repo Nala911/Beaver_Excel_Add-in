@@ -273,6 +273,7 @@ Private Sub ApplyDefaultConfigModel(ByVal model As Infra_ConfigModel)
     Set model.Icons = CreateObject("Scripting.Dictionary")
     Set model.FeatureFlags = CreateObject("Scripting.Dictionary")
     Set model.Hotkeys = New Collection
+    PopulateFallbackHotkeys model.Hotkeys
 End Sub
 
 Private Function GetObjectDictionary(ByVal Category As String) As Object
@@ -308,6 +309,7 @@ Private Function CreateHotkeyDefinitions() As Collection
     On Error GoTo ErrHandler
 
     If hotkeyItems Is Nothing Then
+        PopulateFallbackHotkeys definitions
         Set CreateHotkeyDefinitions = definitions
         GoTo CleanExit
     End If
@@ -322,14 +324,50 @@ Private Function CreateHotkeyDefinitions() As Collection
         definitions.Add hotkey
     Next item
 
+    If definitions.Count = 0 Then
+        PopulateFallbackHotkeys definitions
+    End If
+
     Set CreateHotkeyDefinitions = definitions
 
 CleanExit:
     Exit Function
 ErrHandler:
+    If definitions Is Nothing Then Set definitions = New Collection
+    If definitions.Count = 0 Then PopulateFallbackHotkeys definitions
     Set CreateHotkeyDefinitions = definitions
     Resume CleanExit
 End Function
+
+Private Sub PopulateFallbackHotkeys(ByRef definitions As Collection)
+    On Error Resume Next
+    Set definitions = Infra_ConfigManifest.GetEmbeddedHotkeys()
+    On Error GoTo 0
+
+    If definitions Is Nothing Then Set definitions = New Collection
+    If definitions.Count > 0 Then Exit Sub
+
+    AddHotkeyDef definitions, "^+4", "UI_Hotkeys.Hotkey_ApplyDefaultFormat", "Apply default number format"
+    AddHotkeyDef definitions, "^2", "UI_Hotkeys.Hotkey_ApplyCustomNumberFormat", "Apply custom number format with dialog"
+    AddHotkeyDef definitions, "^+p", "UI_Hotkeys.Hotkey_MakePermanent", "Make selection permanent (values)"
+    AddHotkeyDef definitions, "+{F11}", "UI_Hotkeys.Hotkey_CreateNamedSheet", "Create named sheet"
+    AddHotkeyDef definitions, "^%{DOWN}", "UI_Hotkeys.Hotkey_FillDown", "Fill formula/format down"
+    AddHotkeyDef definitions, "^%{RIGHT}", "UI_Hotkeys.Hotkey_FillRight", "Fill formula/format right"
+    AddHotkeyDef definitions, "^+f", "UI_Hotkeys.Hotkey_FilterBySelectedCell", "Filter by selected cell"
+    AddHotkeyDef definitions, "^+m", "UI_Hotkeys.Hotkey_PasteFormat", "Paste formats only"
+    AddHotkeyDef definitions, "^+q", "UI_Hotkeys.Hotkey_FormatSelectedRange", "Format selected range"
+    AddHotkeyDef definitions, "{BACKSPACE}", "UI_Hotkeys.Hotkey_Backspace", "Clear cell contents"
+    AddHotkeyDef definitions, "{DELETE}", "UI_Hotkeys.Hotkey_Delete", "Clear or delete selection"
+End Sub
+
+Private Sub AddHotkeyDef(ByRef col As Collection, ByVal keyPattern As String, ByVal macroName As String, ByVal desc As String)
+    Dim hotkey As New Infra_HotkeyDefinition
+    hotkey.KeyPattern = keyPattern
+    hotkey.MacroName = macroName
+    hotkey.Description = desc
+    hotkey.ReleaseTier = "stable"
+    col.Add hotkey
+End Sub
 
 Private Function GetObjectValue(ByVal source As Object, ByVal key As String) As String
     On Error Resume Next

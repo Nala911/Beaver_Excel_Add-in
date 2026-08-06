@@ -83,6 +83,7 @@ Public Sub RunGeneratedTests(Optional ByVal filterPattern As String = "")
     If MatchesFilter("Test_Feat_Wrap.Test_Wrap_CellAndPatternModes", filterPattern) Then Test_Feat_Wrap.Test_Wrap_CellAndPatternModes
     If MatchesFilter("Test_Runner.Test_ConfigProvidesTypedHotkeys", filterPattern) Then Test_Runner.Test_ConfigProvidesTypedHotkeys
     If MatchesFilter("Test_Runner.Test_Infrastructure_Basics", filterPattern) Then Test_Runner.Test_Infrastructure_Basics
+    If MatchesFilter("Test_Runner.Test_StandaloneAddinConfigFallback", filterPattern) Then Test_Runner.Test_StandaloneAddinConfigFallback
     If MatchesFilter("Test_Runner.Test_TranslateHotkeyHandlesModifiers", filterPattern) Then Test_Runner.Test_TranslateHotkeyHandlesModifiers
     If MatchesFilter("Test_UI.Test_CommandResolution_NewMenus", filterPattern) Then Test_UI.Test_CommandResolution_NewMenus
     If MatchesFilter("Test_UI.Test_UdfRegistry_And_HelpCenter", filterPattern) Then Test_UI.Test_UdfRegistry_And_HelpCenter

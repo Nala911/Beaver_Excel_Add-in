@@ -388,8 +388,8 @@ function Clear-ExcelResiliencyItems {
                 $valData = $disabledKey.GetValue($valName)
                 if ($null -ne $valData -and $valData -is [byte[]]) {
                     $str = [System.Text.Encoding]::Unicode.GetString($valData)
-                    if ($str -like "*beaver add-in.xlsm*") {
-                        Write-Host "  Found Beaver Add-in in Excel DisabledItems. Enabling it..." -ForegroundColor Yellow
+                    if ($str -like "*beaver.xlsm*") {
+                        Write-Host "  Found Beaver in Excel DisabledItems. Enabling it..." -ForegroundColor Yellow
                         Remove-ItemProperty -Path $regPath -Name $valName -Force -ErrorAction SilentlyContinue
                     }
                 }
@@ -563,7 +563,7 @@ function Initialize-ExcelWorkbookSession {
         [switch]$Visible
     )
 
-    $resolvedExcelPath = if ($null -ne $excelPath) { $excelPath } else { Join-Path (Split-Path $PSScriptRoot -Parent) "Beaver Add-in.xlsm" }
+    $resolvedExcelPath = if ($null -ne $excelPath) { $excelPath } else { Join-Path (Split-Path $PSScriptRoot -Parent) "Beaver.xlsm" }
     $resolvedProjectRoot = if ($null -ne $projectRoot) { $projectRoot } else { Split-Path (Split-Path $PSScriptRoot -Parent) -Parent }
     
     $wasAlreadyOpen = $false

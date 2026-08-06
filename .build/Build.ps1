@@ -100,12 +100,13 @@ try {
         $udfRegistryPath = Join-Path $modulesDir "Libraries\Lib_UdfRegistry.bas"
         $registryMissing = -not (Test-Path $commandRegistryPath)
         $helpMissing = -not (Test-Path $helpManifestPath)
-        $udfMissing = -not (Test-Path $udfRegistryPath)
+        $configManifestMissing = -not (Test-Path $configManifestPath)
         $registryGenerated = $false
         $helpGenerated = $false
         $udfGenerated = $false
+        $configManifestGenerated = $false
         
-        if ($forceFullBuild -or $manifestStructureChanged -or $manifestChanged -or $registryMissing -or $helpMissing -or $udfMissing) {
+        if ($forceFullBuild -or $manifestStructureChanged -or $manifestChanged -or $registryMissing -or $helpMissing -or $udfMissing -or $configManifestMissing) {
             if ($forceFullBuild -or $manifestStructureChanged -or $registryMissing) {
                 Sync-CommandRegistry -ManifestPath $featureManifestPath -OutputPath $commandRegistryPath
                 $registryGenerated = $true
@@ -118,12 +119,17 @@ try {
                 Sync-UdfRegistry -ManifestPath $featureManifestPath -OutputPath $udfRegistryPath
                 $udfGenerated = $true
             }
+            if ($forceFullBuild -or $manifestChanged -or $configManifestMissing) {
+                Sync-ConfigManifest -ManifestPath $featureManifestPath -ConfigPath $configPath -OutputPath $configManifestPath
+                $configManifestGenerated = $true
+            }
             
             if (-not $forceFullBuild) {
                 $generatedRelPaths = @()
                 if ($registryGenerated) { $generatedRelPaths += "Modules/Infrastructure/Infra_CommandRegistry.bas" }
                 if ($helpGenerated) { $generatedRelPaths += "Modules/Libraries/Lib_HelpManifest.bas" }
                 if ($udfGenerated) { $generatedRelPaths += "Modules/Libraries/Lib_UdfRegistry.bas" }
+                if ($configManifestGenerated) { $generatedRelPaths += "Modules/Infrastructure/Infra_ConfigManifest.bas" }
 
                 foreach ($relPath in $generatedRelPaths) {
                     if ($changedFiles -notcontains $relPath) {
@@ -138,6 +144,7 @@ try {
             if ($registryGenerated) { $refreshed += "command registry" }
             if ($helpGenerated) { $refreshed += "help manifest" }
             if ($udfGenerated) { $refreshed += "UDF registry" }
+            if ($configManifestGenerated) { $refreshed += "config manifest" }
             
             if ($refreshed.Count -gt 0) {
                 return ($refreshed -join ", ") + " refreshed"

@@ -7,6 +7,8 @@ Option Explicit
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: Infra_Config, Infra_Error, Lib_UdfRegistry
 
+Private pAreHotkeysRegistered As Boolean
+
 ' Returns a 2D array of all hotkey definitions from JSON.
 '   Column 1 = OnKey pattern  (e.g. "^+p")
 '   Column 2 = Macro name     (e.g. "Feat_MakeItStatic.MakePermanent")
@@ -52,6 +54,21 @@ ErrHandler:
     Resume CleanExit
 End Function
 
+Public Sub EnsureHotkeysRegistered()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("EnsureHotkeysRegistered")
+    On Error GoTo ErrHandler
+
+    If Not pAreHotkeysRegistered Then
+        RegisterHotkeys
+    End If
+
+CleanExit:
+    Exit Sub
+ErrHandler:
+    Infra_Error.HandleError "EnsureHotkeysRegistered", Err
+    Resume CleanExit
+End Sub
+
 ' Binds all shortcuts defined in HotkeyDefinitions via Application.OnKey.
 ' Called by ThisWorkbook.Workbook_Open.
 Public Sub RegisterHotkeys()
@@ -67,10 +84,25 @@ Public Sub RegisterHotkeys()
     On Error Resume Next
     For i = LBound(defs, 1) To UBound(defs, 1)
         If defs(i, 1) <> "" And defs(i, 2) <> "" Then
-            Application.OnKey CStr(defs(i, 1)), CStr(defs(i, 2))
+            Dim macroName As String
+            macroName = CStr(defs(i, 2))
+            
+            ' Strip module prefix (e.g. "UI_Hotkeys.Hotkey_Name" -> "Hotkey_Name")
+            ' to ensure Excel can resolve the macro call in add-in/hidden workbook mode
+            Dim dotPos As Long
+            dotPos = InStr(macroName, ".")
+            If dotPos > 0 Then
+                macroName = Mid(macroName, dotPos + 1)
+            End If
+            
+            ' Register with workbook qualification so Excel routes to this add-in
+            Application.OnKey CStr(defs(i, 1)), "'" & ThisWorkbook.Name & "'!" & macroName
+            ' Also register without workbook qualification so global macro namespace resolves in add-in mode
+            Application.OnKey CStr(defs(i, 1)), macroName
         End If
     Next i
     On Error GoTo ErrHandler
+    pAreHotkeysRegistered = True
 
 CleanExit:
     Exit Sub
@@ -98,6 +130,7 @@ Public Sub UnregisterHotkeys()
         End If
     Next i
     On Error GoTo ErrHandler
+    pAreHotkeysRegistered = False
 
 CleanExit:
     Exit Sub

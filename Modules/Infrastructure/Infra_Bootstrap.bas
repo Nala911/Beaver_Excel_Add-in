@@ -7,12 +7,29 @@ Option Explicit
 ' @ManagedBy: BeaverAddin Agent
 ' @Dependencies: AppContainer, Infra_Config, Infra_Error, Infra_Hotkeys, ExcelContextProvider, Lib_UdfRegistry
 
+Public Sub Auto_Open()
+    Dim tracker As Object: Set tracker = Infra_Error.Track("Auto_Open")
+    On Error GoTo ErrHandler
+
+    Startup
+
+CleanExit:
+    Exit Sub
+
+ErrHandler:
+    Infra_Error.HandleError "Auto_Open", Err
+    Resume CleanExit
+End Sub
+
 Public Sub Startup()
     Dim tracker As Object: Set tracker = Infra_Error.Track("Startup")
     On Error GoTo ErrHandler
 
     AppContainer.Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    
+    ' Register hotkeys directly during startup sequence
     Infra_Hotkeys.RegisterHotkeys
+    
     RegisterUDFs
 
 CleanExit:

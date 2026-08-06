@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 
 # --- Common Paths ---
 $projectRoot = Split-Path $PSScriptRoot -Parent
-$excelPath = Join-Path $projectRoot "Beaver Add-in.xlsm"
+$excelPath = Join-Path $projectRoot "Beaver.xlsm"
 $modulesDir = Join-Path $projectRoot "Modules"
 $diskThisWorkbookCls = Join-Path $projectRoot "ThisWorkbook.cls"
 $ribbonXmlPath = Join-Path $projectRoot "ribbon.xml"
@@ -15,6 +15,7 @@ $featureManifestPath = Join-Path $projectRoot "features.json"
 $configPath = Join-Path $projectRoot "config.json"
 $testManifestPath = Join-Path $modulesDir "Tests\Test_Manifest.bas"
 $commandRegistryPath = Join-Path $modulesDir "Infrastructure\Infra_CommandRegistry.bas"
+$configManifestPath = Join-Path $modulesDir "Infrastructure\Infra_ConfigManifest.bas"
 $uiRibbonPath = Join-Path $modulesDir "UI\UI_Ribbon.bas"
 $uiHotkeysPath = Join-Path $modulesDir "UI\UI_Hotkeys.bas"
 $structuredTestResultsPath = Join-Path $env:TEMP "BeaverAddin.TestResults.tsv"

@@ -46,8 +46,12 @@ Public Sub Initialize(ByVal cfg As IConfig, ByVal errTrk As Infra_Error, ByVal c
 End Sub
 
 Public Sub EnsureInitialized()
-    If pIsInitialized Then Exit Sub
-    Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    If Not pIsInitialized Then
+        Initialize Infra_Config, Infra_Error, ExcelContextProvider
+    End If
+    On Error Resume Next
+    Infra_Hotkeys.EnsureHotkeysRegistered
+    On Error GoTo 0
 End Sub
 
 Public Sub Register(ByVal interfaceName As String, ByVal serviceInstance As Object)

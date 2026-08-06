@@ -51,11 +51,6 @@
           <button id="BtnHelpCenter" label="Help Center" imageMso="Help" size="large" onAction="Ribbon_OnAction" keytip="I" screentip="Show Help Center" supertip="Opens the Beaver Help Center, listing all registered hotkeys, user-defined functions, and their descriptions." />
         </group>
       </tab>
-      <tab id="OfficeToolsTab" label="Office Tools" keytip="X">
-        <group id="GrpHelloWorld" label="Hello World Group">
-          <button id="BtnHelloWorld" label="Hello World" imageMso="HappyFace" size="large" onAction="Ribbon_OnAction" keytip="H" screentip="Say Hello World" supertip="Puts &apos;Hello world&apos; into the active cell (metadata test)." />
-        </group>
-      </tab>
     </tabs>
   </ribbon>
 </customUI>
